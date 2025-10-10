@@ -2,48 +2,34 @@ name: jetleaf_core
 description: The core module that cuts across pod, context, application startup and so much more.
 version: 1.0.0
 
-publish_to: https://onepub.dev/api/fahnhnofly/
-
 homepage: https://jetleaf.hapnium.com
 repository: https://github.com/jetleaf/jetleaf_core
 
 topics:
-- Pod
-- Pod Configuration
-- Pod Management
-- IoC
-- IoC Container
+  - ioc
+  - dependency-injection
+  - service-locator
+  - pod-management
+  - application-core
 
 keywords:
-- Pod
-- Pod Configuration
-- Pod Management
-- IoC
-- IoC Container
+  - ioc
+  - dependency-injection
+  - service-locator
+  - pod
+  - application-startup
 
 environment:
   sdk: ^3.9.0
 
 dependencies:
   meta: ^1.17.0
-  jetleaf_lang:
-    hosted: https://onepub.dev/api/fahnhnofly/
-    version: ^1.0.0
-  jetleaf_logging:
-    hosted: https://onepub.dev/api/fahnhnofly/
-    version: ^1.0.0
-  jetleaf_convert:
-    hosted: https://onepub.dev/api/fahnhnofly/
-    version: ^1.0.0
-  jetleaf_utils:
-    hosted: https://onepub.dev/api/fahnhnofly/
-    version: ^1.0.0
-  jetleaf_env:
-    hosted: https://onepub.dev/api/fahnhnofly/
-    version: ^1.0.0
-  jetleaf_pod:
-    hosted: https://onepub.dev/api/fahnhnofly/
-    version: ^1.0.0
+  jetleaf_lang: ^1.0.0
+  jetleaf_logging: ^1.0.0
+  jetleaf_convert: ^1.0.0
+  jetleaf_utils: ^1.0.0
+  jetleaf_env: ^1.0.0
+  jetleaf_pod: ^1.0.0
 
 dev_dependencies:
   test: ^1.21.0
