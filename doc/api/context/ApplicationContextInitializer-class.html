@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the ApplicationContextInitializer class from the context library, for the Dart programming language.">
+  <title>ApplicationContextInitializer class - context library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">jetleaf_core</a></li>
+    <li><a href="../context/">context.dart</a></li>
+    <li class="self-crumb">ApplicationContextInitializer<span class="signature">&lt;<wbr><span class="type-parameter">T extends <a href="../context/ConfigurableApplicationContext-class.html">ConfigurableApplicationContext</a></span>&gt;</span> class</li>
+  </ol>
+  <div class="self-name">ApplicationContextInitializer</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="context&#47;context-library-sidebar.html"
+    data-below-sidebar="context&#47;ApplicationContextInitializer-class-sidebar.html">
+    <div>
+<h1><span class="kind-class">ApplicationContextInitializer&lt;<wbr><span class="type-parameter">T extends ConfigurableApplicationContext</span>&gt;</span> class 
+    <a href="https://dart.dev/language/class-modifiers#abstract" class="feature feature-abstract" title="This type can not be directly constructed.">abstract</a>
+ 
+</h1></div>
+
+    
+<section class="desc markdown">
+  <p>Strategy interface for initializing an <a href="../context/ApplicationContext-class.html">ApplicationContext</a> before it is
+refreshed.</p>
+<p>Application context initializers provide a hook for programmatic
+configuration of the context before the refresh process begins. They
+are particularly useful for:</p>
+<h3 id="common-use-cases">Common Use Cases:</h3>
+<ul>
+<li><strong>Programmatic Configuration</strong>: Register pods or adjust settings via code</li>
+<li><strong>Environment Setup</strong>: Configure profiles or property sources</li>
+<li><strong>Custom Validation</strong>: Validate context configuration before refresh</li>
+<li><strong>Integration Setup</strong>: Prepare integration with external systems</li>
+<li><strong>Feature Flags</strong>: Enable/disable features based on configuration</li>
+</ul>
+<h3 id="execution-context">Execution Context:</h3>
+<ul>
+<li>Initializers are called <strong>after</strong> the context is created</li>
+<li>But <strong>before</strong> the pod factory is refreshed</li>
+<li>In the order defined by <code>Ordered</code> or <code>@Order</code> annotation</li>
+<li>All initializers are called even if one fails</li>
+</ul>
+<h3 id="example">Example:</h3>
+<pre class="language-dart"><code class="language-dart">class DatabaseInitializer implements ApplicationContextInitializer&lt;GenericApplicationContext&gt; {
+  @override
+  void initialize(GenericApplicationContext context) {
+    // Configure database settings before refresh
+    final env = context.getEnvironment();
+    
+    if (env.acceptsProfiles({'cloud'})) {
+      // Use cloud database configuration
+      context.getPodFactory().registerSingleton(
+        'dataSource',
+        CloudDataSource(env.getProperty('cloud.db.url'))
+      );
+    } else {
+      // Use local database configuration
+      context.getPodFactory().registerSingleton(
+        'dataSource', 
+        LocalDataSource(env.getProperty('local.db.path'))
+      );
+    }
+    
+    logger.info('Database configuration initialized');
+  }
+}
+
+class SecurityInitializer implements ApplicationContextInitializer&lt;GenericApplicationContext&gt; {
+  @override
+  void initialize(GenericApplicationContext context) {
+    // Set up security configuration
+    context.getPodFactory().registerSingleton(
+      'securityConfig',
+      SecurityConfig(
+        enabled: context.getEnvironment().getProperty('security.enabled', bool.fromString, true),
+        jwtSecret: context.getEnvironment().getRequiredProperty('security.jwt.secret')
+      )
+    );
+  }
+}
+
+void main() async {
+  final ctx = GenericApplicationContext();
+  
+  // Register initializers
+  ctx.addApplicationContextInitializer(DatabaseInitializer());
+  ctx.addApplicationContextInitializer(SecurityInitializer());
+  
+  // Initializers will be called during refresh
+  await ctx.refresh();
+}
+</code></pre>
+</section>
+
+
+    <section>
+      <dl class="dl-horizontal">
+        
+
+        
+        
+
+
+        
+        
+  <dt>Annotations</dt>
+  <dd>
+    <ul class="annotation-list clazz-relationships">
+        <li>@Generic(ApplicationContextInitializer)</li>
+    </ul>
+  </dd>
+
+
+      </dl>
+    </section>
+
+    
+  <section class="summary offset-anchor" id="constructors">
+    <h2>Constructors</h2>
+    <dl class="constructor-summary-list">
+        <dt id="ApplicationContextInitializer.new" class="callable">
+          <span class="name"><a href="../context/ApplicationContextInitializer/ApplicationContextInitializer.html">ApplicationContextInitializer.new</a></span><span class="signature">()</span>
+        </dt>
+        <dd>
+          
+        </dd>
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="instance-properties">
+    <h2>Properties</h2>
+    <dl class="properties">
+        <dt id="hashCode" class="property inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The hash code for this object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="runtimeType" class="property inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Type-class.html">Type</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  A representation of the runtime type of the object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-methods">
+    <h2>Methods</h2>
+    <dl class="callables">
+        <dt id="initialize" class="callable">
+  <span class="name"><a href="../context/ApplicationContextInitializer/initialize.html">initialize</a></span><span class="signature">(<wbr><span class="parameter" id="initialize-param-applicationContext"><span class="type-annotation">T</span> <span class="parameter-name">applicationContext</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Strategy interface for initializing an <a href="../context/ApplicationContext-class.html">ApplicationContext</a> before it is
+refreshed.
+  
+
+</dd>
+
+        <dt id="noSuchMethod" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Invoked when a nonexistent method or property is accessed.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="toString" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  A string representation of this object.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="operators">
+    <h2>Operators</h2>
+    <dl class="callables">
+        <dt id="operator ==" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  The equality operator.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+    
+    
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">jetleaf_core</a></li>
+    <li><a href="../context/">context</a></li>
+    <li class="self-crumb">ApplicationContextInitializer<span class="signature">&lt;<wbr><span class="type-parameter">T extends <a href="../context/ConfigurableApplicationContext-class.html">ConfigurableApplicationContext</a></span>&gt;</span> class</li>
+</ol>
+
+    <h5>context library</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    jetleaf_core
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

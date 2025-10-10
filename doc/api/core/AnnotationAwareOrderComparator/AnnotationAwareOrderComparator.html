@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the AnnotationAwareOrderComparator.new constructor from Class AnnotationAwareOrderComparator from the core library, for the Dart programming language.">
+  <title>AnnotationAwareOrderComparator.new constructor - AnnotationAwareOrderComparator - core library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../core/">core.dart</a></li>
+    <li><a href="../../core/AnnotationAwareOrderComparator-class.html">AnnotationAwareOrderComparator</a></li>
+    <li class="self-crumb">AnnotationAwareOrderComparator.new constructor</li>
+  </ol>
+  <div class="self-name">AnnotationAwareOrderComparator.new</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+  <div
+      id="dartdoc-main-content"
+      class="main-content"
+      data-above-sidebar="core&#47;AnnotationAwareOrderComparator-class-sidebar.html"
+      data-below-sidebar="">
+      <div>
+<h1><span class="kind-constructor">AnnotationAwareOrderComparator</span> constructor 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+      <span class="name ">AnnotationAwareOrderComparator</span>(<wbr>)
+    </section>
+    
+<section class="desc markdown">
+  <p>A Jetleaf-provided <code>OrderComparator</code> implementation that determines ordering
+based on the presence of the <code>@Order</code> annotation or the <code>Ordered</code> interface.</p>
+<p>This comparator extends the standard <code>OrderComparator</code> to provide annotation-aware
+ordering capabilities, making it the primary ordering mechanism throughout the
+Jetleaf framework for components that use declarative ordering via annotations.</p>
+<h3 id="order-resolution-strategy">Order Resolution Strategy:</h3>
+<ol>
+<li><strong><code>@Order</code> Annotation</strong>: Highest precedence, directly specifies order value</li>
+<li><strong><code>PriorityOrdered</code> Interface</strong>: Second highest precedence for programmatic control</li>
+<li><strong><code>Ordered</code> Interface</strong>: Standard programmatic ordering</li>
+<li><strong>Default Fallback</strong>: <code>Ordered.LOWEST_PRECEDENCE</code> when no order specified</li>
+</ol>
+<h3 id="supported-types">Supported Types:</h3>
+<ul>
+<li><strong>Classes</strong>: Inspects <code>@Order</code> annotation and <code>Ordered</code> interface implementation</li>
+<li><strong>Sources</strong>: Checks for <code>@Order</code> annotation on source elements</li>
+<li><strong>Executables</strong>: Methods and constructors with parameter count as tiebreaker</li>
+<li><strong>Direct Objects</strong>: Objects implementing <code>Ordered</code> or <code>PriorityOrdered</code></li>
+<li><strong>Raw Integers</strong>: Direct order values for programmatic use</li>
+</ul>
+<h3 id="framework-integration">Framework Integration:</h3>
+<ul>
+<li>Used in pod factory post-processor execution ordering</li>
+<li>Applied to application context initializer sorting</li>
+<li>Utilized for event listener ordering</li>
+<li>Employed in configuration class processing sequence</li>
+</ul>
+<h3 id="example">Example:</h3>
+<pre class="language-dart"><code class="language-dart">@Order(1)
+class HighPriorityService {
+  // This service will be processed first due to @Order(1)
+}
+
+@Order(5)
+class MediumPriorityService {
+  // Processed after HighPriorityService but before LowPriorityService
+}
+
+class LowPriorityService implements Ordered {
+  @override
+  int get order =&gt; 10; // Processed last
+}
+
+class DefaultPriorityService {
+  // No order specified - uses LOWEST_PRECEDENCE (Integer.MAX_VALUE)
+}
+
+void main() {
+  final comparator = AnnotationAwareOrderComparator();
+
+  // Check order values
+  final order1 = comparator.findOrder(Class&lt;HighPriorityService&gt;());
+  print(order1); // 1
+
+  final order2 = comparator.findOrder(Class&lt;LowPriorityService&gt;());
+  print(order2); // 10
+
+  final order3 = comparator.findOrder(Class&lt;DefaultPriorityService&gt;());
+  print(order3); // 2147483647 (Ordered.LOWEST_PRECEDENCE)
+
+  // Sort a list of classes by their order precedence
+  final classes = [
+    Class&lt;LowPriorityService&gt;(),
+    Class&lt;HighPriorityService&gt;(),
+    Class&lt;DefaultPriorityService&gt;(),
+    Class&lt;MediumPriorityService&gt;()
+  ];
+  
+  AnnotationAwareOrderComparator.sort(classes);
+
+  // Classes are now sorted: High, Medium, Low, Default
+  for (final cls in classes) {
+    print('${cls.getSimpleName()}: ${comparator.findOrder(cls)}');
+  }
+}
+</code></pre>
+<h3 id="advanced-usage-with-mixed-types">Advanced Usage with Mixed Types:</h3>
+<pre class="language-dart"><code class="language-dart">// Mix of different order specification methods
+final components = [
+  Class&lt;AnnotatedComponent&gt;(),      // Uses @Order(2)
+  ManualOrderComponent(),           // Implements Ordered returning 1
+  Class&lt;DefaultComponent&gt;(),        // No order specified
+  PriorityComponent(),              // Implements PriorityOrdered returning 0
+  5                                 // Raw integer order value
+];
+
+AnnotationAwareOrderComparator.sort(components);
+// Order: PriorityComponent (0), ManualOrderComponent (1), 
+//        AnnotatedComponent (2), 5 (5), DefaultComponent (MAX_VALUE)
+</code></pre>
+<p>See also:</p>
+<ul>
+<li><code>OrderComparator</code> for the base ordering implementation</li>
+<li><code>Ordered</code> for the standard ordering interface</li>
+<li><code>PriorityOrdered</code> for highest precedence ordering</li>
+<li><a href="../../annotation/Order-class.html">Order</a> for the ordering annotation</li>
+</ul>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">AnnotationAwareOrderComparator();</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../core/">core</a></li>
+    <li><a href="../../core/AnnotationAwareOrderComparator-class.html">AnnotationAwareOrderComparator</a></li>
+    <li class="self-crumb">AnnotationAwareOrderComparator.new constructor</li>
+</ol>
+
+    <h5>AnnotationAwareOrderComparator class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-left-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    jetleaf_core
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

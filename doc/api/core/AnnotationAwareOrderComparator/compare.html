@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the compare method from the AnnotationAwareOrderComparator class, for the Dart programming language.">
+  <title>compare method - AnnotationAwareOrderComparator class - core library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../core/">core.dart</a></li>
+    <li><a href="../../core/AnnotationAwareOrderComparator-class.html">AnnotationAwareOrderComparator</a></li>
+    <li class="self-crumb">compare method</li>
+  </ol>
+  <div class="self-name">compare</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="core&#47;AnnotationAwareOrderComparator-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">compare</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+  <div>
+    <ol class="annotation-list">
+        <li>@<a href="https://api.dart.dev/stable/3.9.2/dart-core/override-constant.html">override</a></li>
+    </ol>
+  </div>
+<span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>
+<span class="name ">compare</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="compare-param-o1"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">o1</span>, </span></li>
+<li><span class="parameter" id="compare-param-o2"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">o2</span></span></li>
+</ol>)
+
+      <div class="features"><span class="feature">inherited</span></div>
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Compares two objects for order.</p>
+<p>This is the core comparison method that implements the <code>Comparator</code> interface.
+It determines the relative ordering of two objects based on their
+order precedence as defined by the JetLeaf ordering system.</p>
+<h3 id="parameters">Parameters:</h3>
+<ul>
+<li><code>o1</code>: The first object to compare</li>
+<li><code>o2</code>: The second object to compare</li>
+</ul>
+<h3 id="returns">Returns:</h3>
+<ul>
+<li>A negative integer if <code>o1</code> should come before <code>o2</code></li>
+<li>A positive integer if <code>o2</code> should come before <code>o1</code></li>
+<li>Zero if <code>o1</code> and <code>o2</code> have the same order precedence</li>
+</ul>
+<h3 id="comparison-logic">Comparison Logic:</h3>
+<ol>
+<li><code>PriorityOrdered</code> objects always come before non-priority objects</li>
+<li>Within the same priority class, objects are ordered by their order value</li>
+<li>Lower order values indicate higher precedence</li>
+</ol>
+<h3 id="example">Example:</h3>
+<pre class="language-dart"><code class="language-dart">final comp1 = MyComponent()..getOrder = () =&gt; 1;
+final comp2 = MyComponent()..getOrder = () =&gt; 2;
+
+final result = OrderComparator.INSTANCE.compare(comp1, comp2);
+print(result); // -1 (comp1 comes before comp2)
+</code></pre>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">@override
+int compare(Object o1, Object o2) =&gt; whenCompared(o1, o2);</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../core/">core</a></li>
+    <li><a href="../../core/AnnotationAwareOrderComparator-class.html">AnnotationAwareOrderComparator</a></li>
+    <li class="self-crumb">compare method</li>
+</ol>
+
+    <h5>AnnotationAwareOrderComparator class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    jetleaf_core
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

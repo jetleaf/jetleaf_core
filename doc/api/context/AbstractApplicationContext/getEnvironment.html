@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the getEnvironment method from the AbstractApplicationContext class, for the Dart programming language.">
+  <title>getEnvironment method - AbstractApplicationContext class - context library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../context/">context.dart</a></li>
+    <li><a href="../../context/AbstractApplicationContext-class.html">AbstractApplicationContext</a></li>
+    <li class="self-crumb">getEnvironment method</li>
+  </ol>
+  <div class="self-name">getEnvironment</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="context&#47;AbstractApplicationContext-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">getEnvironment</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+  <div>
+    <ol class="annotation-list">
+        <li>@<a href="https://api.dart.dev/stable/3.9.2/dart-core/override-constant.html">override</a></li>
+    </ol>
+  </div>
+<span class="returntype">Environment</span>
+<span class="name ">getEnvironment</span>(<wbr>)
+
+      <div class="features"><span class="feature">override</span></div>
+
+    </section>
+    
+<section class="desc markdown">
+  <p>🫘 Returns the <code>Environment</code> associated with the current context.</p>
+<p>The <code>Environment</code> provides unified access to configuration mechanisms
+including profiles, property sources, and configuration properties.</p>
+<h3 id="environment-capabilities">Environment Capabilities:</h3>
+<ul>
+<li><strong>Profile Management</strong>: Active profile detection and validation</li>
+<li><strong>Property Resolution</strong>: Hierarchical property source resolution</li>
+<li><strong>Configuration Abstraction</strong>: Unified access to various config sources</li>
+<li><strong>Type Conversion</strong>: Automatic type conversion for property values</li>
+</ul>
+<h3 id="typical-usage">Typical Usage:</h3>
+<pre class="language-dart"><code class="language-dart">final env = context.getEnvironment();
+
+// Check active profiles
+if (env.acceptsProfiles({'dev', 'debug'})) {
+  print('Running in development mode');
+  enableDebugFeatures();
+} else if (env.acceptsProfiles({'production'})) {
+  print('Running in production mode');
+  enableProductionFeatures();
+}
+
+// Access configuration properties
+final dbUrl = env.getProperty('database.url');
+final maxConnections = env.getProperty('database.pool.max-size', int.fromString);
+final enableCache = env.getProperty('cache.enabled', bool.fromString, defaultValue: false);
+
+// Work with property sources
+for (final source in env.getPropertySources()) {
+  print('Property source: ${source.getName()}');
+}
+</code></pre>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">@override
+Environment getEnvironment() {
+  if (_environment == null) {
+    return GlobalEnvironment();
+  }
+
+  return _environment!;
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../context/">context</a></li>
+    <li><a href="../../context/AbstractApplicationContext-class.html">AbstractApplicationContext</a></li>
+    <li class="self-crumb">getEnvironment method</li>
+</ol>
+
+    <h5>AbstractApplicationContext class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    jetleaf_core
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

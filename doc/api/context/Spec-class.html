@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the Spec class from the context library, for the Dart programming language.">
+  <title>Spec class - context library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">jetleaf_core</a></li>
+    <li><a href="../context/">context.dart</a></li>
+    <li class="self-crumb">Spec<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span> class</li>
+  </ol>
+  <div class="self-name">Spec</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="context&#47;context-library-sidebar.html"
+    data-below-sidebar="context&#47;Spec-class-sidebar.html">
+    <div>
+<h1><span class="kind-class">Spec&lt;<wbr><span class="type-parameter">T</span>&gt;</span> class 
+    <a href="https://dart.dev/language/class-modifiers#abstract" class="feature feature-abstract" title="This type can not be directly constructed.">abstract</a>
+ 
+</h1></div>
+
+    
+<section class="desc markdown">
+  <p>A <strong>Jetleaf</strong> definition describing how a pod should be instantiated,
+configured, and managed inside the container.</p>
+<p>A <code>Spec</code> acts as a fluent builder for pod registration. It allows chaining
+configuration methods for scope, lifecycle, dependencies, naming, and
+autowiring.</p>
+<h3 id="when-to-use">When to use</h3>
+<p>Use a <code>Spec</code> whenever you register a pod inside a <code>Registry</code>. It provides
+a structured, declarative way to define pod behaviors and their container
+interactions.</p>
+<h3 id="example">Example</h3>
+<pre class="language-dart"><code class="language-dart">registry.registerPod(MyService.classType, customizer: (spec) {
+  spec
+    .namedAs('myService')
+    .withScope(ScopeType.singleton)
+    .describedAs('Provides business logic services')
+    .suppliedBy((ctx) =&gt; MyService(ctx.get(Dependency.classType)));
+});
+</code></pre>
+<h3 id="fluent-chaining">Fluent Chaining</h3>
+<p>All methods return the same <code>Spec&lt;T&gt;</code> instance, allowing chained invocations.</p>
+</section>
+
+
+    <section>
+      <dl class="dl-horizontal">
+        
+
+        
+        
+
+
+        
+        
+  <dt>Annotations</dt>
+  <dd>
+    <ul class="annotation-list clazz-relationships">
+        <li>@Generic(Spec)</li>
+    </ul>
+  </dd>
+
+
+      </dl>
+    </section>
+
+    
+  <section class="summary offset-anchor" id="constructors">
+    <h2>Constructors</h2>
+    <dl class="constructor-summary-list">
+        <dt id="Spec.new" class="callable">
+          <span class="name"><a href="../context/Spec/Spec.html">Spec.new</a></span><span class="signature">({<span class="parameter" id="-param-type"><span>required</span> <span class="type-annotation">Class</span> <span class="parameter-name">type</span></span>})</span>
+        </dt>
+        <dd>
+          A <strong>Jetleaf</strong> definition describing how a pod should be instantiated,
+configured, and managed inside the container.
+        </dd>
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="instance-properties">
+    <h2>Properties</h2>
+    <dl class="properties">
+        <dt id="annotatedClasses" class="property inherited">
+  <span class="name"><a href="../context/Spec/annotatedClasses.html">annotatedClasses</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">Class</span>&gt;</span></span>
+  
+
+</dt>
+<dd class="inherited">
+  The list of annotation classes which the <code>type</code> of this pod definition is annotated with.
+  <div class="features"><span class="feature">final</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="annotations" class="property inherited">
+  <span class="name"><a href="../context/Spec/annotations.html">annotations</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">Annotation</span>&gt;</span></span>
+  
+
+</dt>
+<dd class="inherited">
+  The complete list of annotations discovered on the class
+and its meta-annotations.
+  <div class="features"><span class="feature">final</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="autowireCandidate" class="property inherited">
+  <span class="name"><a href="../context/Spec/autowireCandidate.html">autowireCandidate</a></span>
+  <span class="signature">&#8596; AutowireCandidateDescriptor</span>
+  
+
+</dt>
+<dd class="inherited">
+  Defines whether this pod is eligible for autowiring.
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="dependencyCheck" class="property inherited">
+  <span class="name"><a href="../context/Spec/dependencyCheck.html">dependencyCheck</a></span>
+  <span class="signature">&#8596; DependencyCheck</span>
+  
+
+</dt>
+<dd class="inherited">
+  Defines the dependency validation strategy.
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="dependsOn" class="property inherited">
+  <span class="name"><a href="../context/Spec/dependsOn.html">dependsOn</a></span>
+  <span class="signature">&#8596; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">DependencyDesign</span>&gt;</span></span>
+  
+
+</dt>
+<dd class="inherited">
+  Other dependencies that this pod depends on.
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="description" class="property inherited">
+  <span class="name"><a href="../context/Spec/description.html">description</a></span>
+  <span class="signature">&#8596; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span>
+  
+
+</dt>
+<dd class="inherited">
+  A description of the pod.
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="design" class="property inherited">
+  <span class="name"><a href="../context/Spec/design.html">design</a></span>
+  <span class="signature">&#8596; DesignDescriptor</span>
+  
+
+</dt>
+<dd class="inherited">
+  Defines the design role of the pod.
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="executableArgumentValues" class="property inherited">
+  <span class="name"><a href="../context/Spec/executableArgumentValues.html">executableArgumentValues</a></span>
+  <span class="signature">&#8596; ConstructorArgumentValues</span>
+  
+
+</dt>
+<dd class="inherited">
+  Arguments to be passed to the pod’s constructor.
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="factoryMethod" class="property inherited">
+  <span class="name"><a href="../context/Spec/factoryMethod.html">factoryMethod</a></span>
+  <span class="signature">&#8596; FactoryMethodDesign</span>
+  
+
+</dt>
+<dd class="inherited">
+  The factory method used to create this pod.
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="hasBeforeInstantiationResolved" class="property inherited">
+  <span class="name"><a href="../context/Spec/hasBeforeInstantiationResolved.html">hasBeforeInstantiationResolved</a></span>
+  <span class="signature">&#8596; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  Whether this pod has been resolved before instantiation.
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="hashCode" class="property inherited">
+  <span class="name"><a href="../context/Spec/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The hash code for this object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="isPodProvider" class="property inherited">
+  <span class="name"><a href="../context/Spec/isPodProvider.html">isPodProvider</a></span>
+  <span class="signature">&#8596; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  Whether this pod is a provider of other pods.
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="lifecycle" class="property inherited">
+  <span class="name"><a href="../context/Spec/lifecycle.html">lifecycle</a></span>
+  <span class="signature">&#8596; LifecycleDesign</span>
+  
+
+</dt>
+<dd class="inherited">
+  Defines the lifecycle behavior of the pod.
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="name" class="property inherited">
+  <span class="name"><a href="../context/Spec/name.html">name</a></span>
+  <span class="signature">&#8596; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The unique name of the pod (component).
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="preferredConstructors" class="property inherited">
+  <span class="name"><a href="../context/Spec/preferredConstructors.html">preferredConstructors</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">Constructor</span>&gt;</span></span>
+  
+
+</dt>
+<dd class="inherited">
+  List of preferred constructors for autowiring.
+  <div class="features"><span class="feature">final</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="propertyValues" class="property inherited">
+  <span class="name"><a href="../context/Spec/propertyValues.html">propertyValues</a></span>
+  <span class="signature">&#8596; MutablePropertyValues</span>
+  
+
+</dt>
+<dd class="inherited">
+  Mutable property values assigned to this pod.
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="runtimeType" class="property inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Type-class.html">Type</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  A representation of the runtime type of the object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="scope" class="property inherited">
+  <span class="name"><a href="../context/Spec/scope.html">scope</a></span>
+  <span class="signature">&#8596; ScopeDesign</span>
+  
+
+</dt>
+<dd class="inherited">
+  Defines the scope of the pod.
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="type" class="property inherited">
+  <span class="name"><a href="../context/Spec/type.html">type</a></span>
+  <span class="signature">&#8596; Class</span>
+  
+
+</dt>
+<dd class="inherited">
+  The <code>Class</code> type that this pod represents.
+  <div class="features"><span class="feature">getter/setter pair</span><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-methods">
+    <h2>Methods</h2>
+    <dl class="callables">
+        <dt id="addConstructorArguments" class="callable">
+  <span class="name"><a href="../context/Spec/addConstructorArguments.html">addConstructorArguments</a></span><span class="signature">(<wbr><span class="parameter" id="addConstructorArguments-param-argument"><span class="type-annotation">ArgumentValue</span> <span class="parameter-name">argument</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Adds a constructor <code>argument</code> for pod instantiation.
+  
+
+</dd>
+
+        <dt id="addPropertyValue" class="callable">
+  <span class="name"><a href="../context/Spec/addPropertyValue.html">addPropertyValue</a></span><span class="signature">(<wbr><span class="parameter" id="addPropertyValue-param-value"><span class="type-annotation">PropertyValue</span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Adds a property <code>value</code> to this pod definition.
+  
+
+</dd>
+
+        <dt id="asAutowireCandidate" class="callable">
+  <span class="name"><a href="../context/Spec/asAutowireCandidate.html">asAutowireCandidate</a></span><span class="signature">(<wbr><span class="parameter" id="asAutowireCandidate-param-mode"><span class="type-annotation">AutowireMode</span> <span class="parameter-name">mode</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Declares this pod as an autowire candidate with the given <code>mode</code>.
+  
+
+</dd>
+
+        <dt id="asPodProvider" class="callable">
+  <span class="name"><a href="../context/Spec/asPodProvider.html">asPodProvider</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Marks this spec as a pod provider (i.e., a factory for other pods).
+  
+
+</dd>
+
+        <dt id="clone" class="callable inherited">
+  <span class="name"><a href="../context/Spec/clone.html">clone</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; PodDefinition</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Creates and returns a <strong>deep clone</strong> of this pod definition.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="createdBy" class="callable">
+  <span class="name"><a href="../context/Spec/createdBy.html">createdBy</a></span><span class="signature">(<wbr><span class="parameter" id="createdBy-param-factoryClass"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">factoryClass</span>, </span><span class="parameter" id="createdBy-param-methodName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">methodName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Configures a factory method for creating this pod.
+  
+
+</dd>
+
+        <dt id="dependingOn" class="callable">
+  <span class="name"><a href="../context/Spec/dependingOn.html">dependingOn</a></span><span class="signature">(<wbr><span class="parameter" id="dependingOn-param-dependencies"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">DependencyDesign</span>&gt;</span></span> <span class="parameter-name">dependencies</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Declares <code>dependencies</code> required for this pod.
+  
+
+</dd>
+
+        <dt id="describedAs" class="callable">
+  <span class="name"><a href="../context/Spec/describedAs.html">describedAs</a></span><span class="signature">(<wbr><span class="parameter" id="describedAs-param-description"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">description</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Adds a human-readable <code>description</code> to this pod spec.<br>
+This can be useful for debugging, logging, or documentation purposes.
+  
+
+</dd>
+
+        <dt id="designedWithLifecycle" class="callable">
+  <span class="name"><a href="../context/Spec/designedWithLifecycle.html">designedWithLifecycle</a></span><span class="signature">(<wbr>{<span class="parameter" id="designedWithLifecycle-param-lazy"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">lazy</span> = <span class="default-value">false</span>, </span><span class="parameter" id="designedWithLifecycle-param-initMethods"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">initMethods</span> = <span class="default-value">const []</span>, </span><span class="parameter" id="designedWithLifecycle-param-destroyMethods"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">destroyMethods</span> = <span class="default-value">const []</span>, </span><span class="parameter" id="designedWithLifecycle-param-enforceInitMethod"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">enforceInitMethod</span> = <span class="default-value">false</span>, </span><span class="parameter" id="designedWithLifecycle-param-enforceDestroyMethod"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">enforceDestroyMethod</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Configures lifecycle design for the pod.
+  
+
+</dd>
+
+        <dt id="equalizedProperties" class="callable inherited">
+  <span class="name"><a href="../context/Spec/equalizedProperties.html">equalizedProperties</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Mixin-style contract for value-based equality, <code>hashCode</code>, and <code>toString</code>.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="expressedWith" class="callable">
+  <span class="name"><a href="../context/Spec/expressedWith.html">expressedWith</a></span><span class="signature">(<wbr><span class="parameter" id="expressedWith-param-expression"><span class="type-annotation">PodExpression<span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span></span> <span class="parameter-name">expression</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Configures the pod using a custom <code>expression</code>.
+  
+
+</dd>
+
+        <dt id="getAnnotation" class="callable inherited">
+  <span class="name"><a href="../context/Spec/getAnnotation.html">getAnnotation</a></span><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; A?</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns the annotation of type <code>A</code>, if present.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getAnnotations" class="callable inherited">
+  <span class="name"><a href="../context/Spec/getAnnotations.html">getAnnotations</a></span><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns a list of annotations of type <code>A</code>.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="hasAnnotation" class="callable inherited">
+  <span class="name"><a href="../context/Spec/hasAnnotation.html">hasAnnotation</a></span><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns <code>true</code> if this definition has an annotation of type <code>A</code>.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="hasConstructorArgumentValues" class="callable inherited">
+  <span class="name"><a href="../context/Spec/hasConstructorArgumentValues.html">hasConstructorArgumentValues</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns whether this pod definition contains any
+<strong>constructor argument values</strong>.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="hasPreferredConstructors" class="callable inherited">
+  <span class="name"><a href="../context/Spec/hasPreferredConstructors.html">hasPreferredConstructors</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns whether this pod definition has any preferred constructors.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="hasPropertyValues" class="callable inherited">
+  <span class="name"><a href="../context/Spec/hasPropertyValues.html">hasPropertyValues</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns whether this pod definition contains any
+<strong>property values</strong>.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="isAbstractAndNoFactory" class="callable inherited">
+  <span class="name"><a href="../context/Spec/isAbstractAndNoFactory.html">isAbstractAndNoFactory</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns <code>true</code> if this definition is non-instantiable.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="namedAs" class="callable">
+  <span class="name"><a href="../context/Spec/namedAs.html">namedAs</a></span><span class="signature">(<wbr><span class="parameter" id="namedAs-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Assigns a logical <code>name</code> to this pod spec.
+  
+
+</dd>
+
+        <dt id="noSuchMethod" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Invoked when a nonexistent method or property is accessed.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="suppliedBy" class="callable">
+  <span class="name"><a href="../context/Spec/suppliedBy.html">suppliedBy</a></span><span class="signature">(<wbr><span class="parameter" id="suppliedBy-param-supplier"><span class="type-annotation">T</span> <span class="parameter-name">supplier</span>(<span class="parameter" id="param-context"><span class="type-annotation"><a href="../context/SpecContext-class.html">SpecContext</a></span> <span class="parameter-name">context</span></span>)</span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Supplies a pod instance using a <code>supplier</code> function.
+  
+
+</dd>
+
+        <dt id="target" class="callable">
+  <span class="name"><a href="../context/Spec/target.html">target</a></span><span class="signature">(<wbr><span class="parameter" id="target-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span> <span class="parameter-name">type</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Targets this spec towards a specific <code>type</code>.
+  
+
+</dd>
+
+        <dt id="toString" class="callable inherited">
+  <span class="name"><a href="../context/Spec/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  A string representation of this object.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="toStringOptions" class="callable inherited">
+  <span class="name"><a href="../context/Spec/toStringOptions.html">toStringOptions</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; ToStringOptions</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="withAutowire" class="callable">
+  <span class="name"><a href="../context/Spec/withAutowire.html">withAutowire</a></span><span class="signature">(<wbr><span class="parameter" id="withAutowire-param-descriptor"><span class="type-annotation">AutowireCandidateDescriptor</span> <span class="parameter-name">descriptor</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Provides a <code>descriptor</code> describing autowiring rules for this pod.
+  
+
+</dd>
+
+        <dt id="withDesign" class="callable">
+  <span class="name"><a href="../context/Spec/withDesign.html">withDesign</a></span><span class="signature">(<wbr><span class="parameter" id="withDesign-param-design"><span class="type-annotation">DesignDescriptor</span> <span class="parameter-name">design</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Associates a <code>design</code> descriptor with this pod.<br>
+A design encapsulates structural or semantic metadata about the pod.
+  
+
+</dd>
+
+        <dt id="withDesignRole" class="callable">
+  <span class="name"><a href="../context/Spec/withDesignRole.html">withDesignRole</a></span><span class="signature">(<wbr><span class="parameter" id="withDesignRole-param-role"><span class="type-annotation">DesignRole</span> <span class="parameter-name">role</span>, {</span><span class="parameter" id="withDesignRole-param-isPrimary"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">isPrimary</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Assigns a design <code>role</code> to this pod, with an option to mark it as
+<code>isPrimary</code> for autowiring resolution.
+  
+
+</dd>
+
+        <dt id="withFactory" class="callable">
+  <span class="name"><a href="../context/Spec/withFactory.html">withFactory</a></span><span class="signature">(<wbr><span class="parameter" id="withFactory-param-descriptor"><span class="type-annotation">FactoryMethodDesign</span> <span class="parameter-name">descriptor</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Defines this pod using a factory <code>descriptor</code>.
+  
+
+</dd>
+
+        <dt id="withLifecycle" class="callable">
+  <span class="name"><a href="../context/Spec/withLifecycle.html">withLifecycle</a></span><span class="signature">(<wbr><span class="parameter" id="withLifecycle-param-lifecycle"><span class="type-annotation">LifecycleDesign</span> <span class="parameter-name">lifecycle</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Attaches a lifecycle <code>lifecycle</code> definition to this pod.
+  
+
+</dd>
+
+        <dt id="withScope" class="callable">
+  <span class="name"><a href="../context/Spec/withScope.html">withScope</a></span><span class="signature">(<wbr><span class="parameter" id="withScope-param-type"><span class="type-annotation">ScopeType</span> <span class="parameter-name">type</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Defines the <code>type</code> of scope this pod belongs to (e.g., <code>singleton</code>,
+<code>prototype</code>).
+  
+
+</dd>
+
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="operators">
+    <h2>Operators</h2>
+    <dl class="callables">
+        <dt id="operator ==" class="callable inherited">
+  <span class="name"><a href="../context/Spec/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  The equality operator.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+    
+    
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">jetleaf_core</a></li>
+    <li><a href="../context/">context</a></li>
+    <li class="self-crumb">Spec<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span> class</li>
+</ol>
+
+    <h5>context library</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    jetleaf_core
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the publishEvent method from the ApplicationContext class, for the Dart programming language.">
+  <title>publishEvent method - ApplicationContext class - context library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../context/">context.dart</a></li>
+    <li><a href="../../context/ApplicationContext-class.html">ApplicationContext</a></li>
+    <li class="self-crumb">publishEvent abstract method</li>
+  </ol>
+  <div class="self-name">publishEvent</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="context&#47;ApplicationContext-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">publishEvent</span> abstract method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+<span class="name ">publishEvent</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="publishEvent-param-event"><span class="type-annotation"><a href="../../context/ApplicationEvent-class.html">ApplicationEvent</a></span> <span class="parameter-name">event</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Publishes the given <code>event</code> to all registered <a href="../../context/ApplicationEventListener-class.html">ApplicationEventListener</a>s.</p>
+<p>This method implements the <strong>Observer pattern</strong> within the application context,
+allowing decoupled communication between application components.</p>
+<h3 id="event-delivery-guarantees">Event Delivery Guarantees:</h3>
+<ul>
+<li><strong>Synchronous Delivery</strong>: Events are typically delivered synchronously</li>
+<li><strong>Order Preservation</strong>: Events are delivered in publication order</li>
+<li><strong>Exception Handling</strong>: Listener exceptions are caught and logged</li>
+<li><strong>Thread Context</strong>: Events are published in the caller's thread context</li>
+</ul>
+<h3 id="event-types">Event Types:</h3>
+<ul>
+<li><strong>Context Lifecycle Events</strong>: <code>ContextRefreshedEvent</code>, <code>ContextClosedEvent</code></li>
+<li><strong>Application Domain Events</strong>: <code>UserCreatedEvent</code>, <code>OrderProcessedEvent</code></li>
+<li><strong>Framework Events</strong>: Internal framework operation events</li>
+</ul>
+<h3 id="example">Example:</h3>
+<pre class="language-dart"><code class="language-dart">class OrderService {
+  final ApplicationContext context;
+  
+  OrderService(this.context);
+  
+  Future&lt;Order&gt; createOrder(OrderRequest request) async {
+    final order = Order.fromRequest(request);
+    
+    // Persist order
+    await orderRepository.save(order);
+    
+    // Publish domain event
+    context.publishEvent(OrderCreatedEvent(this, order));
+    
+    return order;
+  }
+}
+
+class OrderEventListener implements ApplicationEventListener&lt;OrderCreatedEvent&gt; {
+  @override
+  void onApplicationEvent(OrderCreatedEvent event) {
+    // Send confirmation email
+    emailService.sendConfirmation(event.order);
+    
+    // Update inventory
+    inventoryService.reserveItems(event.order.items);
+  }
+}
+</code></pre>
+<h3 id="error-handling">Error Handling:</h3>
+<p>If a listener throws an exception, it is caught and logged, but other
+listeners will still receive the event. The publishing code is not
+affected by listener exceptions.</p>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; publishEvent(ApplicationEvent event);</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../context/">context</a></li>
+    <li><a href="../../context/ApplicationContext-class.html">ApplicationContext</a></li>
+    <li class="self-crumb">publishEvent abstract method</li>
+</ol>
+
+    <h5>ApplicationContext class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    jetleaf_core
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

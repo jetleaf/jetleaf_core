@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the Configuration class from the annotation library, for the Dart programming language.">
+  <title>Configuration class - annotation library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">jetleaf_core</a></li>
+    <li><a href="../annotation/">annotation.dart</a></li>
+    <li class="self-crumb">Configuration class</li>
+  </ol>
+  <div class="self-name">Configuration</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="annotation&#47;annotation-library-sidebar.html"
+    data-below-sidebar="annotation&#47;Configuration-class-sidebar.html">
+    <div>
+<h1><span class="kind-class">Configuration</span> class 
+    <a href="https://dart.dev/language/class-modifiers#final" class="feature feature-final" title="This class can neither be extended, implemented, nor mixed in.">final</a>
+ 
+</h1></div>
+
+    
+<section class="desc markdown">
+  <p>Configuration annotation for configuration classes</p>
+<p>This annotation marks a class as a source of pod definitions.</p>
+<p>Example Usage:</p>
+<pre class="language-dart"><code class="language-dart">@Configuration()
+class AppConfig {
+  @Pod()
+  DatabaseConnection databaseConnection() {
+    return DatabaseConnection(
+      host: 'localhost',
+      port: 5432,
+      database: 'myapp',
+    );
+  }
+  
+  @Pod()
+  @Primary()
+  EmailService emailService() {
+    return SmtpEmailService();
+  }
+  
+  @Pod('alternativeEmailService')
+  EmailService alternativeEmailService() {
+    return SendGridEmailService();
+  }
+}
+</code></pre>
+<p>Designates a class as a <strong>manual configuration source</strong> for defining pods.</p>
+<p>The <code>@Configuration</code> annotation is used to explicitly declare a class
+that provides pod definitions using annotated methods (e.g., with <code>@Pod()</code>).
+These pods are registered into the application's DI container and can be injected
+throughout the application.</p>
+<p>Unlike <code>@AutoConfiguration</code>, which is discovered automatically (e.g., through scanning),
+classes annotated with <code>@Configuration</code> <strong>must be explicitly imported</strong> and included in the application setup.</p>
+<hr>
+<h2 id="-purpose">🧩 Purpose:</h2>
+<ul>
+<li>Centralizes pod creation logic in a dedicated configuration class.</li>
+<li>Encourages clean separation between configuration and business logic.</li>
+<li>Supports advanced setup such as conditional pods, external parameters, etc.</li>
+</ul>
+<hr>
+<h2 id="-typical-use-cases">📦 Typical Use Cases:</h2>
+<ul>
+<li>Registering pods that require constructor parameters or factory logic</li>
+<li>Defining external service clients or adapters</li>
+<li>Grouping related configuration logic (e.g., security, database)</li>
+</ul>
+<hr>
+<h2 id="-example">🧪 Example:</h2>
+<pre class="language-dart"><code class="language-dart">@Configuration()
+class AppConfig {
+  @Pod()
+  AppService appService() =&gt; AppService();
+
+  @Pod()
+  Logger logger() =&gt; Logger(level: 'debug');
+}
+</code></pre>
+<hr>
+<h2 id="-pod-method-requirements">🧱 Pod Method Requirements:</h2>
+<ul>
+<li>Must be annotated with <code>@Pod()</code></li>
+<li>Must return the object to be registered in the container</li>
+<li>May return singletons or scoped instances depending on framework support</li>
+</ul>
+<hr>
+<h2 id="-usage-notes">🔧 Usage Notes:</h2>
+<ul>
+<li>Unlike <code>@Component</code>, the annotated class is <strong>not the pod itself</strong>, but a <strong>pod provider</strong>.</li>
+<li><code>@Configuration</code> is itself a <code>@Component</code>, meaning it is also managed by the container.</li>
+<li>You may inject dependencies into the configuration class via its constructor.</li>
+</ul>
+<pre class="language-dart"><code class="language-dart">@Configuration()
+class WebConfig {
+  final AppProperties props;
+
+  WebConfig(this.props);
+
+  @Pod()
+  Client httpClient() =&gt; Client(baseUrl: props.apiUrl);
+}
+</code></pre>
+<hr>
+<h2 id="-configuration-vs-autoconfiguration">🆚 Configuration vs AutoConfiguration:</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th><code>@Configuration</code></th>
+<th><code>@AutoConfiguration</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Manual Import Needed</td>
+<td>✅ Yes</td>
+<td>❌ No (auto-scanned)</td>
+</tr>
+<tr>
+<td>Recommended Use</td>
+<td>App-specific config</td>
+<td>Library/framework setup</td>
+</tr>
+<tr>
+<td>Lifecycle Control</td>
+<td>Full control</td>
+<td>Declarative</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="-internals">🛠️ Internals:</h2>
+<ul>
+<li>Frameworks may scan <code>@Configuration</code> methods at bootstrap to build the pod graph.</li>
+<li>The class may also participate in lifecycle hooks (e.g., <code>@PostConstruct</code>, <code>@PreDestroy</code>)</li>
+</ul>
+<hr>
+<h2 id="-target">🎯 Target:</h2>
+<ul>
+<li>Can only be applied to <strong>class declarations</strong></li>
+</ul>
+<pre class="language-dart"><code class="language-dart">@Configuration()
+class CacheConfig {
+  @Pod()
+  CacheManager cache() =&gt; CacheManager();
+}
+</code></pre>
+<hr>
+<h2 id="-related-annotations">🧩 Related Annotations:</h2>
+<ul>
+<li><code>@Pod</code> – defines individual pods inside a configuration class</li>
+<li><code>@Component</code> – base annotation for injectable classes</li>
+<li><code>@AutoConfiguration</code> – auto-discovered configuration class</li>
+<li><code>@Import</code> – (planned) to import other configuration classes</li>
+</ul>
+<hr>
+</section>
+
+
+    <section>
+      <dl class="dl-horizontal">
+        
+
+        
+        
+
+
+        
+        
+  <dt>Annotations</dt>
+  <dd>
+    <ul class="annotation-list clazz-relationships">
+        <li>@<a href="../annotation/Component-class.html">Component</a>()</li>
+        <li>@<a href="https://pub.dev/documentation/meta/1.17.0/meta_meta/Target-class.html">Target</a>({TargetKind.classType})</li>
+    </ul>
+  </dd>
+
+
+      </dl>
+    </section>
+
+    
+  <section class="summary offset-anchor" id="constructors">
+    <h2>Constructors</h2>
+    <dl class="constructor-summary-list">
+        <dt id="Configuration.new" class="callable">
+          <span class="name"><a href="../annotation/Configuration/Configuration.html">Configuration.new</a></span><span class="signature">([<span class="parameter" id="-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">value</span>, </span><span class="parameter" id="-param-proxyPodMethods"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">proxyPodMethods</span> = <span class="default-value">true</span>, </span><span class="parameter" id="-param-scopeResolver"><span class="type-annotation">ScopeMetadataResolver</span> <span class="parameter-name">scopeResolver</span> = <span class="default-value">const AnnotatedScopeMetadataResolver()</span></span>])</span>
+        </dt>
+        <dd>
+          Configuration annotation for configuration classes
+            <div class="constructor-modifier features">const</div>
+        </dd>
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-properties">
+    <h2>Properties</h2>
+    <dl class="properties">
+        <dt id="hashCode" class="property inherited">
+  <span class="name"><a href="../annotation/Configuration/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The hash code for this object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="proxyPodMethods" class="property inherited">
+  <span class="name"><a href="../annotation/Configuration/proxyPodMethods.html">proxyPodMethods</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  Specify whether @Pod methods should get proxied in order to enforce pod lifecycle behavior.
+  <div class="features"><span class="feature">final</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="runtimeType" class="property inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Type-class.html">Type</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  A representation of the runtime type of the object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="scopeResolver" class="property inherited">
+  <span class="name"><a href="../annotation/Configuration/scopeResolver.html">scopeResolver</a></span>
+  <span class="signature">&#8594; ScopeMetadataResolver</span>
+  
+
+</dt>
+<dd class="inherited">
+  Specify the scope metadata resolver to use for resolving scope metadata.
+  <div class="features"><span class="feature">final</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="value" class="property">
+  <span class="name"><a href="../annotation/Configuration/value.html">value</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span>
+  
+
+</dt>
+<dd>
+  Optional configuration name
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-methods">
+    <h2>Methods</h2>
+    <dl class="callables">
+        <dt id="equalizedProperties" class="callable">
+  <span class="name"><a href="../annotation/Configuration/equalizedProperties.html">equalizedProperties</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Mixin-style contract for value-based equality, <code>hashCode</code>, and <code>toString</code>.
+  
+
+</dd>
+
+        <dt id="noSuchMethod" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Invoked when a nonexistent method or property is accessed.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="toString" class="callable">
+  <span class="name"><a href="../annotation/Configuration/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  A string representation of this object.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="operators">
+    <h2>Operators</h2>
+    <dl class="callables">
+        <dt id="operator ==" class="callable inherited">
+  <span class="name"><a href="../annotation/Configuration/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  The equality operator.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+    
+    
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">jetleaf_core</a></li>
+    <li><a href="../annotation/">annotation</a></li>
+    <li class="self-crumb">Configuration class</li>
+</ol>
+
+    <h5>annotation library</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    jetleaf_core
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

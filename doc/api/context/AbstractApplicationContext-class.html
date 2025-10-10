@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the AbstractApplicationContext class from the context library, for the Dart programming language.">
+  <title>AbstractApplicationContext class - context library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">jetleaf_core</a></li>
+    <li><a href="../context/">context.dart</a></li>
+    <li class="self-crumb">AbstractApplicationContext class</li>
+  </ol>
+  <div class="self-name">AbstractApplicationContext</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="context&#47;context-library-sidebar.html"
+    data-below-sidebar="context&#47;AbstractApplicationContext-class-sidebar.html">
+    <div>
+<h1><span class="kind-class">AbstractApplicationContext</span> class 
+    <a href="https://dart.dev/language/class-modifiers#abstract" class="feature feature-abstract" title="This type can not be directly constructed.">abstract</a>
+ 
+</h1></div>
+
+    
+<section class="desc markdown">
+  <p>The base implementation of a configurable <strong>Jetleaf Application Context</strong>.</p>
+<p><code>AbstractApplicationContext</code> provides the foundational lifecycle management,
+environment handling, event bus initialization, and pod factory orchestration
+that all Jetleaf application contexts build upon.</p>
+<h3 id="key-features">Key Features:</h3>
+<ul>
+<li><strong>Lifecycle Management</strong>: Standardized <code>refresh()</code>, <code>start()</code>, <code>stop()</code>, and <code>close()</code> lifecycle</li>
+<li><strong>Event System</strong>: Integrated event publishing for context lifecycle events</li>
+<li><strong>Environment Integration</strong>: Property source management and profile handling</li>
+<li><strong>Pod Factory Orchestration</strong>: Complete pod lifecycle from registration to destruction</li>
+<li><strong>Internationalization</strong>: Built-in message source support</li>
+<li><strong>Resource Management</strong>: Proper cleanup and resource disposal</li>
+</ul>
+<h3 id="core-lifecycle-events">Core Lifecycle Events:</h3>
+<ul>
+<li><code>ContextRefreshedEvent</code>: Published when context is successfully refreshed</li>
+<li><code>ContextStartedEvent</code>: Published when context transitions to running state</li>
+<li><code>ContextStoppedEvent</code>: Published when context is stopped</li>
+<li><code>ContextClosedEvent</code>: Published when context is fully closed</li>
+</ul>
+<h3 id="default-initialization">Default Initialization:</h3>
+<ul>
+<li><strong>MessageSource</strong>: For internationalization and message resolution</li>
+<li><strong>ApplicationEventBus</strong>: For event publishing and listening</li>
+<li><strong>LifecycleProcessor</strong>: For managing pod lifecycle callbacks</li>
+<li><strong>Environment</strong>: For property resolution and profile management</li>
+</ul>
+<h3 id="usage-pattern">Usage Pattern:</h3>
+<p>Application developers typically <strong>extend</strong> this class to build custom contexts
+suited for specific runtime environments (web server, CLI, testing, etc.).</p>
+<pre class="language-dart"><code class="language-dart">class MyCustomApplicationContext extends AbstractApplicationContext {
+  @override
+  Future&lt;ConfigurableListablePodFactory&gt; doGetFreshPodFactory() async {
+    // Provide a custom pod factory implementation
+    return MyCustomPodFactory();
+  }
+
+  @override
+  Future&lt;void&gt; preparePodFactory(ConfigurableListablePodFactory podFactory) async {
+    // Register core application pods before refresh
+    podFactory.registerSingleton('myService', object: ObjectHolder(MyService()));
+    podFactory.registerDefinition('myRepository', MyRepositoryDefinition());
+  }
+
+  @override
+  Future&lt;void&gt; postProcessPodFactory(ConfigurableListablePodFactory podFactory) async {
+    // Apply custom post-processing or decorators
+    await super.postProcessPodFactory(podFactory);
+    await applyCustomConfiguration(podFactory);
+  }
+}
+
+void main() async {
+  final context = MyCustomApplicationContext();
+  
+  // Standard lifecycle sequence
+  await context.refresh(); // Prepares, initializes, and publishes refresh event
+  await context.start();   // Marks context as running and publishes start event
+  
+  // Application logic here...
+  
+  await context.stop();    // Stops the context and publishes stop event
+  await context.close();   // Closes the context and releases resources
+}
+</code></pre>
+<h3 id="template-methods-for-subclasses">Template Methods for Subclasses:</h3>
+<p>Subclasses must implement these protected template methods:</p>
+<ul>
+<li><code>doGetFreshPodFactory()</code>: Provide a fresh pod factory instance</li>
+<li><code>preparePodFactory()</code>: Register pods and configure factory before refresh</li>
+<li><code>postProcessPodFactory()</code>: Apply custom processing after factory setup</li>
+</ul>
+<h3 id="auto-startup-behavior">Auto-Startup Behavior:</h3>
+<p>By default, <code>isAutoStartup()</code> returns <code>true</code>, meaning the context will
+automatically start after refresh unless overridden by subclasses.</p>
+<h3 id="important-notes">Important Notes:</h3>
+<ul>
+<li><strong>Direct instantiation</strong> of <code>AbstractApplicationContext</code> is not recommended</li>
+<li>Always <strong>subclass</strong> for specific application needs</li>
+<li>Ensure proper <strong>resource cleanup</strong> by implementing <code>doClose()</code></li>
+<li>Handle <strong>lifecycle exceptions</strong> appropriately in subclasses</li>
+</ul>
+<p>See also:</p>
+<ul>
+<li><a href="../context/ConfigurableApplicationContext-class.html">ConfigurableApplicationContext</a> for the configuration interface</li>
+<li><a href="../context/GenericApplicationContext-class.html">GenericApplicationContext</a> for a ready-to-use implementation</li>
+<li><a href="../context/AnnotationConfigApplicationContext-class.html">AnnotationConfigApplicationContext</a> for annotation-based configuration</li>
+</ul>
+</section>
+
+
+    <section>
+      <dl class="dl-horizontal">
+        
+  <dt>Inheritance</dt>
+  <dd>
+    <ul class="gt-separated dark clazz-relationships">
+      <li><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></li>
+        <li><a href="../core/SmartLifecycle-class.html">SmartLifecycle</a></li>
+        <li><a href="../context/ConfigurableApplicationContext-class.html">ConfigurableApplicationContext</a></li>
+      <li>AbstractApplicationContext</li>
+    </ul>
+  </dd>
+
+        
+        
+
+          <dt>Implementers</dt>
+          <dd><ul class="comma-separated clazz-relationships">
+              <li><a href="../context/GenericApplicationContext-class.html">GenericApplicationContext</a></li>
+          </ul></dd>
+
+        
+        
+
+
+      </dl>
+    </section>
+
+    
+  <section class="summary offset-anchor" id="constructors">
+    <h2>Constructors</h2>
+    <dl class="constructor-summary-list">
+        <dt id="AbstractApplicationContext.new" class="callable">
+          <span class="name"><a href="../context/AbstractApplicationContext/AbstractApplicationContext.html">AbstractApplicationContext.new</a></span><span class="signature">()</span>
+        </dt>
+        <dd>
+          Creates a new <a href="../context/AbstractApplicationContext-class.html">AbstractApplicationContext</a> and scans for lifecycle methods.
+        </dd>
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-properties">
+    <h2>Properties</h2>
+    <dl class="properties">
+        <dt id="hashCode" class="property inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The hash code for this object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="logger" class="property">
+  <span class="name"><a href="../context/AbstractApplicationContext/logger.html">logger</a></span>
+  <span class="signature">&#8594; Log</span>
+  
+
+</dt>
+<dd>
+  The logger associated with this application context.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="podFactory" class="property">
+  <span class="name"><a href="../context/AbstractApplicationContext/podFactory.html">podFactory</a></span>
+  <span class="signature">&#8596; ConfigurableListablePodFactory?</span>
+  
+
+</dt>
+<dd>
+  The pod factory associated with this application context.
+  <div class="features"><span class="feature">getter/setter pair</span></div>
+
+</dd>
+
+        <dt id="runtimeType" class="property inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Type-class.html">Type</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  A representation of the runtime type of the object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-methods">
+    <h2>Methods</h2>
+    <dl class="callables">
+        <dt id="addApplicationListener" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/addApplicationListener.html">addApplicationListener</a></span><span class="signature">(<wbr><span class="parameter" id="addApplicationListener-param-listener"><span class="type-annotation"><a href="../context/ApplicationEventListener-class.html">ApplicationEventListener</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../context/ApplicationEvent-class.html">ApplicationEvent</a></span>&gt;</span></span> <span class="parameter-name">listener</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Adds an <a href="../context/ApplicationEventListener-class.html">ApplicationEventListener</a> to be notified of all <a href="../context/ApplicationEvent-class.html">ApplicationEvent</a>s.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="addPodAwareProcessor" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/addPodAwareProcessor.html">addPodAwareProcessor</a></span><span class="signature">(<wbr><span class="parameter" id="addPodAwareProcessor-param-processor"><span class="type-annotation">PodAwareProcessor</span> <span class="parameter-name">processor</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Registers a new pod-aware processor.
+  
+
+</dd>
+
+        <dt id="addPodFactoryPostProcessor" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/addPodFactoryPostProcessor.html">addPodFactoryPostProcessor</a></span><span class="signature">(<wbr><span class="parameter" id="addPodFactoryPostProcessor-param-processor"><span class="type-annotation"><a href="../context/PodFactoryPostProcessor-class.html">PodFactoryPostProcessor</a></span> <span class="parameter-name">processor</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Adds a <a href="../context/PodFactoryPostProcessor-class.html">PodFactoryPostProcessor</a> to be applied to the pod factory.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="addSingletonCallback" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/addSingletonCallback.html">addSingletonCallback</a></span><span class="signature">(<wbr><span class="parameter" id="addSingletonCallback-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span>, </span><span class="parameter" id="addSingletonCallback-param-type"><span class="type-annotation">Class</span> <span class="parameter-name">type</span>, </span><span class="parameter" id="addSingletonCallback-param-callback"><span class="type-annotation">Consumer<span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span></span> <span class="parameter-name">callback</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Add a callback to be executed when the singleton associated with <code>name</code> is initialized.
+  
+
+</dd>
+
+        <dt id="cancelRefresh" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/cancelRefresh.html">cancelRefresh</a></span><span class="signature">(<wbr><span class="parameter" id="cancelRefresh-param-exception"><span class="type-annotation">PodException</span> <span class="parameter-name">exception</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Cancels the refresh process due to the provided <code>PodException</code>.
+  
+
+</dd>
+
+        <dt id="clearMetadataCache" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/clearMetadataCache.html">clearMetadataCache</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Clears the internal metadata cache.
+  
+
+</dd>
+
+        <dt id="clearSingletonCache" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/clearSingletonCache.html">clearSingletonCache</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Clears all cached singleton pods.
+  
+
+</dd>
+
+        <dt id="close" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/close.html">close</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Closes this resource, relinquishing any underlying resources.
+  
+
+</dd>
+
+        <dt id="completeRefresh" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/completeRefresh.html">completeRefresh</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Completes the refresh process for the given
+<code>ConfigurableListablePodFactory</code>.
+  
+
+</dd>
+
+        <dt id="containsDefinition" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/containsDefinition.html">containsDefinition</a></span><span class="signature">(<wbr><span class="parameter" id="containsDefinition-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns <code>true</code> if this registry contains a pod with the given <code>name</code>.
+  
+
+</dd>
+
+        <dt id="containsLocalPod" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/containsLocalPod.html">containsLocalPod</a></span><span class="signature">(<wbr><span class="parameter" id="containsLocalPod-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Checks if a pod with the given name is registered locally in this factory.
+  
+
+</dd>
+
+        <dt id="containsPod" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/containsPod.html">containsPod</a></span><span class="signature">(<wbr><span class="parameter" id="containsPod-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Checks if a pod with the given name is registered in the factory.
+  
+
+</dd>
+
+        <dt id="containsSingleton" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/containsSingleton.html">containsSingleton</a></span><span class="signature">(<wbr><span class="parameter" id="containsSingleton-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns <code>true</code> if this registry contains a pod with the given <code>name</code>.
+  
+
+</dd>
+
+        <dt id="containsType" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/containsType.html">containsType</a></span><span class="signature">(<wbr><span class="parameter" id="containsType-param-type"><span class="type-annotation">Class</span> <span class="parameter-name">type</span>, [</span><span class="parameter" id="containsType-param-allowPodProviderInit"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">allowPodProviderInit</span> = <span class="default-value">false</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Checks if the factory contains a pod of the specified type.
+  
+
+</dd>
+
+        <dt id="copyConfigurationFrom" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/copyConfigurationFrom.html">copyConfigurationFrom</a></span><span class="signature">(<wbr><span class="parameter" id="copyConfigurationFrom-param-otherFactory"><span class="type-annotation">ConfigurablePodFactory</span> <span class="parameter-name">otherFactory</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Copies configuration from another factory.
+  
+
+</dd>
+
+        <dt id="destroyPod" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/destroyPod.html">destroyPod</a></span><span class="signature">(<wbr><span class="parameter" id="destroyPod-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span>, </span><span class="parameter" id="destroyPod-param-podInstance"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">podInstance</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Destroys a pod instance by name and instance.
+  
+
+</dd>
+
+        <dt id="destroyPods" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/destroyPods.html">destroyPods</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Destroys all managed pods in the given
+<code>ConfigurableListablePodFactory</code>.
+  
+
+</dd>
+
+        <dt id="destroyScopedPod" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/destroyScopedPod.html">destroyScopedPod</a></span><span class="signature">(<wbr><span class="parameter" id="destroyScopedPod-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Destroys all pods in the specified scope.
+  
+
+</dd>
+
+        <dt id="destroySingletons" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/destroySingletons.html">destroySingletons</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Destroys all singleton pods in the factory.
+  
+
+</dd>
+
+        <dt id="doClose" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/doClose.html">doClose</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Template method for actual cleanup logic when the context is closed.
+  
+
+</dd>
+
+        <dt id="doGetFreshPodFactory" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/doGetFreshPodFactory.html">doGetFreshPodFactory</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">ConfigurableListablePodFactory</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns a fresh <code>ConfigurableListablePodFactory</code> for this context.
+  
+
+</dd>
+
+        <dt id="doStart" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/doStart.html">doStart</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Template method invoked during <a href="../context/AbstractApplicationContext/start.html">start</a> to perform startup logic.
+  
+
+</dd>
+
+        <dt id="doStop" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/doStop.html">doStop</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Template method invoked during <a href="../context/AbstractApplicationContext/stop.html">stop</a> to perform shutdown logic.
+  
+
+</dd>
+
+        <dt id="findAllAnnotationsOnPod" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/findAllAnnotationsOnPod.html">findAllAnnotationsOnPod</a></span><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="findAllAnnotationsOnPod-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span>, </span><span class="parameter" id="findAllAnnotationsOnPod-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span></span> <span class="parameter-name">type</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Set-class.html">Set</a><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Finds all annotations of the specified type on a pod.
+  
+
+</dd>
+
+        <dt id="findAnnotationOnPod" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/findAnnotationOnPod.html">findAnnotationOnPod</a></span><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="findAnnotationOnPod-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span>, </span><span class="parameter" id="findAnnotationOnPod-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span></span> <span class="parameter-name">type</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">A?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Finds a specific annotation on a pod.
+  
+
+</dd>
+
+        <dt id="finishPodFactoryInitialization" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/finishPodFactoryInitialization.html">finishPodFactoryInitialization</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Finalizes the initialization of the <code>ConfigurableListablePodFactory</code>.
+  
+
+</dd>
+
+        <dt id="finishRefresh" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/finishRefresh.html">finishRefresh</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Template method invoked during <a href="../context/AbstractApplicationContext/refresh.html">refresh</a> to complete the refresh process.
+  
+
+</dd>
+
+        <dt id="get" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/get.html">get</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="get-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span> <span class="parameter-name">type</span>, [</span><span class="parameter" id="get-param-args"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">ArgumentValue</span>&gt;</span>?</span> <span class="parameter-name">args</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves a pod instance by its type with optional arguments.
+  
+
+</dd>
+
+        <dt id="getAliases" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getAliases.html">getAliases</a></span><span class="signature">(<wbr><span class="parameter" id="getAliases-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves all alias names for the specified pod.
+  
+
+</dd>
+
+        <dt id="getAllowCircularReferences" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getAllowCircularReferences.html">getAllowCircularReferences</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves the current circular reference setting.
+  
+
+</dd>
+
+        <dt id="getAllowDefinitionOverriding" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getAllowDefinitionOverriding.html">getAllowDefinitionOverriding</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves the current definition overriding setting.
+  
+
+</dd>
+
+        <dt id="getAllowRawInjectionEvenWhenWrapped" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getAllowRawInjectionEvenWhenWrapped.html">getAllowRawInjectionEvenWhenWrapped</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves the current raw injection despite wrapping setting.
+  
+
+</dd>
+
+        <dt id="getApplicationEventBus" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getApplicationEventBus.html">getApplicationEventBus</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="../context/ApplicationEventBus-class.html">ApplicationEventBus</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the <a href="../context/ApplicationEventBus-class.html">ApplicationEventBus</a> currently associated with
+this application context.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="getApplicationName" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getApplicationName.html">getApplicationName</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the name of this application.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="getApplicationStartup" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getApplicationStartup.html">getApplicationStartup</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; ApplicationStartup</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Defines a contract for components that are aware of and can interact with
+an <code>ApplicationStartup</code> strategy.
+  
+
+</dd>
+
+        <dt id="getConversionService" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getConversionService.html">getConversionService</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; ConversionService</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves the currently assigned <code>ConversionService</code>.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="getDefinition" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getDefinition.html">getDefinition</a></span><span class="signature">(<wbr><span class="parameter" id="getDefinition-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span></span>)
+    <span class="returntype parameter">&#8594; PodDefinition</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieve the pod registered under <code>name</code>.
+  
+
+</dd>
+
+        <dt id="getDefinitionNames" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getDefinitionNames.html">getDefinitionNames</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns a list of all pod names currently registered.
+  
+
+</dd>
+
+        <dt id="getDisplayName" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getDisplayName.html">getDisplayName</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns the display name of this application context.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getEnvironment" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getEnvironment.html">getEnvironment</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; Environment</span>
+  </span>
+  
+
+</dt>
+<dd>
+  🫘 Returns the <code>Environment</code> associated with the current context.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="getId" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getId.html">getId</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns a unique identifier for this application context.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getIsRefreshed" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getIsRefreshed.html">getIsRefreshed</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns true if the application context has been refreshed.
+  
+
+</dd>
+
+        <dt id="getMainApplicationClass" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getMainApplicationClass.html">getMainApplicationClass</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; Class<span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the main application class.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="getMergedPodDefinition" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getMergedPodDefinition.html">getMergedPodDefinition</a></span><span class="signature">(<wbr><span class="parameter" id="getMergedPodDefinition-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; RootPodDefinition</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves the merged pod definition for the specified pod name.
+  
+
+</dd>
+
+        <dt id="getMessage" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getMessage.html">getMessage</a></span><span class="signature">(<wbr><span class="parameter" id="getMessage-param-code"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">code</span>, {</span><span class="parameter" id="getMessage-param-args"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span>?</span> <span class="parameter-name">args</span>, </span><span class="parameter" id="getMessage-param-locale"><span class="type-annotation">Locale?</span> <span class="parameter-name">locale</span>, </span><span class="parameter" id="getMessage-param-defaultMessage"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">defaultMessage</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieve a message for the given code.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="getMessageSource" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getMessageSource.html">getMessageSource</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="../message/MessageSource-class.html">MessageSource</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the configured <a href="../message/MessageSource-class.html">MessageSource</a>.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="getNamedObject" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getNamedObject.html">getNamedObject</a></span><span class="signature">(<wbr><span class="parameter" id="getNamedObject-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span>, [</span><span class="parameter" id="getNamedObject-param-args"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">ArgumentValue</span>&gt;</span>?</span> <span class="parameter-name">args</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves a pod as a generic Object by its name with optional arguments.
+  
+
+</dd>
+
+        <dt id="getNumberOfPodDefinitions" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getNumberOfPodDefinitions.html">getNumberOfPodDefinitions</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the total number of pods registered.
+  
+
+</dd>
+
+        <dt id="getObject" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getObject.html">getObject</a></span><span class="signature">(<wbr><span class="parameter" id="getObject-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span></span> <span class="parameter-name">type</span>, [</span><span class="parameter" id="getObject-param-args"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">ArgumentValue</span>&gt;</span>?</span> <span class="parameter-name">args</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves a pod as a generic Object by its type with optional arguments.
+  
+
+</dd>
+
+        <dt id="getPackageName" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getPackageName.html">getPackageName</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Represents an abstraction for identifying the package that an object,
+resource, or service belongs to.
+  
+
+</dd>
+
+        <dt id="getParent" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getParent.html">getParent</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="../context/ApplicationContext-class.html">ApplicationContext</a>?</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the parent context, if any.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="getParentFactory" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getParentFactory.html">getParentFactory</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; PodFactory?</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves the parent factory in the hierarchy, if any.
+  
+
+</dd>
+
+        <dt id="getPhase" class="callable inherited">
+  <span class="name"><a href="../core/SmartLifecycle/getPhase.html">getPhase</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Interface for objects that may participate in a phased process
+such as lifecycle management.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getPod" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getPod.html">getPod</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="getPod-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span>, [</span><span class="parameter" id="getPod-param-args"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">ArgumentValue</span>&gt;</span>?</span> <span class="parameter-name">args</span>, </span><span class="parameter" id="getPod-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span>?</span> <span class="parameter-name">type</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves a pod instance by its name with optional arguments.
+  
+
+</dd>
+
+        <dt id="getPodAwareProcessorCount" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getPodAwareProcessorCount.html">getPodAwareProcessorCount</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Gets the number of registered pod-aware processors.
+  
+
+</dd>
+
+        <dt id="getPodAwareProcessors" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getPodAwareProcessors.html">getPodAwareProcessors</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">PodAwareProcessor</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves all registered pod-aware processors.
+  
+
+</dd>
+
+        <dt id="getPodClass" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getPodClass.html">getPodClass</a></span><span class="signature">(<wbr><span class="parameter" id="getPodClass-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">Class</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves the Class object for the specified pod name.
+  
+
+</dd>
+
+        <dt id="getPodExpressionResolver" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getPodExpressionResolver.html">getPodExpressionResolver</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; PodExpressionResolver?</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves the current expression resolver.
+  
+
+</dd>
+
+        <dt id="getPodFactory" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getPodFactory.html">getPodFactory</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; ConfigurableListablePodFactory</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  🫘 Returns the underlying <code>ConfigurableListablePodFactory</code>.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getPodFactoryPostProcessors" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getPodFactoryPostProcessors.html">getPodFactoryPostProcessors</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../context/PodFactoryPostProcessor-class.html">PodFactoryPostProcessor</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  The list of <a href="../context/PodFactoryPostProcessor-class.html">PodFactoryPostProcessor</a>s to be applied to the pod factory.
+  
+
+</dd>
+
+        <dt id="getPodNames" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getPodNames.html">getPodNames</a></span><span class="signature">(<wbr><span class="parameter" id="getPodNames-param-type"><span class="type-annotation">Class</span> <span class="parameter-name">type</span>, {</span><span class="parameter" id="getPodNames-param-includeNonSingletons"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">includeNonSingletons</span> = <span class="default-value">false</span>, </span><span class="parameter" id="getPodNames-param-allowEagerInit"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">allowEagerInit</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves all pod names for pods of the specified type.
+  
+
+</dd>
+
+        <dt id="getPodNamesForAnnotation" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getPodNamesForAnnotation.html">getPodNamesForAnnotation</a></span><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="getPodNamesForAnnotation-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span></span> <span class="parameter-name">type</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves pod names for pods annotated with the specified annotation type.
+  
+
+</dd>
+
+        <dt id="getPodNamesIterator" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getPodNamesIterator.html">getPodNamesIterator</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Iterator-class.html">Iterator</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns an iterator over all pod names in the factory.
+  
+
+</dd>
+
+        <dt id="getPodsOf" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getPodsOf.html">getPodsOf</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="getPodsOf-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span> <span class="parameter-name">type</span>, {</span><span class="parameter" id="getPodsOf-param-includeNonSingletons"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">includeNonSingletons</span> = <span class="default-value">false</span>, </span><span class="parameter" id="getPodsOf-param-allowEagerInit"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">allowEagerInit</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves all pods of the specified type as a map of name to instance.
+  
+
+</dd>
+
+        <dt id="getPodsWithAnnotation" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getPodsWithAnnotation.html">getPodsWithAnnotation</a></span><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="getPodsWithAnnotation-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span></span> <span class="parameter-name">type</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves pods with the specified annotation as a map of name to instance.
+  
+
+</dd>
+
+        <dt id="getProvider" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getProvider.html">getProvider</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="getProvider-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span> <span class="parameter-name">type</span>, {</span><span class="parameter" id="getProvider-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">podName</span>, </span><span class="parameter" id="getProvider-param-allowEagerInit"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">allowEagerInit</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">ObjectProvider<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves a provider for a pod, allowing for lazy or eager initialization.
+  
+
+</dd>
+
+        <dt id="getRegisteredScope" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getRegisteredScope.html">getRegisteredScope</a></span><span class="signature">(<wbr><span class="parameter" id="getRegisteredScope-param-scopeName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">scopeName</span></span>)
+    <span class="returntype parameter">&#8594; PodScope?</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves a registered scope by name.
+  
+
+</dd>
+
+        <dt id="getRegisteredScopeNames" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getRegisteredScopeNames.html">getRegisteredScopeNames</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves all registered scope names.
+  
+
+</dd>
+
+        <dt id="getSingleton" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getSingleton.html">getSingleton</a></span><span class="signature">(<wbr><span class="parameter" id="getSingleton-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span>, {</span><span class="parameter" id="getSingleton-param-allowEarlyReference"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">allowEarlyReference</span> = <span class="default-value">true</span>, </span><span class="parameter" id="getSingleton-param-factory"><span class="type-annotation">ObjectFactory<span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span>?</span> <span class="parameter-name">factory</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieve the pod registered under <code>name</code>.
+  
+
+</dd>
+
+        <dt id="getSingletonCount" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getSingletonCount.html">getSingletonCount</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the total number of pods registered.
+  
+
+</dd>
+
+        <dt id="getSingletonNames" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getSingletonNames.html">getSingletonNames</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns a list of all pod names currently registered.
+  
+
+</dd>
+
+        <dt id="getStartTime" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/getStartTime.html">getStartTime</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/DateTime-class.html">DateTime</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the startup time of this context as a <a href="https://api.dart.dev/stable/3.9.2/dart-core/DateTime-class.html">DateTime</a>.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="initApplicationEventBus" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/initApplicationEventBus.html">initApplicationEventBus</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Initializes the <a href="../context/ApplicationEventBus-class.html">ApplicationEventBus</a> for this context.
+  
+
+</dd>
+
+        <dt id="initLifecycleProcessor" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/initLifecycleProcessor.html">initLifecycleProcessor</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Initializes the <code>LifecycleProcessor</code> for this context.
+  
+
+</dd>
+
+        <dt id="initMessageSource" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/initMessageSource.html">initMessageSource</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Initializes the <a href="../message/MessageSource-class.html">MessageSource</a> for this context.
+  
+
+</dd>
+
+        <dt id="invokePodFactoryPostProcessors" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/invokePodFactoryPostProcessors.html">invokePodFactoryPostProcessors</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Invokes all registered pod factory post-processors on the given
+<code>ConfigurableListablePodFactory</code>.
+  
+
+</dd>
+
+        <dt id="isActive" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/isActive.html">isActive</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns whether this application context is currently active.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="isActuallyInCreation" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/isActuallyInCreation.html">isActuallyInCreation</a></span><span class="signature">(<wbr><span class="parameter" id="isActuallyInCreation-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Checks if a pod with the given name is currently being created.
+  
+
+</dd>
+
+        <dt id="isAutoStartup" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/isAutoStartup.html">isAutoStartup</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  An extension of the <a href="../core/Lifecycle-class.html">Lifecycle</a> interface for those objects that require
+to be started upon ApplicationContext refresh and/or shutdown in a
+particular order.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="isAutowireCandidate" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/isAutowireCandidate.html">isAutowireCandidate</a></span><span class="signature">(<wbr><span class="parameter" id="isAutowireCandidate-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span>, </span><span class="parameter" id="isAutowireCandidate-param-descriptor"><span class="type-annotation">DependencyDescriptor</span> <span class="parameter-name">descriptor</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Checks if a pod is a candidate for autowiring for the given dependency.
+  
+
+</dd>
+
+        <dt id="isCachePodMetadata" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/isCachePodMetadata.html">isCachePodMetadata</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Checks if pod metadata caching is enabled.
+  
+
+</dd>
+
+        <dt id="isClosed" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/isClosed.html">isClosed</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns whether this application context has been closed.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="isNameInUse" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/isNameInUse.html">isNameInUse</a></span><span class="signature">(<wbr><span class="parameter" id="isNameInUse-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns <code>true</code> if <code>name</code> is currently in use in this registry.
+  
+
+</dd>
+
+        <dt id="isPodProvider" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/isPodProvider.html">isPodProvider</a></span><span class="signature">(<wbr><span class="parameter" id="isPodProvider-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span>, [</span><span class="parameter" id="isPodProvider-param-rpd"><span class="type-annotation">RootPodDefinition?</span> <span class="parameter-name">rpd</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Checks if the specified pod name refers to a pod provider.
+  
+
+</dd>
+
+        <dt id="isPrototype" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/isPrototype.html">isPrototype</a></span><span class="signature">(<wbr><span class="parameter" id="isPrototype-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Checks if the specified pod is configured as a prototype.
+  
+
+</dd>
+
+        <dt id="isRunning" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/isRunning.html">isRunning</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Check whether this component is currently running.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="isSingleton" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/isSingleton.html">isSingleton</a></span><span class="signature">(<wbr><span class="parameter" id="isSingleton-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Checks if the specified pod is configured as a singleton.
+  
+
+</dd>
+
+        <dt id="isTypeMatch" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/isTypeMatch.html">isTypeMatch</a></span><span class="signature">(<wbr><span class="parameter" id="isTypeMatch-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span>, </span><span class="parameter" id="isTypeMatch-param-typeToMatch"><span class="type-annotation">Class</span> <span class="parameter-name">typeToMatch</span>, [</span><span class="parameter" id="isTypeMatch-param-allowPodProviderInit"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">allowPodProviderInit</span> = <span class="default-value">false</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Checks if the pod with the specified name matches the given type.
+  
+
+</dd>
+
+        <dt id="noSuchMethod" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Invoked when a nonexistent method or property is accessed.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="postProcessPodFactory" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/postProcessPodFactory.html">postProcessPodFactory</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Post-processes the <code>ConfigurableListablePodFactory</code> for this context.
+  
+
+</dd>
+
+        <dt id="preInstantiateSingletons" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/preInstantiateSingletons.html">preInstantiateSingletons</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Pre-instantiates all singleton pods.
+  
+
+</dd>
+
+        <dt id="preparePodFactory" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/preparePodFactory.html">preparePodFactory</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Prepares the <code>ConfigurableListablePodFactory</code> for this context.
+  
+
+</dd>
+
+        <dt id="prepareRefresh" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/prepareRefresh.html">prepareRefresh</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Prepares the application context for a refresh.
+  
+
+</dd>
+
+        <dt id="publishEvent" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/publishEvent.html">publishEvent</a></span><span class="signature">(<wbr><span class="parameter" id="publishEvent-param-event"><span class="type-annotation"><a href="../context/ApplicationEvent-class.html">ApplicationEvent</a></span> <span class="parameter-name">event</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Publishes the given <code>event</code> to all registered <a href="../context/ApplicationEventListener-class.html">ApplicationEventListener</a>s.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="refresh" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/refresh.html">refresh</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Refreshes this application context:
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="register" class="callable inherited">
+  <span class="name"><a href="../context/PodRegistry/register.html">register</a></span><span class="signature">(<wbr><span class="parameter" id="register-param-registrar"><span class="type-annotation"><a href="../context/PodRegistrar-class.html">PodRegistrar</a></span> <span class="parameter-name">registrar</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Registers a <code>registrar</code> that declares pods into this registry.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="registerAlias" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/registerAlias.html">registerAlias</a></span><span class="signature">(<wbr><span class="parameter" id="registerAlias-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span>, </span><span class="parameter" id="registerAlias-param-alias"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">alias</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Registers an alias for an existing name in the registry.
+  
+
+</dd>
+
+        <dt id="registerDefinition" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/registerDefinition.html">registerDefinition</a></span><span class="signature">(<wbr><span class="parameter" id="registerDefinition-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span>, </span><span class="parameter" id="registerDefinition-param-pod"><span class="type-annotation">PodDefinition</span> <span class="parameter-name">pod</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Register a new <code>pod</code> under the given <code>name</code>.
+  
+
+</dd>
+
+        <dt id="registerIgnoredDependency" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/registerIgnoredDependency.html">registerIgnoredDependency</a></span><span class="signature">(<wbr><span class="parameter" id="registerIgnoredDependency-param-type"><span class="type-annotation">Class</span> <span class="parameter-name">type</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Registers a dependency type that should be ignored during autowiring.
+  
+
+</dd>
+
+        <dt id="registerListeners" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/registerListeners.html">registerListeners</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Registers all <a href="../context/ApplicationEventListener-class.html">ApplicationEventListener</a> pods in the <code>ConfigurableListablePodFactory</code>.
+  
+
+</dd>
+
+        <dt id="registerPod" class="callable inherited">
+  <span class="name"><a href="../context/PodRegistry/registerPod.html">registerPod</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="registerPod-param-podClass"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span> <span class="parameter-name">podClass</span>, {</span><span class="parameter" id="registerPod-param-customizer"><span class="type-annotation">Consumer<span class="signature">&lt;<wbr><span class="type-parameter"><a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span>?</span> <span class="parameter-name">customizer</span>, </span><span class="parameter" id="registerPod-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">name</span></span>})
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Registers a pod of type <code>T</code> in the registry.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="registerPodAwareProcessors" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/registerPodAwareProcessors.html">registerPodAwareProcessors</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Registers all <em>PodAware</em> processors into the given
+<code>ConfigurableListablePodFactory</code>.
+  
+
+</dd>
+
+        <dt id="registerResolvableDependency" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/registerResolvableDependency.html">registerResolvableDependency</a></span><span class="signature">(<wbr><span class="parameter" id="registerResolvableDependency-param-type"><span class="type-annotation">Class</span> <span class="parameter-name">type</span>, [</span><span class="parameter" id="registerResolvableDependency-param-autowiredValue"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a>?</span> <span class="parameter-name">autowiredValue</span></span>])
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Registers a resolvable dependency for autowiring.
+  
+
+</dd>
+
+        <dt id="registerScope" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/registerScope.html">registerScope</a></span><span class="signature">(<wbr><span class="parameter" id="registerScope-param-scopeName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">scopeName</span>, </span><span class="parameter" id="registerScope-param-scope"><span class="type-annotation">PodScope</span> <span class="parameter-name">scope</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Registers a new scope with the given name.
+  
+
+</dd>
+
+        <dt id="registerSingleton" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/registerSingleton.html">registerSingleton</a></span><span class="signature">(<wbr><span class="parameter" id="registerSingleton-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span>, </span><span class="parameter" id="registerSingleton-param-type"><span class="type-annotation">Class</span> <span class="parameter-name">type</span>, {</span><span class="parameter" id="registerSingleton-param-object"><span class="type-annotation">ObjectHolder<span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span>?</span> <span class="parameter-name">object</span>, </span><span class="parameter" id="registerSingleton-param-factory"><span class="type-annotation">ObjectFactory<span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span>?</span> <span class="parameter-name">factory</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Register a new <code>pod</code> under the given <code>name</code>.
+  
+
+</dd>
+
+        <dt id="removeDefinition" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/removeDefinition.html">removeDefinition</a></span><span class="signature">(<wbr><span class="parameter" id="removeDefinition-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Remove the pod associated with <code>name</code>.
+  
+
+</dd>
+
+        <dt id="removeSingleton" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/removeSingleton.html">removeSingleton</a></span><span class="signature">(<wbr><span class="parameter" id="removeSingleton-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Remove the pod associated with <code>name</code>.
+  
+
+</dd>
+
+        <dt id="resetCommonCaches" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/resetCommonCaches.html">resetCommonCaches</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Resets common internal caches maintained by the container.
+  
+
+</dd>
+
+        <dt id="resolveDependency" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/resolveDependency.html">resolveDependency</a></span><span class="signature">(<wbr><span class="parameter" id="resolveDependency-param-descriptor"><span class="type-annotation">DependencyDescriptor</span> <span class="parameter-name">descriptor</span>, [</span><span class="parameter" id="resolveDependency-param-candidates"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Set-class.html">Set</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span>?</span> <span class="parameter-name">candidates</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Resolves a dependency based on the provided descriptor.
+  
+
+</dd>
+
+        <dt id="setAllowCircularReferences" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/setAllowCircularReferences.html">setAllowCircularReferences</a></span><span class="signature">(<wbr><span class="parameter" id="setAllowCircularReferences-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Allows or disallows circular references between pods.
+  
+
+</dd>
+
+        <dt id="setAllowDefinitionOverriding" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/setAllowDefinitionOverriding.html">setAllowDefinitionOverriding</a></span><span class="signature">(<wbr><span class="parameter" id="setAllowDefinitionOverriding-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Allows or disallows overriding of pod definitions.
+  
+
+</dd>
+
+        <dt id="setAllowRawInjectionEvenWhenWrapped" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/setAllowRawInjectionEvenWhenWrapped.html">setAllowRawInjectionEvenWhenWrapped</a></span><span class="signature">(<wbr><span class="parameter" id="setAllowRawInjectionEvenWhenWrapped-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Allows or disallows raw injection despite wrapping.
+  
+
+</dd>
+
+        <dt id="setApplicationEventBus" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/setApplicationEventBus.html">setApplicationEventBus</a></span><span class="signature">(<wbr><span class="parameter" id="setApplicationEventBus-param-applicationEventBus"><span class="type-annotation"><a href="../context/ApplicationEventBus-class.html">ApplicationEventBus</a></span> <span class="parameter-name">applicationEventBus</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Sets the <a href="../context/ApplicationEventBus-class.html">ApplicationEventBus</a> for this application context.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="setApplicationStartup" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/setApplicationStartup.html">setApplicationStartup</a></span><span class="signature">(<wbr><span class="parameter" id="setApplicationStartup-param-applicationStartup"><span class="type-annotation">ApplicationStartup</span> <span class="parameter-name">applicationStartup</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Defines a contract for components that are aware of and can interact with
+an <code>ApplicationStartup</code> strategy.
+  
+
+</dd>
+
+        <dt id="setCachePodMetadata" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/setCachePodMetadata.html">setCachePodMetadata</a></span><span class="signature">(<wbr><span class="parameter" id="setCachePodMetadata-param-cachePodMetadata"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">cachePodMetadata</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Enables or disables caching of pod metadata for performance optimization.
+  
+
+</dd>
+
+        <dt id="setConversionService" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/setConversionService.html">setConversionService</a></span><span class="signature">(<wbr><span class="parameter" id="setConversionService-param-conversionService"><span class="type-annotation">ConversionService</span> <span class="parameter-name">conversionService</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Sets an assigned <code>ConversionService</code>.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="setEnvironment" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/setEnvironment.html">setEnvironment</a></span><span class="signature">(<wbr><span class="parameter" id="setEnvironment-param-environment"><span class="type-annotation">Environment</span> <span class="parameter-name">environment</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Sets the <code>Environment</code> that this component runs in.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="setMainApplicationClass" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/setMainApplicationClass.html">setMainApplicationClass</a></span><span class="signature">(<wbr><span class="parameter" id="setMainApplicationClass-param-mainApplicationClass"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span></span> <span class="parameter-name">mainApplicationClass</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Sets the main application class.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="setMessageSource" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/setMessageSource.html">setMessageSource</a></span><span class="signature">(<wbr><span class="parameter" id="setMessageSource-param-messageSource"><span class="type-annotation"><a href="../message/MessageSource-class.html">MessageSource</a></span> <span class="parameter-name">messageSource</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Sets the <a href="../message/MessageSource-class.html">MessageSource</a> used for resolving internationalized messages.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="setParent" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/setParent.html">setParent</a></span><span class="signature">(<wbr><span class="parameter" id="setParent-param-parent"><span class="type-annotation"><a href="../context/ApplicationContext-class.html">ApplicationContext</a></span> <span class="parameter-name">parent</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Sets the parent of this application context.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="setParentFactory" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/setParentFactory.html">setParentFactory</a></span><span class="signature">(<wbr><span class="parameter" id="setParentFactory-param-parentFactory"><span class="type-annotation">PodFactory?</span> <span class="parameter-name">parentFactory</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Sets the parent factory for this hierarchical factory.
+  
+
+</dd>
+
+        <dt id="setPodExpressionResolver" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/setPodExpressionResolver.html">setPodExpressionResolver</a></span><span class="signature">(<wbr><span class="parameter" id="setPodExpressionResolver-param-valueResolver"><span class="type-annotation">PodExpressionResolver?</span> <span class="parameter-name">valueResolver</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Sets the expression resolver for resolving expressions in pod definitions.
+  
+
+</dd>
+
+        <dt id="start" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/start.html">start</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-async/FutureOr-class.html">FutureOr</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  A common interface defining methods for start/stop lifecycle control.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="stop" class="callable">
+  <span class="name"><a href="../context/AbstractApplicationContext/stop.html">stop</a></span><span class="signature">(<wbr>[<span class="parameter" id="stop-param-callback"><span class="type-annotation">Runnable?</span> <span class="parameter-name">callback</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-async/FutureOr-class.html">FutureOr</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Stop this component, typically in a synchronous fashion.
+  <div class="features"><span class="feature">override</span></div>
+
+</dd>
+
+        <dt id="supports" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/supports.html">supports</a></span><span class="signature">(<wbr><span class="parameter" id="supports-param-applicationType"><span class="type-annotation"><a href="../context/ApplicationType.html">ApplicationType</a></span> <span class="parameter-name">applicationType</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns whether this context supports the given <code>applicationType</code>.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="toString" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  A string representation of this object.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="operators">
+    <h2>Operators</h2>
+    <dl class="callables">
+        <dt id="operator ==" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  The equality operator.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+  <section class="summary offset-anchor" id="static-properties">
+    <h2>Static Properties</h2>
+    <dl class="properties">
+        <dt id="APPLICATION_EVENT_BUS_POD_NAME" class="property">
+  <span class="name"><a href="../context/AbstractApplicationContext/APPLICATION_EVENT_BUS_POD_NAME.html">APPLICATION_EVENT_BUS_POD_NAME</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  
+
+</dt>
+<dd>
+  The reserved pod name for the <a href="../context/ApplicationEventBus-class.html">ApplicationEventBus</a>.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="APPLICATION_NAME" class="property">
+  <span class="name"><a href="../context/AbstractApplicationContext/APPLICATION_NAME.html">APPLICATION_NAME</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  
+
+</dt>
+<dd>
+  The property key used as fallback for application name configuration.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="BANNER_POD_NAME" class="property">
+  <span class="name"><a href="../context/AbstractApplicationContext/BANNER_POD_NAME.html">BANNER_POD_NAME</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  
+
+</dt>
+<dd>
+  The reserved pod name for the startup banner.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="JETLEAF_APPLICATION_NAME" class="property">
+  <span class="name"><a href="../context/AbstractApplicationContext/JETLEAF_APPLICATION_NAME.html">JETLEAF_APPLICATION_NAME</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  
+
+</dt>
+<dd>
+  The property key used to override the Jetleaf application name.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="JETLEAF_ARGUMENT_POD_NAME" class="property">
+  <span class="name"><a href="../context/AbstractApplicationContext/JETLEAF_ARGUMENT_POD_NAME.html">JETLEAF_ARGUMENT_POD_NAME</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  
+
+</dt>
+<dd>
+  The reserved pod name for Jetleaf application arguments.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="LIFECYCLE_PROCESSOR_POD_NAME" class="property">
+  <span class="name"><a href="../context/AbstractApplicationContext/LIFECYCLE_PROCESSOR_POD_NAME.html">LIFECYCLE_PROCESSOR_POD_NAME</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  
+
+</dt>
+<dd>
+  The reserved pod name for the <code>LifecycleProcessor</code> within the Jetleaf context.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="MESSAGE_SOURCE_POD_NAME" class="property">
+  <span class="name"><a href="../context/AbstractApplicationContext/MESSAGE_SOURCE_POD_NAME.html">MESSAGE_SOURCE_POD_NAME</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  
+
+</dt>
+<dd>
+  The reserved pod name for the <a href="../message/MessageSource-class.html">MessageSource</a>.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="POD_NAME_GENERATOR_POD_NAME" class="property">
+  <span class="name"><a href="../context/AbstractApplicationContext/POD_NAME_GENERATOR_POD_NAME.html">POD_NAME_GENERATOR_POD_NAME</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  
+
+</dt>
+<dd>
+  The reserved pod name for the pod name generator.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+    
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">jetleaf_core</a></li>
+    <li><a href="../context/">context</a></li>
+    <li class="self-crumb">AbstractApplicationContext class</li>
+</ol>
+
+    <h5>context library</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    jetleaf_core
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

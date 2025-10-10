@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the Order.new constructor from Class Order from the annotation library, for the Dart programming language.">
+  <title>Order.new constructor - Order - annotation library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../annotation/">annotation.dart</a></li>
+    <li><a href="../../annotation/Order-class.html">Order</a></li>
+    <li class="self-crumb">Order.new const constructor</li>
+  </ol>
+  <div class="self-name">Order.new</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+  <div
+      id="dartdoc-main-content"
+      class="main-content"
+      data-above-sidebar="annotation&#47;Order-class-sidebar.html"
+      data-below-sidebar="">
+      <div>
+<h1><span class="kind-constructor">Order</span> constructor 
+</h1></div>
+
+    <section class="multi-line-signature">
+      const
+      <span class="name ">Order</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span> <span class="parameter-name">value</span></span></li>
+</ol>)
+    </section>
+    
+<section class="desc markdown">
+  <p>Specifies the <strong>order of precedence</strong> for a class when processed by
+the framework or runtime system.</p>
+<p>The <code>@Order</code> annotation provides deterministic ordering for components such as:</p>
+<ul>
+<li>Middleware</li>
+<li>Interceptors</li>
+<li>Initializers</li>
+<li>Filters</li>
+<li>Event handlers</li>
+</ul>
+<p>The <strong>lower the value</strong>, the <strong>higher the priority</strong>. That is, <code>@Order(0)</code> runs
+before <code>@Order(1)</code>, and so on.</p>
+<hr>
+<h2 id="-execution-order-rules">🔁 Execution Order Rules:</h2>
+<ul>
+<li><strong>Ascending Order</strong>: Lower <code>value</code> means earlier execution.</li>
+<li>If two components have the same <code>@Order</code>, their relative order is undefined
+unless explicitly handled by the framework.</li>
+<li>Classes without <code>@Order</code> may be given a <strong>default priority</strong>, e.g., <code>@Order(1000)</code>
+or treated as "last".</li>
+</ul>
+<hr>
+<h2 id="-example">🧪 Example:</h2>
+<pre class="language-dart"><code class="language-dart">@Order(1)
+class FirstMiddleware {}
+
+@Order(2)
+class SecondMiddleware {}
+
+@Order(0)
+class HighestPriority {}
+</code></pre>
+<p>In this example, the order of invocation would be:</p>
+<ol>
+<li><code>HighestPriority</code></li>
+<li><code>FirstMiddleware</code></li>
+<li><code>SecondMiddleware</code></li>
+</ol>
+<hr>
+<h2 id="-common-use-cases">🧱 Common Use Cases:</h2>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Why <code>@Order</code> Helps</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Middleware Chains</td>
+<td>Defines filter/interceptor execution flow</td>
+</tr>
+<tr>
+<td>Plugin Systems</td>
+<td>Ensures predictable hook registration</td>
+</tr>
+<tr>
+<td>Application Phases</td>
+<td>Orders startup or shutdown hooks</td>
+</tr>
+<tr>
+<td>Event Listeners</td>
+<td>Prioritizes listeners in a dispatch tree</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="-usage-notes">🔧 Usage Notes:</h2>
+<ul>
+<li><code>@Order</code> must be placed on <strong>class declarations only</strong>.</li>
+<li>Typically interpreted by the <strong>container</strong>, <strong>registry</strong>, or <strong>dispatcher</strong> at runtime or compile-time.</li>
+<li>It is framework-agnostic, but effective only if the underlying system respects the ordering logic.</li>
+</ul>
+<hr>
+<h2 id="-target">🎯 Target:</h2>
+<p>This annotation applies to <strong>classes only</strong>:</p>
+<pre class="language-dart"><code class="language-dart">@Order(10)
+class AuditLoggerInterceptor {}
+</code></pre>
+<hr>
+<h2 id="-related-patterns">🧩 Related Patterns:</h2>
+<ul>
+<li>Chain of Responsibility</li>
+<li>Interceptor / Middleware</li>
+<li>Application lifecycle hooks (e.g., startup, shutdown)</li>
+</ul>
+<hr>
+<h2 id="-integration-tip">🔄 Integration Tip:</h2>
+<p>Frameworks can use this annotation to sort registered components:</p>
+<pre class="language-dart"><code class="language-dart">final List&lt;Object&gt; ordered = components
+    .whereType&lt;HasOrder&gt;()
+    .toList()
+  ..sort((a, b) =&gt; a.order.compareTo(b.order));
+</code></pre>
+<p>Consider defining a common interface like <code>HasOrder</code> to extract the <code>value</code>:</p>
+<pre class="language-dart"><code class="language-dart">abstract class HasOrder {
+  int get order;
+}
+</code></pre>
+<hr>
+<h2 id="-best-practices">✅ Best Practices:</h2>
+<ul>
+<li>Use low values (<code>0–10</code>) for essential/core logic.</li>
+<li>Use mid-range values (<code>50–100</code>) for application-level logic.</li>
+<li>Avoid overusing <code>@Order</code> — prefer natural dependency ordering when possible.</li>
+<li>Combine with composition or configuration patterns for more flexibility.</li>
+</ul>
+<hr>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">const Order(this.value);</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../annotation/">annotation</a></li>
+    <li><a href="../../annotation/Order-class.html">Order</a></li>
+    <li class="self-crumb">Order.new const constructor</li>
+</ol>
+
+    <h5>Order class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-left-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    jetleaf_core
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

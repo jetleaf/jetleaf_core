@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the ApplicationContext class from the context library, for the Dart programming language.">
+  <title>ApplicationContext class - context library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">jetleaf_core</a></li>
+    <li><a href="../context/">context.dart</a></li>
+    <li class="self-crumb">ApplicationContext class</li>
+  </ol>
+  <div class="self-name">ApplicationContext</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="context&#47;context-library-sidebar.html"
+    data-below-sidebar="context&#47;ApplicationContext-class-sidebar.html">
+    <div>
+<h1><span class="kind-class">ApplicationContext</span> class 
+    <a href="https://dart.dev/language/class-modifiers#abstract" class="feature feature-abstract" title="This type can not be directly constructed.">abstract</a>
+ 
+</h1></div>
+
+    
+<section class="desc markdown">
+  <p>The central interface for a JetLeaf application context.</p>
+<p>An <a href="../context/ApplicationContext-class.html">ApplicationContext</a> is the core container that provides:</p>
+<ul>
+<li><strong>Dependency Injection</strong>: Access to managed pods (beans) via <code>ListablePodFactory</code> and <code>HierarchicalPodFactory</code></li>
+<li><strong>Environment Management</strong>: Configuration and profile handling via <code>EnvironmentCapable</code></li>
+<li><strong>Internationalization</strong>: Message resolution and localization via <a href="../message/MessageSource-class.html">MessageSource</a></li>
+<li><strong>Event System</strong>: Application-wide event publication through <a href="../context/ApplicationContext/publishEvent.html">publishEvent</a></li>
+<li><strong>Lifecycle Management</strong>: Context state tracking and lifecycle operations</li>
+</ul>
+<p>This interface serves as the primary entry point for configuring, bootstrapping,
+and interacting with a JetLeaf application at runtime.</p>
+<h3 id="core-responsibilities">Core Responsibilities:</h3>
+<ul>
+<li><strong>Container Management</strong>: Hosts and manages the complete dependency injection container</li>
+<li><strong>Configuration Centralization</strong>: Provides unified access to application configuration</li>
+<li><strong>Lifecycle Coordination</strong>: Manages context lifecycle from startup to shutdown</li>
+<li><strong>Event Distribution</strong>: Facilitates loose coupling through event-driven architecture</li>
+<li><strong>Resource Access</strong>: Provides access to framework and application resources</li>
+</ul>
+<h3 id="basic-usage-example">Basic Usage Example:</h3>
+<pre class="language-dart"><code class="language-dart">void main() async {
+  // Create and configure application context
+  final context = MyApplicationContext();
+  
+  // Initialize the context (loads pods, processes configurations)
+  await context.refresh();
+
+  // Publish application startup event
+  context.publishEvent(ApplicationStartedEvent(context));
+
+  // Access context information
+  print("Application '${context.getApplicationName()}' started at: ${context.getStartTime()}");
+  print("Context ID: ${context.getId()}");
+  
+  // Use the context throughout application lifetime
+  final userService = context.getPod&lt;UserService&gt;();
+  await userService.initialize();
+  
+  // Properly close context on shutdown
+  await context.close();
+}
+</code></pre>
+<h3 id="context-hierarchy">Context Hierarchy:</h3>
+<p>Application contexts can form parent-child relationships where child contexts
+inherit configuration and can delegate pod lookups to their parents. This enables:</p>
+<ul>
+<li><strong>Modular Applications</strong>: Separate contexts for different application modules</li>
+<li><strong>Testing Scenarios</strong>: Isolated test contexts with shared parent services</li>
+<li><strong>Multi-tenant Systems</strong>: Tenant-specific contexts with common infrastructure</li>
+</ul>
+<h3 id="thread-safety">Thread Safety:</h3>
+<p>Implementations should be thread-safe for concurrent access, particularly
+for read operations like pod retrieval and configuration access. Lifecycle
+operations (refresh, start, stop, close) should be properly synchronized.</p>
+<p>See also:</p>
+<ul>
+<li><a href="../context/ConfigurableApplicationContext-class.html">ConfigurableApplicationContext</a> for lifecycle management and configuration</li>
+<li><code>Environment</code> for environment and property management</li>
+<li><a href="../message/MessageSource-class.html">MessageSource</a> for internationalization support</li>
+<li><a href="../context/ApplicationEvent-class.html">ApplicationEvent</a> for event system integration</li>
+</ul>
+</section>
+
+
+    <section>
+      <dl class="dl-horizontal">
+        
+
+        
+  <dt>Implemented types</dt>
+  <dd>
+    <ul class="comma-separated clazz-relationships">
+        <li><a href="../core/EnvironmentAware-class.html">EnvironmentAware</a></li>
+        <li><a href="../message/MessageSource-class.html">MessageSource</a></li>
+        <li><a href="../context/PodRegistry-class.html">PodRegistry</a></li>
+    </ul>
+  </dd>
+        
+
+          <dt>Implementers</dt>
+          <dd><ul class="comma-separated clazz-relationships">
+              <li><a href="../context/ConfigurableApplicationContext-class.html">ConfigurableApplicationContext</a></li>
+          </ul></dd>
+
+        
+        
+
+
+      </dl>
+    </section>
+
+    
+  <section class="summary offset-anchor" id="constructors">
+    <h2>Constructors</h2>
+    <dl class="constructor-summary-list">
+        <dt id="ApplicationContext.new" class="callable">
+          <span class="name"><a href="../context/ApplicationContext/ApplicationContext.html">ApplicationContext.new</a></span><span class="signature">()</span>
+        </dt>
+        <dd>
+          
+        </dd>
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="instance-properties">
+    <h2>Properties</h2>
+    <dl class="properties">
+        <dt id="hashCode" class="property inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The hash code for this object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="runtimeType" class="property inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Type-class.html">Type</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  A representation of the runtime type of the object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-methods">
+    <h2>Methods</h2>
+    <dl class="callables">
+        <dt id="containsDefinition" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/containsDefinition.html">containsDefinition</a></span><span class="signature">(<wbr><span class="parameter" id="containsDefinition-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns <code>true</code> if this registry contains a pod with the given <code>name</code>.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="containsPod" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/containsPod.html">containsPod</a></span><span class="signature">(<wbr><span class="parameter" id="containsPod-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Checks if a pod with the given name is registered in the factory.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="containsType" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/containsType.html">containsType</a></span><span class="signature">(<wbr><span class="parameter" id="containsType-param-type"><span class="type-annotation">Class</span> <span class="parameter-name">type</span>, [</span><span class="parameter" id="containsType-param-allowPodProviderInit"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">allowPodProviderInit</span> = <span class="default-value">false</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Checks if the factory contains a pod of the specified type.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="findAllAnnotationsOnPod" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/findAllAnnotationsOnPod.html">findAllAnnotationsOnPod</a></span><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="findAllAnnotationsOnPod-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span>, </span><span class="parameter" id="findAllAnnotationsOnPod-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span></span> <span class="parameter-name">type</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Set-class.html">Set</a><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Finds all annotations of the specified type on a pod.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="findAnnotationOnPod" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/findAnnotationOnPod.html">findAnnotationOnPod</a></span><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="findAnnotationOnPod-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span>, </span><span class="parameter" id="findAnnotationOnPod-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span></span> <span class="parameter-name">type</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">A?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Finds a specific annotation on a pod.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="get" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/get.html">get</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="get-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span> <span class="parameter-name">type</span>, [</span><span class="parameter" id="get-param-args"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">ArgumentValue</span>&gt;</span>?</span> <span class="parameter-name">args</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Retrieves a pod instance by its type with optional arguments.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getAliases" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getAliases.html">getAliases</a></span><span class="signature">(<wbr><span class="parameter" id="getAliases-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Retrieves all alias names for the specified pod.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getApplicationName" class="callable">
+  <span class="name"><a href="../context/ApplicationContext/getApplicationName.html">getApplicationName</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the name of this application.
+  
+
+</dd>
+
+        <dt id="getDefinitionNames" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getDefinitionNames.html">getDefinitionNames</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns a list of all pod names currently registered.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getDisplayName" class="callable">
+  <span class="name"><a href="../context/ApplicationContext/getDisplayName.html">getDisplayName</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the display name of this application context.
+  
+
+</dd>
+
+        <dt id="getEnvironment" class="callable">
+  <span class="name"><a href="../context/ApplicationContext/getEnvironment.html">getEnvironment</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; Environment</span>
+  </span>
+  
+
+</dt>
+<dd>
+  🫘 Returns the <code>Environment</code> associated with the current context.
+  
+
+</dd>
+
+        <dt id="getId" class="callable">
+  <span class="name"><a href="../context/ApplicationContext/getId.html">getId</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns a unique identifier for this application context.
+  
+
+</dd>
+
+        <dt id="getMainApplicationClass" class="callable">
+  <span class="name"><a href="../context/ApplicationContext/getMainApplicationClass.html">getMainApplicationClass</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; Class<span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the main application class.
+  
+
+</dd>
+
+        <dt id="getMessage" class="callable inherited">
+  <span class="name"><a href="../message/MessageSource/getMessage.html">getMessage</a></span><span class="signature">(<wbr><span class="parameter" id="getMessage-param-code"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">code</span>, {</span><span class="parameter" id="getMessage-param-args"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span>?</span> <span class="parameter-name">args</span>, </span><span class="parameter" id="getMessage-param-locale"><span class="type-annotation">Locale?</span> <span class="parameter-name">locale</span>, </span><span class="parameter" id="getMessage-param-defaultMessage"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">defaultMessage</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Retrieve a message for the given code.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getNamedObject" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getNamedObject.html">getNamedObject</a></span><span class="signature">(<wbr><span class="parameter" id="getNamedObject-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span>, [</span><span class="parameter" id="getNamedObject-param-args"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">ArgumentValue</span>&gt;</span>?</span> <span class="parameter-name">args</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Retrieves a pod as a generic Object by its name with optional arguments.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getNumberOfPodDefinitions" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getNumberOfPodDefinitions.html">getNumberOfPodDefinitions</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Returns the total number of pods registered.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getObject" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getObject.html">getObject</a></span><span class="signature">(<wbr><span class="parameter" id="getObject-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span></span> <span class="parameter-name">type</span>, [</span><span class="parameter" id="getObject-param-args"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">ArgumentValue</span>&gt;</span>?</span> <span class="parameter-name">args</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Retrieves a pod as a generic Object by its type with optional arguments.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getPackageName" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getPackageName.html">getPackageName</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Represents an abstraction for identifying the package that an object,
+resource, or service belongs to.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getParent" class="callable">
+  <span class="name"><a href="../context/ApplicationContext/getParent.html">getParent</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="../context/ApplicationContext-class.html">ApplicationContext</a>?</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the parent context, if any.
+  
+
+</dd>
+
+        <dt id="getPod" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getPod.html">getPod</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="getPod-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span>, [</span><span class="parameter" id="getPod-param-args"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">ArgumentValue</span>&gt;</span>?</span> <span class="parameter-name">args</span>, </span><span class="parameter" id="getPod-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span>?</span> <span class="parameter-name">type</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Retrieves a pod instance by its name with optional arguments.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getPodClass" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getPodClass.html">getPodClass</a></span><span class="signature">(<wbr><span class="parameter" id="getPodClass-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">Class</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Retrieves the Class object for the specified pod name.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getPodFactory" class="callable">
+  <span class="name"><a href="../context/ApplicationContext/getPodFactory.html">getPodFactory</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; ConfigurableListablePodFactory</span>
+  </span>
+  
+
+</dt>
+<dd>
+  🫘 Returns the underlying <code>ConfigurableListablePodFactory</code>.
+  
+
+</dd>
+
+        <dt id="getPodNames" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getPodNames.html">getPodNames</a></span><span class="signature">(<wbr><span class="parameter" id="getPodNames-param-type"><span class="type-annotation">Class</span> <span class="parameter-name">type</span>, {</span><span class="parameter" id="getPodNames-param-includeNonSingletons"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">includeNonSingletons</span> = <span class="default-value">false</span>, </span><span class="parameter" id="getPodNames-param-allowEagerInit"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">allowEagerInit</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Retrieves all pod names for pods of the specified type.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getPodNamesForAnnotation" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getPodNamesForAnnotation.html">getPodNamesForAnnotation</a></span><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="getPodNamesForAnnotation-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span></span> <span class="parameter-name">type</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Retrieves pod names for pods annotated with the specified annotation type.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getPodsOf" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getPodsOf.html">getPodsOf</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="getPodsOf-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span> <span class="parameter-name">type</span>, {</span><span class="parameter" id="getPodsOf-param-includeNonSingletons"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">includeNonSingletons</span> = <span class="default-value">false</span>, </span><span class="parameter" id="getPodsOf-param-allowEagerInit"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">allowEagerInit</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Retrieves all pods of the specified type as a map of name to instance.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getPodsWithAnnotation" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getPodsWithAnnotation.html">getPodsWithAnnotation</a></span><span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="getPodsWithAnnotation-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">A</span>&gt;</span></span> <span class="parameter-name">type</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Retrieves pods with the specified annotation as a map of name to instance.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getProvider" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/getProvider.html">getProvider</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="getProvider-param-type"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span> <span class="parameter-name">type</span>, {</span><span class="parameter" id="getProvider-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">podName</span>, </span><span class="parameter" id="getProvider-param-allowEagerInit"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">allowEagerInit</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">ObjectProvider<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Retrieves a provider for a pod, allowing for lazy or eager initialization.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="getStartTime" class="callable">
+  <span class="name"><a href="../context/ApplicationContext/getStartTime.html">getStartTime</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/DateTime-class.html">DateTime</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the startup time of this context as a <a href="https://api.dart.dev/stable/3.9.2/dart-core/DateTime-class.html">DateTime</a>.
+  
+
+</dd>
+
+        <dt id="isActive" class="callable">
+  <span class="name"><a href="../context/ApplicationContext/isActive.html">isActive</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns whether this application context is currently active.
+  
+
+</dd>
+
+        <dt id="isClosed" class="callable">
+  <span class="name"><a href="../context/ApplicationContext/isClosed.html">isClosed</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns whether this application context has been closed.
+  
+
+</dd>
+
+        <dt id="isPrototype" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/isPrototype.html">isPrototype</a></span><span class="signature">(<wbr><span class="parameter" id="isPrototype-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Checks if the specified pod is configured as a prototype.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="isSingleton" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/isSingleton.html">isSingleton</a></span><span class="signature">(<wbr><span class="parameter" id="isSingleton-param-podName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">podName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Checks if the specified pod is configured as a singleton.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="isTypeMatch" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/isTypeMatch.html">isTypeMatch</a></span><span class="signature">(<wbr><span class="parameter" id="isTypeMatch-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span>, </span><span class="parameter" id="isTypeMatch-param-typeToMatch"><span class="type-annotation">Class</span> <span class="parameter-name">typeToMatch</span>, [</span><span class="parameter" id="isTypeMatch-param-allowPodProviderInit"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">allowPodProviderInit</span> = <span class="default-value">false</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Checks if the pod with the specified name matches the given type.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="noSuchMethod" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Invoked when a nonexistent method or property is accessed.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="publishEvent" class="callable">
+  <span class="name"><a href="../context/ApplicationContext/publishEvent.html">publishEvent</a></span><span class="signature">(<wbr><span class="parameter" id="publishEvent-param-event"><span class="type-annotation"><a href="../context/ApplicationEvent-class.html">ApplicationEvent</a></span> <span class="parameter-name">event</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Publishes the given <code>event</code> to all registered <a href="../context/ApplicationEventListener-class.html">ApplicationEventListener</a>s.
+  
+
+</dd>
+
+        <dt id="register" class="callable inherited">
+  <span class="name"><a href="../context/PodRegistry/register.html">register</a></span><span class="signature">(<wbr><span class="parameter" id="register-param-registrar"><span class="type-annotation"><a href="../context/PodRegistrar-class.html">PodRegistrar</a></span> <span class="parameter-name">registrar</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Registers a <code>registrar</code> that declares pods into this registry.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="registerPod" class="callable inherited">
+  <span class="name"><a href="../context/PodRegistry/registerPod.html">registerPod</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="registerPod-param-podClass"><span class="type-annotation">Class<span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span> <span class="parameter-name">podClass</span>, {</span><span class="parameter" id="registerPod-param-customizer"><span class="type-annotation">Consumer<span class="signature">&lt;<wbr><span class="type-parameter"><a href="../context/Spec-class.html">Spec</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span>?</span> <span class="parameter-name">customizer</span>, </span><span class="parameter" id="registerPod-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">name</span></span>})
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Registers a pod of type <code>T</code> in the registry.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="resolveDependency" class="callable inherited">
+  <span class="name"><a href="../context/ApplicationContext/resolveDependency.html">resolveDependency</a></span><span class="signature">(<wbr><span class="parameter" id="resolveDependency-param-descriptor"><span class="type-annotation">DependencyDescriptor</span> <span class="parameter-name">descriptor</span>, [</span><span class="parameter" id="resolveDependency-param-autowiredPods"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Set-class.html">Set</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span>?</span> <span class="parameter-name">autowiredPods</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Resolves a dependency based on the provided descriptor.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="setEnvironment" class="callable inherited">
+  <span class="name"><a href="../core/EnvironmentAware/setEnvironment.html">setEnvironment</a></span><span class="signature">(<wbr><span class="parameter" id="setEnvironment-param-environment"><span class="type-annotation">Environment</span> <span class="parameter-name">environment</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Sets the <code>Environment</code> that this component runs in.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="supports" class="callable">
+  <span class="name"><a href="../context/ApplicationContext/supports.html">supports</a></span><span class="signature">(<wbr><span class="parameter" id="supports-param-applicationType"><span class="type-annotation"><a href="../context/ApplicationType.html">ApplicationType</a></span> <span class="parameter-name">applicationType</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns whether this context supports the given <code>applicationType</code>.
+  
+
+</dd>
+
+        <dt id="toString" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  A string representation of this object.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="operators">
+    <h2>Operators</h2>
+    <dl class="callables">
+        <dt id="operator ==" class="callable inherited">
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  The equality operator.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+    
+    
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">jetleaf_core</a></li>
+    <li><a href="../context/">context</a></li>
+    <li class="self-crumb">ApplicationContext class</li>
+</ol>
+
+    <h5>context library</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    jetleaf_core
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

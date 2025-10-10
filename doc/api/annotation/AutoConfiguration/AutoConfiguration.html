@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the AutoConfiguration.new constructor from Class AutoConfiguration from the annotation library, for the Dart programming language.">
+  <title>AutoConfiguration.new constructor - AutoConfiguration - annotation library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../annotation/">annotation.dart</a></li>
+    <li><a href="../../annotation/AutoConfiguration-class.html">AutoConfiguration</a></li>
+    <li class="self-crumb">AutoConfiguration.new const constructor</li>
+  </ol>
+  <div class="self-name">AutoConfiguration.new</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+  <div
+      id="dartdoc-main-content"
+      class="main-content"
+      data-above-sidebar="annotation&#47;AutoConfiguration-class-sidebar.html"
+      data-below-sidebar="">
+      <div>
+<h1><span class="kind-constructor">AutoConfiguration</span> constructor 
+</h1></div>
+
+    <section class="multi-line-signature">
+      const
+      <span class="name ">AutoConfiguration</span>(<wbr>[<ol class="parameter-list single-line"> <li><span class="parameter" id="-param-proxyPodMethods"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">proxyPodMethods</span> = <span class="default-value">true</span>, </span></li>
+<li><span class="parameter" id="-param-scopeResolver"><span class="type-annotation">ScopeMetadataResolver</span> <span class="parameter-name">scopeResolver</span> = <span class="default-value">const AnnotatedScopeMetadataResolver()</span></span></li>
+</ol>])
+    </section>
+    
+<section class="desc markdown">
+  <p>Declares a class as a source of <strong>automatic configuration</strong>.</p>
+<p>This annotation marks a class that provides pods, services, or other
+application components that should be automatically discovered and
+registered by the framework during application startup.</p>
+<h2 id="-how-it-works">🚀 How it Works:</h2>
+<ul>
+<li>The framework <strong>automatically scans</strong> all classes annotated with
+<code>@AutoConfiguration</code> during bootstrap.</li>
+<li>Any methods within these classes annotated with <code>@Pod</code> are treated
+as factory methods and their return values are registered as pods
+in the application context.</li>
+<li>Typically, this is used for <strong>library-level default configurations</strong>
+or framework-provided setups.</li>
+</ul>
+<h2 id="-target-use-cases">🎯 Target Use Cases:</h2>
+<ul>
+<li>Automatically register commonly used pods (e.g., <code>Logger</code>, <code>HttpClient</code>)</li>
+<li>Provide cross-cutting concerns (e.g., metrics, tracing)</li>
+<li>Reduce boilerplate in app-level configuration</li>
+</ul>
+<h2 id="-requirements">🔧 Requirements:</h2>
+<ul>
+<li>The annotated class must have a public zero-argument constructor (if not using static methods).</li>
+<li><code>@Pod</code> methods must return non-null values that will be added to the DI container.</li>
+</ul>
+<h2 id="-example">🧪 Example:</h2>
+<pre class="language-dart"><code class="language-dart">@AutoConfiguration()
+class DefaultInfrastructure {
+  @Pod()
+  Logger logger() =&gt; Logger();
+
+  @Pod()
+  HttpClient client() =&gt; HttpClient();
+}
+</code></pre>
+<h2 id="-notes">⚠️ Notes:</h2>
+<ul>
+<li>If you don’t want a class to be automatically discovered,
+use <code>@Configuration()</code> instead and import it manually.</li>
+<li>Avoid putting app-specific configuration in an <code>@AutoConfiguration</code>
+class — it's meant for shared, reusable modules.</li>
+</ul>
+<h2 id="-organization-tip">🗂 Organization Tip:</h2>
+<p>Use this in reusable <strong>package-level configurations</strong>, such as:</p>
+<ul>
+<li><code>logging_config.dart</code></li>
+<li><code>database_auto_config.dart</code></li>
+<li><code>http_auto_config.dart</code></li>
+</ul>
+<hr>
+<h2 id="-related">🔧 Related:</h2>
+<ul>
+<li><code>@Pod()</code> → Marks methods that return injectable components.</li>
+<li><code>@Configuration()</code> → Similar, but not auto-scanned; must be imported.</li>
+</ul>
+<hr>
+<p>Applies to:</p>
+<ul>
+<li><code>class</code> declarations only.</li>
+</ul>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">const AutoConfiguration([super.proxyPodMethods, super.scopeResolver]);</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../annotation/">annotation</a></li>
+    <li><a href="../../annotation/AutoConfiguration-class.html">AutoConfiguration</a></li>
+    <li class="self-crumb">AutoConfiguration.new const constructor</li>
+</ol>
+
+    <h5>AutoConfiguration class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-left-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    jetleaf_core
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

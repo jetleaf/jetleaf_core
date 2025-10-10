@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the getFallbackLocales method from the AbstractMessageSource class, for the Dart programming language.">
+  <title>getFallbackLocales method - AbstractMessageSource class - message library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../message/">message.dart</a></li>
+    <li><a href="../../message/AbstractMessageSource-class.html">AbstractMessageSource</a></li>
+    <li class="self-crumb">getFallbackLocales method</li>
+  </ol>
+  <div class="self-name">getFallbackLocales</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="message&#47;AbstractMessageSource-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">getFallbackLocales</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">Locale</span>&gt;</span></span>
+<span class="name ">getFallbackLocales</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="getFallbackLocales-param-locale"><span class="type-annotation">Locale</span> <span class="parameter-name">locale</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Get the fallback locale chain for the given locale.</p>
+<p>This method returns the ordered list of locales to try
+when resolving messages, implementing the fallback strategy.</p>
+<p>Example for Locale('fr', 'CA', 'Quebec'):</p>
+<ol>
+<li>fr-CA-Quebec</li>
+<li>fr-CA</li>
+<li>fr</li>
+<li>Default locale (if different)</li>
+</ol>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">List&lt;Locale&gt; getFallbackLocales(Locale locale) {
+  &#47;&#47; If locale is the default, return only that
+  if (locale.matches(_defaultLocale)) {
+    return [locale];
+  }
+
+  final fallbacks = &lt;Locale&gt;[locale];
+
+  &#47;&#47; Add variant fallback
+  if (locale.hasVariant()) {
+    fallbacks.add(Locale(locale.getLanguage(), locale.getCountry()));
+  }
+
+  &#47;&#47; Add country fallback
+  if (locale.hasCountry()) {
+    fallbacks.add(Locale(locale.getLanguage()));
+  }
+
+  &#47;&#47; Add default locale fallback
+  if (!locale.matches(_defaultLocale)) {
+    fallbacks.add(_defaultLocale);
+  }
+
+  return fallbacks;
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../message/">message</a></li>
+    <li><a href="../../message/AbstractMessageSource-class.html">AbstractMessageSource</a></li>
+    <li class="self-crumb">getFallbackLocales method</li>
+</ol>
+
+    <h5>AbstractMessageSource class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    jetleaf_core
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

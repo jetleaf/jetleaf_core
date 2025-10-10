@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the PreDestroy.new constructor from Class PreDestroy from the annotation library, for the Dart programming language.">
+  <title>PreDestroy.new constructor - PreDestroy - annotation library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../annotation/">annotation.dart</a></li>
+    <li><a href="../../annotation/PreDestroy-class.html">PreDestroy</a></li>
+    <li class="self-crumb">PreDestroy.new const constructor</li>
+  </ol>
+  <div class="self-name">PreDestroy.new</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+  <div
+      id="dartdoc-main-content"
+      class="main-content"
+      data-above-sidebar="annotation&#47;PreDestroy-class-sidebar.html"
+      data-below-sidebar="">
+      <div>
+<h1><span class="kind-constructor">PreDestroy</span> constructor 
+</h1></div>
+
+    <section class="multi-line-signature">
+      const
+      <span class="name ">PreDestroy</span>(<wbr>)
+    </section>
+    
+<section class="desc markdown">
+  <p>Marks a method to be invoked <strong>before a pod is destroyed</strong>.</p>
+<p>Jetleaf automatically detects methods annotated with <code>@PreDestroy</code>
+and calls them during <strong>pod shutdown</strong> or <strong>context close</strong>.</p>
+<p>This is typically used for:</p>
+<ul>
+<li>Releasing resources (database connections, sockets, file handles).</li>
+<li>Stopping background workers.</li>
+<li>Flushing in-memory caches.</li>
+</ul>
+<h3 id="rules">Rules</h3>
+<ul>
+<li>Must be a <strong>no-arg method</strong>.</li>
+<li>Return type should be <code>void</code> or <code>Future&lt;void&gt;</code>.</li>
+<li>Only applied to methods (not classes or fields).</li>
+</ul>
+<h3 id="example--synchronous-cleanup">Example — Synchronous Cleanup</h3>
+<pre class="language-dart"><code class="language-dart">@Service()
+class CacheManager {
+  final _cache = &lt;String, String&gt;{};
+
+  void put(String key, String value) =&gt; _cache[key] = value;
+
+  @PreDestroy()
+  void clearCache() {
+    print("Clearing cache before shutdown...");
+    _cache.clear();
+  }
+}
+</code></pre>
+<h3 id="example--asynchronous-cleanup">Example — Asynchronous Cleanup</h3>
+<pre class="language-dart"><code class="language-dart">@Service()
+class WorkerPool {
+  final _workers = &lt;Worker&gt;[];
+
+  @PreDestroy()
+  Future&lt;void&gt; shutdownWorkers() async {
+    for (final worker in _workers) {
+      await worker.stop();
+    }
+  }
+}
+</code></pre>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">const PreDestroy();</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">jetleaf_core</a></li>
+    <li><a href="../../annotation/">annotation</a></li>
+    <li><a href="../../annotation/PreDestroy-class.html">PreDestroy</a></li>
+    <li class="self-crumb">PreDestroy.new const constructor</li>
+</ol>
+
+    <h5>PreDestroy class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-left-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    jetleaf_core
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+
