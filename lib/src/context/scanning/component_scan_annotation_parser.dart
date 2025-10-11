@@ -12,202 +12,237 @@
 // 
 // 🔧 Powered by Hapnium — the Dart backend engine 🍃
 
-import 'package:jetleaf_env/env.dart';
 import 'package:jetleaf_lang/lang.dart';
+import 'package:jetleaf_logging/logging.dart';
 import 'package:jetleaf_pod/pod.dart';
 
 import '../../annotations/configuration.dart';
 import '../../annotations/stereotype.dart';
-import '../../condition/condition_evaluator.dart';
 import 'class_path_pod_definition_scanner.dart';
 import 'configuration_class.dart';
 
-/// {@template component_scan_annotation_parser}
-/// Parses @ComponentScan annotations and triggers classpath scanning.
-/// 
-/// This parser:
-/// 1. Reads @ComponentScan-like annotations from a config class
-/// 2. Triggers classpath scanning using Runtime.getAllLibraries()
-/// 3. Applies include/exclude filters using TypeFilter mechanism
-/// 4. Produces a list of PodDefinitions for discovered annotated classes
-/// 5. Deduplicates scanned definitions to prevent duplicate registration
-/// 
-/// It is used by ConfigurationClassParser to process @ComponentScan annotations.
+/// {@template componentScanAnnotationParser}
+/// Parser for [@ComponentScan] annotation that discovers and processes pod definitions
+/// from specified package locations with configurable filtering and scanning options.
+///
+/// This parser handles component scanning configuration, including base package resolution,
+/// filter application, and duplicate detection. It works with [ClassPathPodDefinitionScanner]
+/// to perform the actual classpath scanning and pod definition discovery.
+///
+/// **Example:**
+/// ```dart
+/// final scanner = ClassPathPodDefinitionScanner();
+/// final parser = ComponentScanAnnotationParser(scanner);
+///
+/// // Parse component scan configuration
+/// final scanConfig = ComponentScanConfiguration(
+///   basePackages: ['package:jetleaf_framework/src/runtime/jet_runtime_scan.dart'],
+///   basePackageClasses: [Application],
+///   useDefaultFilters: true,
+///   includeFilters: [AnnotationTypeFilter(CustomComponent)],
+///   excludeFilters: [AnnotationTypeFilter(Deprecated)]
+/// );
+///
+/// final podDefinitions = await parser.parse(scanConfig);
+/// print('Discovered ${podDefinitions.length} pod definitions');
+/// ```
 /// {@endtemplate}
 final class ComponentScanAnnotationParser {
-  /// The pod factory to use for configuration parsing
-  final ConfigurableListablePodFactory podFactory;
+  final Log _logger = LogFactory.getLog(ComponentScanAnnotationParser);
   
-  /// The environment to use for configuration parsing
-  final Environment environment;
-
-  /// The entry application class
-  final Class<Object> entryApplication;
-  
-  /// The condition evaluator to use for configuration parsing
-  final ConditionEvaluator conditionEvaluator;
-  
-  /// The classpath pod definition scanner to use for configuration parsing
+  /// The classpath pod definition scanner to use for configuration parsing.
   final ClassPathPodDefinitionScanner scanner;
 
-  /// {@macro component_scan_annotation_parser}
-  ComponentScanAnnotationParser(this.podFactory, this.environment, this.conditionEvaluator, this.entryApplication)
-    : scanner = ClassPathPodDefinitionScanner(conditionEvaluator, podFactory, entryApplication);
+  /// {@macro componentScanAnnotationParser}
+  ComponentScanAnnotationParser(this.scanner);
 
-  /// {@template parse_component_scan}
-  /// Parses a component scan configuration and returns discovered pod definitions.
-  /// 
-  /// This method:
-  /// 1. Determines base packages to scan
-  /// 2. Configures include/exclude filters
-  /// 3. Delegates to ClassPathPodDefinitionScanner for actual scanning
-  /// 4. Deduplicates results by pod name
-  /// 5. Returns list of discovered pod definitions
+  /// {@template parseComponentScan}
+  /// Parses component scan configuration and discovers pod definitions.
+  ///
+  /// This method resolves base packages, configures the scanner with appropriate
+  /// filters, performs the actual scanning, and returns unique pod definitions
+  /// across all scanned packages.
+  ///
+  /// **Parameters:**
+  /// - `scanConfig`: The component scan configuration specifying packages and filters
+  ///
+  /// **Returns:**
+  /// - A list of unique [PodDefinition] instances discovered during scanning
+  ///
+  /// **Example:**
+  /// ```dart
+  /// final parser = ComponentScanAnnotationParser(scanner);
+  ///
+  /// // Scan with multiple base packages
+  /// final definitions = await parser.parse(ComponentScanConfiguration(
+  ///   basePackages: ['package:jetleaf_framework/src/runtime/jet_runtime_scan.dart', 'package:jetleaf_framework/src/runtime/jet_runtime_scan.dart'],
+  ///   useDefaultFilters: true
+  /// ));
+  ///
+  /// // Scan with base package classes
+  /// final definitions = await parser.parse(ComponentScanConfiguration(
+  ///   basePackageClasses: [MainApplication, ConfigClass],
+  ///   includeFilters: [AnnotationTypeFilter(RestController)]
+  /// ));
+  ///
+  /// // Scan with custom filters only
+  /// final definitions = await parser.parse(ComponentScanConfiguration(
+  ///   basePackages: ['package:jetleaf_framework/src/runtime/jet_runtime_scan.dart'],
+  ///   useDefaultFilters: false,
+  ///   includeFilters: [AnnotationTypeFilter(MyCustomAnnotation)]
+  /// ));
+  /// ```
   /// {@endtemplate}
-  Future<List<PodDefinition>> parse(ComponentScanConfiguration scanConfig, ConfigurationClass configClass) async {
-    // Determine base packages to scan
-    final basePackages = _resolveBasePackages(scanConfig, configClass);
-    
+  Future<List<PodDefinition>> parse(ComponentScanConfiguration scanConfig) async {
+    if (_logger.getIsTraceEnabled()) {
+      _logger.trace('🔍 Starting component scan parsing for configuration: $scanConfig');
+    }
+
+    // Resolve base packages
+    final basePackages = _resolveBasePackages(scanConfig);
+
     if (basePackages.isEmpty) {
+      if (_logger.getIsWarnEnabled()) {
+        _logger.warn('⚠️ No base packages found in $scanConfig — skipping component scan.');
+      }
       return [];
     }
-    
-    // Configure scanner with filters
+
+    if (_logger.getIsTraceEnabled()) {
+      _logger.trace('📦 Resolved ${basePackages.length} base package(s): $basePackages');
+    }
+
+    // Configure scanner
     _configureScanner(scanConfig);
-    
-    final scannedDefinitionsMap = <String, PodDefinition>{};
-    
+
+    if (_logger.getIsTraceEnabled()) {
+      _logger.trace('⚙️ Scanner configured with '
+          '${scanConfig.includeFilters.length} include filter(s), '
+          '${scanConfig.excludeFilters.length} exclude filter(s), '
+          'useDefaultFilters=${scanConfig.useDefaultFilters}');
+    }
+
+    final scannedDefinitions = <PodDefinition>[];
+    int totalDiscovered = 0;
+
     for (final basePackage in basePackages) {
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('🚀 Scanning package: $basePackage');
+      }
+
       final packageDefinitions = await scanner.doScan(basePackage);
-      
+
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('✅ Found ${packageDefinitions.length} candidate(s) in package: $basePackage');
+      }
+
       for (final definition in packageDefinitions) {
         final podName = definition.name;
-        if (!scannedDefinitionsMap.containsKey(podName)) {
-          scannedDefinitionsMap[podName] = definition;
+
+        scannedDefinitions.add(definition);
+        totalDiscovered++;
+
+        if (_logger.getIsTraceEnabled()) {
+          _logger.trace('📦 Registered pod definition: $podName (${definition.type})');
         }
       }
     }
-    
-    return scannedDefinitionsMap.values.toList();
+
+    if (_logger.getIsTraceEnabled()) {
+      _logger.trace('🧭 Component scan complete. Total discovered: $totalDiscovered');
+    }
+
+    return scannedDefinitions;
   }
   
-  /// Resolves the base packages to scan from the configuration
-  /// 
-  /// This method:
-  /// 1. Adds explicitly specified base packages
-  /// 2. Adds packages from base package classes
-  /// 3. If no base packages specified, uses the package of the configuration class
-  /// 
-  /// ### Parameters
-  /// - `scanConfig`: The component scan configuration to resolve base packages from.
-  /// - `configClass`: The configuration class to use for resolving base packages.
-  /// 
-  /// ### Returns
-  /// A list of base packages to scan.
-  /// 
-  /// ### Example
-  /// ```dart
-  /// final env = Environment();
-  /// final factory = DefaultPodFactory();
-  /// final parser = ConfigurationClassParser(env, factory);
+  /// {@macro resolveBasePackages}
+  /// Resolves base packages from component scan configuration.
   ///
-  /// final configClass = await parser.parse(PodDefinition(type: ConfigurationClass));
-  /// await parser._processConfigurationClass(configClass);
-  /// ```
-  List<String> _resolveBasePackages(ComponentScanConfiguration scanConfig, ConfigurationClass configClass) {
+  /// This method combines explicitly specified base packages with packages
+  /// derived from base package classes, ensuring unique package names.
+  ///
+  /// **Parameters:**
+  /// - `scanConfig`: The component scan configuration
+  ///
+  /// **Returns:**
+  /// - A list of unique base package names to scan
+  List<String> _resolveBasePackages(ComponentScanConfiguration scanConfig) {
     final basePackages = <String>[];
-    
-    // Add explicitly specified base packages
+
     basePackages.addAll(scanConfig.basePackages);
-    
-    // Add packages from base package classes
+
     for (final basePackageClass in scanConfig.basePackageClasses) {
       final packageName = basePackageClass.getPackage()?.getName();
       if (packageName != null && !basePackages.contains(packageName)) {
         basePackages.add(packageName);
       }
     }
-    
-    // If no base packages specified, use the package of the configuration class
-    if (basePackages.isEmpty) {
-      final configPackage = configClass.type.getPackage()?.getName();
-      if (configPackage != null) {
-        basePackages.add(configPackage);
-      }
+
+    if (_logger.getIsTraceEnabled()) {
+      _logger.trace('🧩 Base packages resolved: $basePackages');
     }
-    
+
     return basePackages.toSet().toList();
   }
   
-  /// Configures the scanner with include/exclude filters
-  /// 
-  /// This method:
-  /// 1. Clears existing filters
-  /// 2. Adds default filters if enabled
-  /// 3. Adds custom include filters
-  /// 4. Adds custom exclude filters
-  /// 5. Configures scope resolver if specified
-  /// 
-  /// ### Parameters
-  /// - `scanConfig`: The component scan configuration to configure the scanner with.
-  /// 
-  /// ### Example
-  /// ```dart
-  /// final env = Environment();
-  /// final factory = DefaultPodFactory();
-  /// final parser = ConfigurationClassParser(env, factory);
+  /// {@macro configureScanner}
+  /// Configures the scanner with filters and resolvers from scan configuration.
   ///
-  /// final configClass = await parser.parse(PodDefinition(type: ConfigurationClass));
-  /// await parser._processConfigurationClass(configClass);
-  /// ```
+  /// This method applies default filters, custom include/exclude filters,
+  /// and configures scope resolver and name generator if specified.
+  ///
+  /// **Parameters:**
+  /// - `scanConfig`: The component scan configuration
   void _configureScanner(ComponentScanConfiguration scanConfig) {
     // Clear existing filters
     scanner.clearFilters();
-    
-    // Add default filters if enabled
+
+    if (_logger.getIsTraceEnabled()) {
+      _logger.trace('🧹 Cleared existing scanner filters.');
+    }
+
     if (scanConfig.useDefaultFilters) {
       _addDefaultIncludeFilters();
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('✅ Default include filters applied.');
+      }
     }
-    
-    // Add custom include filters
+
     for (final filter in scanConfig.includeFilters) {
       scanner.addIncludeFilter(filter);
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('➕ Added include filter: $filter');
+      }
     }
-    
-    // Add custom exclude filters
+
     for (final filter in scanConfig.excludeFilters) {
       scanner.addExcludeFilter(filter);
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('🚫 Added exclude filter: $filter');
+      }
     }
-    
-    // Configure scope resolver if specified
+
     if (scanConfig.scopeResolver != null) {
       scanner.setScopeResolver(scanConfig.scopeResolver!);
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('📘 Custom scope resolver configured: ${scanConfig.scopeResolver}');
+      }
     }
-    
-    // Configure name generator if specified
+
     if (scanConfig.nameGenerator != null) {
       scanner.setNameGenerator(scanConfig.nameGenerator!);
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('🧠 Custom name generator configured: ${scanConfig.nameGenerator}');
+      }
     }
   }
   
-  /// Adds default include filters for standard component annotations
-  /// 
-  /// This method:
-  /// 1. Adds @Component and its meta-annotations
-  /// 2. Adds @Service and its meta-annotations
-  /// 3. Adds @Repository and its meta-annotations
-  /// 4. Adds @Controller and its meta-annotations
-  /// 5. Adds @Configuration and its meta-annotations
-  /// 
-  /// ### Example
-  /// ```dart
-  /// final env = Environment();
-  /// final factory = DefaultPodFactory();
-  /// final parser = ConfigurationClassParser(env, factory);
+  /// {@macro addDefaultIncludeFilters}
+  /// Adds default include filters for common component annotations.
   ///
-  /// final configClass = await parser.parse(PodDefinition(type: ConfigurationClass));
-  /// await parser._processConfigurationClass(configClass);
-  /// ```
+  /// This method configures the scanner to include classes annotated with
+  /// common stereotypes like [@Component], [@Service], [@Repository],
+  /// [@Controller], and [@Configuration].
   void _addDefaultIncludeFilters() {
     // @Component and its meta-annotations
     scanner.addIncludeFilter(AnnotationTypeFilter(Class<Component>(null, PackageNames.CORE)));

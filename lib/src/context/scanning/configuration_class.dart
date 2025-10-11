@@ -60,15 +60,6 @@ class ConfigurationClass extends CommonConfiguration with EqualsAndHashCode {
   /// The pod definition representing this configuration.
   final PodDefinition definition;
 
-  /// All `@Pod` methods declared in this configuration class.
-  final List<PodMethod> podMethods = [];
-
-  /// Imported configuration classes discovered via `@Import`.
-  final Set<ConfigurationClass> importedConfigurations = {};
-
-  /// Component scan configurations defined in this class.
-  final List<ComponentScanConfiguration> componentScans = [];
-
   /// The optional pod name assigned to this configuration class.
   final String podName;
 
@@ -81,55 +72,11 @@ class ConfigurationClass extends CommonConfiguration with EqualsAndHashCode {
     super.scopeResolver,
   ]);
 
-  /// Adds a `@Pod` method definition to this configuration.
-  ///
-  /// Example:
-  /// ```dart
-  /// final podMethod = PodMethod(
-  ///   method: Method.forName('provideRepository'),
-  ///   configurationClass: configClass,
-  /// );
-  /// configClass.addPodMethod(podMethod);
-  /// ```
-  void addPodMethod(PodMethod podMethod) {
-    podMethods.add(podMethod);
-  }
-
-  /// Registers another configuration class imported via `@Import`.
-  ///
-  /// Example:
-  /// ```dart
-  /// final imported = ConfigurationClass('extraConfig', Class.forName('ExtraConfig'));
-  /// configClass.addImportedConfiguration(imported);
-  /// ```
-  void addImportedConfiguration(ConfigurationClass configClass) {
-    importedConfigurations.add(configClass);
-  }
-
-  /// Adds a component scan configuration.
-  ///
-  /// Example:
-  /// ```dart
-  /// configClass.addComponentScan(
-  ///   ComponentScanConfiguration(basePackages: ['com.example.app']),
-  /// );
-  /// ```
-  void addComponentScan(ComponentScanConfiguration componentScan) {
-    componentScans.add(componentScan);
-  }
-
   @override
   String toString() => 'ConfigurationClass[${type.getSimpleName()}]';
 
   @override
-  List<Object?> equalizedProperties() => [
-    type,
-    proxyPodMethods,
-    definition,
-    podMethods,
-    importedConfigurations,
-    componentScans,
-  ];
+  List<Object?> equalizedProperties() => [type, proxyPodMethods, definition];
 }
 
 /// {@template pod_method}

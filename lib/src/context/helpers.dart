@@ -9,7 +9,7 @@
 //
 // For licensing terms, see the LICENSE file in the root of this project.
 // ---------------------------------------------------------------------------
-// 
+//
 // 🔧 Powered by Hapnium — the Dart backend engine 🍃
 
 import 'package:jetleaf_lang/lang.dart';
@@ -19,17 +19,17 @@ import 'package:jetleaf_pod/pod.dart';
 /// Factory hook that allows for custom modification of an application
 /// context's pod definitions, adapting the pod property values of
 /// the context's underlying pod factory.
-/// 
+///
 /// This interface is called after all pod definitions have been loaded
 /// but before any pods have been instantiated. It allows for overriding
 /// or adding properties to pod definitions.
-/// 
+///
 /// It supports two types of constructors:
 /// - No-Args: Meaning that there will no arguments in the constructor.
 /// - One-Arg: Meaning that there will be only one argument in the constructor of type [Environment]
-/// 
+///
 /// ## Usage Example
-/// 
+///
 /// ```dart
 /// class PropertyPlaceholderPostProcessor implements PodFactoryPostProcessor {
 ///   @override
@@ -48,16 +48,16 @@ abstract interface class PodFactoryPostProcessor {
   const PodFactoryPostProcessor();
 
   /// {@macro pod_factory_post_processor}
-  /// 
+  ///
   /// Modify the application context's internal pod factory after its
   /// standard initialization.
-  /// 
+  ///
   /// All pod definitions will have been loaded, but no pods will have
   /// been instantiated yet. This allows for overriding or adding properties
   /// even to eager-initializing pods.
-  /// 
+  ///
   /// ## Parameters
-  /// 
+  ///
   /// - [podFactory]: The pod factory used by the application context
   Future<void> postProcessFactory(ConfigurableListablePodFactory podFactory);
 }
@@ -103,11 +103,11 @@ abstract interface class PodFactoryPostProcessor {
 /// - [PodFactory] 🫘 for dependency resolution.
 ///
 /// @since 1.0.0
-/// 
+///
 /// {@endtemplate}
 abstract interface class ImportSelector {
   /// Creates a constant [ImportSelector].
-  /// 
+  ///
   /// {@macro import_selector}
   const ImportSelector();
 
@@ -148,7 +148,7 @@ abstract interface class ImportSelector {
 /// - Tracking import metadata in code generation.
 /// - Differentiating between short names and fully qualified names.
 /// - Used by import selectors or registries to manage dependency references.
-/// 
+///
 /// {@endtemplate}
 final class ImportClass with EqualsAndHashCode {
   /// The name of the class or symbol to import.
@@ -157,22 +157,25 @@ final class ImportClass with EqualsAndHashCode {
   /// Whether [name] is fully qualified (e.g. includes a package or path).
   final bool isQualifiedName;
 
+  /// Whether this is a `disable` import
+  final bool disable;
+
   /// Creates a new [ImportClass] with the given [name] and [isQualifiedName] flag.
-  /// 
+  ///
   /// {@macro import_class}
-  const ImportClass(this.name, this.isQualifiedName);
+  const ImportClass(this.name, this.isQualifiedName, [this.disable = false]);
 
   /// Creates a new [ImportClass] with the given [name].
   /// This constructor is used when the import is not qualified.
-  /// 
+  ///
   /// {@macro import_class}
-  const ImportClass.package(this.name) : isQualifiedName = false;
+  const ImportClass.package(this.name, [this.disable = false]) : isQualifiedName = false;
 
   /// Creates a new [ImportClass] with the given [name].
   /// This constructor is used when the import is qualified.
-  /// 
+  ///
   /// {@macro import_class}
-  const ImportClass.qualified(this.name) : isQualifiedName = true;
+  const ImportClass.qualified(this.name, [this.disable = false]) : isQualifiedName = true;
 
   @override
   List<Object?> equalizedProperties() => [name, isQualifiedName];

@@ -1,6 +1,6 @@
 name: jetleaf_core
 description: The core module that cuts across pod, context, application startup and so much more.
-version: 1.0.0
+version: 1.0.0+1
 
 homepage: https://jetleaf.hapnium.com
 repository: https://github.com/jetleaf/jetleaf_core
@@ -24,7 +24,7 @@ environment:
 
 dependencies:
   meta: ^1.17.0
-  jetleaf_lang: ^1.0.0
+  jetleaf_lang: ^1.0.0+1
   jetleaf_logging: ^1.0.0
   jetleaf_convert: ^1.0.0
   jetleaf_utils: ^1.0.0
