@@ -95,7 +95,7 @@ final controller = await factory.get&lt;MyController&gt;([
 Future&lt;T&gt; get&lt;T&gt;(Class&lt;T&gt; type, [List&lt;ArgumentValue&gt;? args]) async {
   final f = getPodFactory();
 
-  &#47;&#47; Prefer local beans (without forcing eager init of parent beans)
+  &#47;&#47; Prefer local pods (without forcing eager init of parent pods)
   if (await _hasLocalPodsOfType(type)) {
     return await f.get(type, args);
   }

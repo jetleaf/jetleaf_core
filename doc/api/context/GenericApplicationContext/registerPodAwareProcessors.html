@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the registerPodAwareProcessors method from the GenericApplicationContext class, for the Dart programming language.">
-  <title>registerPodAwareProcessors method - GenericApplicationContext class - context library - Dart API</title>
+  <meta name="description" content="API docs for the registerPodProcessors method from the GenericApplicationContext class, for the Dart programming language.">
+  <title>registerPodProcessors method - GenericApplicationContext class - context library - Dart API</title>
 
 
   
@@ -27,9 +27,9 @@
     <li><a href="../../index.html">jetleaf_core</a></li>
     <li><a href="../../context/">context.dart</a></li>
     <li><a href="../../context/GenericApplicationContext-class.html">GenericApplicationContext</a></li>
-    <li class="self-crumb">registerPodAwareProcessors method</li>
+    <li class="self-crumb">registerPodProcessors method</li>
   </ol>
-  <div class="self-name">registerPodAwareProcessors</div>
+  <div class="self-name">registerPodProcessors</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
@@ -49,7 +49,7 @@
     data-above-sidebar="context&#47;GenericApplicationContext-class-sidebar.html"
     data-below-sidebar="">
     <div>
-<h1><span class="kind-method">registerPodAwareProcessors</span> method 
+<h1><span class="kind-method">registerPodProcessors</span> method 
 </h1></div>
 
     <section class="multi-line-signature">
@@ -60,7 +60,7 @@
     </ol>
   </div>
 <span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
-<span class="name ">registerPodAwareProcessors</span>(<wbr>)
+<span class="name ">registerPodProcessors</span>(<wbr>)
 
       <div class="features"><span class="feature">override</span></div>
 
@@ -81,15 +81,15 @@ Jetleaf-specific processors.</p>
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
-Future&lt;void&gt; registerPodAwareProcessors() async {
-  final pods = await getPodsOf(Class&lt;PodAwareProcessor&gt;(null, PackageNames.CORE));
-  final processors = List&lt;PodAwareProcessor&gt;.from(pods.values).toSet().toList();
-  processors.addAll(getPodAwareProcessors());
+Future&lt;void&gt; registerPodProcessors() async {
+  final pods = await getPodsOf(Class&lt;PodProcessor&gt;(null, PackageNames.CORE));
+  final processors = List&lt;PodProcessor&gt;.from(pods.values).toSet().toList();
+  processors.addAll(getPodProcessors());
 
   AnnotationAwareOrderComparator.sort(processors);
 
   for (final processor in processors) {
-    addPodAwareProcessor(processor);
+    addPodProcessor(processor);
   }
 
   return Future.value();
@@ -109,7 +109,7 @@ Future&lt;void&gt; registerPodAwareProcessors() async {
     <li><a href="../../index.html">jetleaf_core</a></li>
     <li><a href="../../context/">context</a></li>
     <li><a href="../../context/GenericApplicationContext-class.html">GenericApplicationContext</a></li>
-    <li class="self-crumb">registerPodAwareProcessors method</li>
+    <li class="self-crumb">registerPodProcessors method</li>
 </ol>
 
     <h5>GenericApplicationContext class</h5>

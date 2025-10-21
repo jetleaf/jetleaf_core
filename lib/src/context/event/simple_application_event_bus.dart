@@ -19,39 +19,99 @@ import '../../annotation_aware_order_comparator.dart';
 import 'application_event.dart';
 import 'event_listener.dart';
 
-/// {@template simple_application_event_bus}
-/// A simple implementation of [ApplicationEventBus] that manages application
-/// event listeners and dispatches events to them.
-///
-/// This bus supports two kinds of listeners:
-/// - **Unmapped listeners**: Directly registered listeners stored in an internal list.
-/// - **Mapped listeners**: Listeners associated with a specific pod name,
-///   managed via the [ConfigurableListablePodFactory].
-///
-/// It allows adding, removing, and clearing listeners, as well as
-/// dispatching events to those that support the given event type.
-///
-/// ### Example
+/// {@template SimpleApplicationEventBus}
+/// A straightforward implementation of [ApplicationEventBus] that manages application event listeners.
+/// 
+/// This event bus provides a simple yet powerful mechanism for publishing and subscribing
+/// to application events within the JetLeaf framework. It supports both direct listener
+/// registration and pod-based listener discovery, with proper ordering and lifecycle management.
+/// 
+/// ## Key Features
+/// 
+/// - **Dual Registration**: Support for both direct listener instances and pod-based listeners
+/// - **Automatic Ordering**: Listeners are automatically sorted using [AnnotationAwareOrderComparator]
+/// - **Pod Integration**: Seamless integration with JetLeaf pod factory for listener discovery
+/// - **Type Safety**: Event type checking through [supportsEventOf] method
+/// - **Lifecycle Management**: Proper addition and removal of listeners with cleanup
+/// 
+/// ## Listener Registration Strategies
+/// 
+/// The event bus supports multiple ways to register listeners:
+/// 
 /// ```dart
-/// final podFactory = MyPodFactory();
-/// final bus = SimpleApplicationEventBus(podFactory);
-///
-/// // Add a listener directly
-/// bus.addApplicationListener(listener: MyEventListener());
-///
-/// // Add a listener by pod name
-/// bus.addApplicationListener(podName: "myEventListenerPod");
-///
-/// // Dispatch an event
-/// bus.onEvent(MyCustomEvent("App started"));
+/// final eventBus = SimpleApplicationEventBus(podFactory);
+/// 
+/// // 1. Direct listener instance
+/// await eventBus.addApplicationListener(listener: myListener);
+/// 
+/// // 2. Pod-based listener by name
+/// await eventBus.addApplicationListener(podName: 'userEventListener');
+/// 
+/// // 3. Combined listener with pod name mapping
+/// await eventBus.addApplicationListener(
+///   listener: customListener,
+///   podName: 'customEventListener'
+/// );
+/// ```
+/// 
+/// ## Event Processing
+/// 
+/// When an event is published, the bus:
+/// 1. Iterates through all registered listeners in order
+/// 2. Checks if each listener supports the event type
+/// 3. Invokes supported listeners asynchronously
+/// 4. Continues even if individual listeners fail
+/// 
+/// Example usage:
+/// ```dart
+/// class UserCreatedEvent extends ApplicationEvent {
+///   final String userId;
+///   UserCreatedEvent(this.userId) : super(DateTime.now());
+/// }
+/// 
+/// class UserEventListener implements ApplicationEventListener<UserCreatedEvent> {
+///   @override
+///   bool supportsEventOf(ApplicationEvent event) => event is UserCreatedEvent;
+///   
+///   @override
+///   Future<void> onApplicationEvent(UserCreatedEvent event) async {
+///     print('User ${event.userId} was created');
+///     // Send welcome email, update analytics, etc.
+///   }
+/// }
+/// 
+/// // Register and use
+/// final listener = UserEventListener();
+/// await eventBus.addApplicationListener(listener: listener);
+/// await eventBus.onEvent(UserCreatedEvent('user-123'));
 /// ```
 /// {@endtemplate}
 class SimpleApplicationEventBus implements ApplicationEventBus {
+  /// List of directly registered application event listeners.
   final List<ApplicationEventListener> _listeners = [];
+
+  /// Map of pod name to application event listener for pod-based registration.
   final Map<String, ApplicationEventListener> _mappedListeners = {};
+
+  /// Optional pod factory for resolving pod-based listeners.
   final ConfigurableListablePodFactory? _podFactory;
 
-  /// {@macro simple_application_event_bus}
+  /// {@macro SimpleApplicationEventBus}
+  /// 
+  /// Creates a simple application event bus with optional pod factory integration.
+  /// 
+  /// @param podFactory Optional pod factory for resolving listeners by pod name.
+  ///        When provided, enables pod-based listener registration and automatic
+  ///        lifecycle management.
+  /// 
+  /// Example:
+  /// ```dart
+  /// // With pod factory for pod-based listeners
+  /// final eventBus = SimpleApplicationEventBus(podFactory);
+  /// 
+  /// // Without pod factory (direct listeners only)
+  /// final eventBus = SimpleApplicationEventBus(null);
+  /// ```
   SimpleApplicationEventBus(this._podFactory);
 
   @override
@@ -142,13 +202,13 @@ class SimpleApplicationEventBus implements ApplicationEventBus {
   Future<void> onEvent(ApplicationEvent event) async {
     for (final listener in _listeners) {
       if (listener.supportsEventOf(event)) {
-        listener.onApplicationEvent(event);
+        await listener.onApplicationEvent(event);
       }
     }
 
     for (final listener in _mappedListeners.values) {
       if (listener.supportsEventOf(event)) {
-        listener.onApplicationEvent(event);
+        await listener.onApplicationEvent(event);
       }
     }
   }

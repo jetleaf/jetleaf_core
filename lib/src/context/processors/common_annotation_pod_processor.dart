@@ -9,7 +9,7 @@
 //
 // For licensing terms, see the LICENSE file in the root of this project.
 // ---------------------------------------------------------------------------
-// 
+//
 // 🔧 Powered by Hapnium — the Dart backend engine 🍃
 
 import 'package:jetleaf_lang/lang.dart';
@@ -67,7 +67,7 @@ import '../../annotations/others.dart';
 /// This class is part of **Jetleaf** – a framework developers can use
 /// to build web applications.
 /// {@endtemplate}
-class CommonAnnotationPodProcessor extends DestructionAwarePodProcessor implements PriorityOrdered {
+class CommonAnnotationPodProcessor extends PodDestructionProcessor implements PodInitializationProcessor, PriorityOrdered {
   /// {@macro jetleaf_class_CommonAnnotationPodProcessor}
   CommonAnnotationPodProcessor();
 
@@ -113,4 +113,7 @@ class CommonAnnotationPodProcessor extends DestructionAwarePodProcessor implemen
       }
     }
   }
+  
+  @override
+  Future<bool> shouldProcessBeforeInitialization(Object pod, Class podClass, String name) async => true;
 }

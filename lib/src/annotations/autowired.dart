@@ -121,6 +121,40 @@ class RequiredAll extends ReflectableAnnotation {
   Type get annotationType => RequiredAll;
 }
 
+/// {@template autowired_ignore}
+/// An annotation used to mark a field as **ignored** by the
+/// dependency injection container.
+///
+/// This annotation is applied at the **field level**. It signals the
+/// container to skip this field during dependency injection, even if
+/// it is marked as `@Autowired` or `@RequiredAll`.
+///
+/// ### Example
+/// ```dart
+/// @Service()
+/// class OrderService {
+///   @AutowiredIgnore()
+///   late Config config;
+///
+///   late UserService userService;       // auto-injected
+///   late PaymentService paymentService; // auto-injected
+///
+///   OrderService();
+/// }
+/// ```
+///
+/// By default, **all fields are required** unless marked as nullable.
+/// This ensures strict correctness in service wiring.
+/// {@endtemplate}
+@Target({TargetKind.field})
+class AutowiredIgnore extends ReflectableAnnotation {
+  /// {@macro autowired_ignore}
+  const AutowiredIgnore();
+
+  @override
+  Type get annotationType => AutowiredIgnore;
+}
+
 /// {@template value}
 /// Value annotation for property injection
 /// 
@@ -192,7 +226,7 @@ class Value extends ReflectableAnnotation {
 /// type, optionally constrained by a package name.
 ///
 /// # Purpose
-/// - Acts as a metadata marker on beans, fields, or parameters to indicate
+/// - Acts as a metadata marker on pods, fields, or parameters to indicate
 ///   a specific type target.
 /// - Useful for frameworks that need to resolve generic or inferred types
 ///   at runtime (e.g., injection points).
@@ -206,11 +240,11 @@ class Value extends ReflectableAnnotation {
 ///
 /// # Example
 /// ```dart
-/// @TargetType("com.example.services")
+/// @TargetType("package:example/test.dart.services")
 /// final TargetType<Service> serviceType = TargetType();
 ///
 /// final clazz = serviceType.get();
-/// print(clazz.getQualifiedName()); // com.example.services.Service
+/// print(clazz.getQualifiedName()); // package:example/test.dart.services.Service
 /// ```
 ///
 /// # Notes
@@ -256,13 +290,13 @@ final class TargetType<T> extends ReflectableAnnotation {
 ///
 /// # Example
 /// ```dart
-/// @KeyValueOf("com.example.keys", "com.example.values")
+/// @KeyValueOf("package:example/test.dart.keys", "package:example/test.dart.values")
 /// final KeyValueOf<String, User> userMapping = KeyValueOf();
 ///
 /// final keyClass = userMapping.getKey();
 /// final valueClass = userMapping.getValue();
-/// print(keyClass.getQualifiedName());   // com.example.keys.String
-/// print(valueClass.getQualifiedName()); // com.example.values.User
+/// print(keyClass.getQualifiedName());   // package:example/test.dart.keys.String
+/// print(valueClass.getQualifiedName()); // package:example/test.dart.values.User
 /// ```
 ///
 /// # Notes

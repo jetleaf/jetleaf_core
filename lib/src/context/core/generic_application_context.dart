@@ -16,13 +16,12 @@ import 'dart:async';
 
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
+import 'package:meta/meta.dart';
 
 import '../../annotation_aware_order_comparator.dart';
 import '../application_context.dart';
-import '../helpers.dart';
 import '../pod_registrar.dart';
 import '../scanning/annotated_pod_name_generator.dart';
-import '../processors/default_aware_processor.dart';
 import 'abstract_application_context.dart';
 import 'pod_spec.dart';
 
@@ -107,19 +106,26 @@ import 'pod_spec.dart';
 /// - [AnnotationConfigApplicationContext] for annotation-based configuration
 /// {@endtemplate}
 abstract class GenericApplicationContext extends AbstractApplicationContext {
-  /// {@template generic_application_context.pod_factory}
-  /// A temporary pod factory used to register pod definitions before refresh.
+  /// {@template abstract_application_context.pod_factory_field}
+  /// The pod factory associated with this application context.
   ///
-  /// This factory is used during the configuration phase to accumulate
-  /// pod definitions. During [refresh], its configuration is copied to
-  /// the main operational pod factory.
+  /// This is the core dependency injection container that manages
+  /// pod definitions, instantiation, and dependency resolution.
   ///
-  /// ### Lifecycle:
-  /// - **Pre-Refresh**: Used for definition registration
-  /// - **During Refresh**: Configuration copied to main factory
-  /// - **Post-Refresh**: Main factory becomes operational
+  /// ### Responsibilities:
+  /// - Pod definition registration and storage
+  /// - Dependency injection and resolution
+  /// - Singleton management and caching
+  /// - Lifecycle coordination with context
+  /// - Circular dependency detection and handling
+  ///
+  /// ### Access Pattern:
+  /// Subclasses should access the pod factory through `getPodFactory()`
+  /// rather than directly accessing this field to ensure proper
+  /// lifecycle state checking.
   /// {@endtemplate}
-  late final ConfigurableListablePodFactory _podFactory;
+  @protected
+  late ConfigurableListablePodFactory podFactory;
 
   /// {@macro generic_application_context}
   ///
@@ -159,7 +165,11 @@ abstract class GenericApplicationContext extends AbstractApplicationContext {
       setParent(parent);
     }
 
-    _podFactory = podFactory ?? DefaultListablePodFactory();
+    final localizedPodFactory = DefaultListablePodFactory();
+    localizedPodFactory.setParentFactory(getParent()?.getPodFactory());
+    localizedPodFactory.setDependencyComparator(AnnotationAwareOrderComparator());
+
+    this.podFactory = podFactory ?? localizedPodFactory;
   }
 
   /// {@template generic_application_context.with_pod_factory}
@@ -211,64 +221,129 @@ abstract class GenericApplicationContext extends AbstractApplicationContext {
   // ---------------------------------------------------------------------------------------------------------
 
   @override
-  ConfigurableListablePodFactory getPodFactory() {
-    if (podFactory == null) {
-      if (getIsRefreshed()) {
-        throw IllegalStateException("Cannot access pod factory since it has not been initialized yet.");
-      } else {
-        return _podFactory;
-      }
-    }
-
-    return podFactory!;
+  void setAllowCircularReferences(bool value) {
+    podFactory.setAllowCircularReferences(value);
+  }
+  
+  @override
+  void setAllowDefinitionOverriding(bool value) {
+    podFactory.setAllowDefinitionOverriding(value);
   }
 
   @override
-  Future<ConfigurableListablePodFactory> doGetFreshPodFactory() async {
-    if(podFactory != null) {
-      clearSingletonCache();
-      clearMetadataCache();
-      destroySingletons();
-      destroyPods();
-      podFactory = null;
+  void setAllowRawInjection(bool value) {
+    podFactory.setAllowRawInjection(value);
+  }
+
+  @override
+  Future<void> refreshPodFactory() async {
+    if (getIsRefreshed()) {
+      return;
+    }
+    
+    await super.refreshPodFactory();
+  }
+
+  @override
+  void setParent(ApplicationContext parent) {
+    super.setParent(parent);
+
+    final pr = getParent();
+    if (pr != null) {
+      final pf = pr.getPodFactory();
+      podFactory.setParentFactory(pf);
+    }
+  }
+
+  @override
+  void setApplicationStartup(ApplicationStartup applicationStartup) {
+    super.setApplicationStartup(applicationStartup);
+    podFactory.setApplicationStartup(applicationStartup);
+  }
+
+  @override
+  ConfigurableListablePodFactory getPodFactory() {
+    final pf = podFactory;
+
+    if (pf is DefaultListablePodFactory && pf.getParentFactory() == null) {
+      pf.setParentFactory(getParent()?.getPodFactory());
     }
 
-    final factory = DefaultListablePodFactory();
-    factory.copyConfigurationFrom(_podFactory);
-    factory.setDependencyComparator(AnnotationAwareOrderComparator());
-
-    return factory;
+    return pf;
   }
+
+  @override
+  Future<bool> isNameInUse(String name) async => await podFactory.isNameInUse(name);
+
+  @override
+  void registerAlias(String name, String alias) => podFactory.registerAlias(name, alias);
+
+  @override
+  bool isAlias(String name) => podFactory.isAlias(name);
+
+  @override
+  void removeAlias(String alias) => podFactory.removeAlias(alias);
+
+  @override
+  List<String> getAliases(String name) => podFactory.getAliases(name);
+
+  @override
+  String? getAlias(String name) => podFactory.getAlias(name);
+  
+  @override
+  Future<void> registerDefinition(String name, PodDefinition pod) async => await podFactory.registerDefinition(name, pod);
+
+  @override
+  Future<void> removeDefinition(String name) async => await podFactory.removeDefinition(name);
+
+  @override
+  PodDefinition getDefinition(String name) => podFactory.getDefinition(name);
+
+  @override
+  PodDefinition getDefinitionByClass(Class type) => podFactory.getDefinitionByClass(type);
+
+  @override
+  int getNumberOfPodDefinitions() => podFactory.getNumberOfPodDefinitions();
+
+  @override
+  List<String> getDefinitionNames() => podFactory.getDefinitionNames();
+
+  @override
+  bool containsDefinition(String name) => podFactory.containsDefinition(name);
+
+  @override
+  Future<bool> containsLocalPod(String podName) async => await podFactory.containsLocalPod(podName);
+
+  @override
+  Future<bool> containsPod(String podName) async => await podFactory.containsPod(podName);
 
   @override
   Future<void> registerPod<T>(Class<T> podClass, {Consumer<Spec<T>>? customizer, String? name}) async {
-    if (podFactory != null) {
-      PodDefinition podDef = RootPodDefinition(type: podClass);
-      String podName;
+    PodDefinition podDef = RootPodDefinition(type: podClass);
+    String podName;
 
-      if(name != null) {
-        podDef.name = name;
-        podDef.scope = ScopeDesign.type(ScopeType.SINGLETON.name);
-        registerDefinition(name, podDef);
+    if(name != null) {
+      podDef.name = name;
+      podDef.scope = ScopeDesign.type(ScopeType.SINGLETON.name);
+      registerDefinition(name, podDef);
 
-        podName = name;
-      } else if(customizer != null) {
-        final customizerImpl = PodSpec<T>(PodSpecContext(podFactory!));
-        customizer(customizerImpl);
+      podName = name;
+    } else if(customizer != null) {
+      final customizerImpl = PodSpec<T>(PodSpecContext(podFactory));
+      customizer(customizerImpl);
 
-        podDef = customizerImpl.clone();
-        
-        if (podDef.name.isNotEmpty) {
-          registerDefinition(podDef.name, podDef);
-        } else {
-          podName = AnnotatedPodNameGenerator().generate(podDef, podFactory!);
-          registerDefinition(podName, podDef);
-        }
+      podDef = customizerImpl.clone();
+      
+      if (podDef.name.isNotEmpty) {
+        registerDefinition(podDef.name, podDef);
       } else {
-        podDef.scope = ScopeDesign.type(ScopeType.SINGLETON.name);
-        podName = AnnotatedPodNameGenerator().generate(podDef, podFactory!);
+        podName = AnnotatedPodNameGenerator().generate(podDef, podFactory);
         registerDefinition(podName, podDef);
       }
+    } else {
+      podDef.scope = ScopeDesign.type(ScopeType.SINGLETON.name);
+      podName = AnnotatedPodNameGenerator().generate(podDef, podFactory);
+      registerDefinition(podName, podDef);
     }
 
     return Future.value();
@@ -277,44 +352,11 @@ abstract class GenericApplicationContext extends AbstractApplicationContext {
   @override
   void register(PodRegistrar registrar) {
     registrar.register(this, getEnvironment());
-  }
+    final definition = RootPodDefinition(type: registrar.getClass());
+    final name = AnnotatedPodNameGenerator().generate(definition, podFactory);
+    definition.name = name;
 
-  @override
-  Future<void> postProcessPodFactory() async {
-    addPodAwareProcessor(DefaultAwareProcessor(this));
-
-    return Future.value();
-  }
-
-  @override
-  Future<void> invokePodFactoryPostProcessors() async {
-    final pods = await getPodsOf(Class<PodFactoryPostProcessor>(null, PackageNames.CORE));
-
-    getPodFactoryPostProcessors().addAll(pods.values);
-    final processors = List<PodFactoryPostProcessor>.from(getPodFactoryPostProcessors()).toSet().toList();
-
-    AnnotationAwareOrderComparator.sort(processors);
-
-    for (final processor in processors) {
-      await processor.postProcessFactory(this);
-    }
-
-    return Future.value();
-  }
-
-  @override
-  Future<void> registerPodAwareProcessors() async {
-    final pods = await getPodsOf(Class<PodAwareProcessor>(null, PackageNames.CORE));
-    final processors = List<PodAwareProcessor>.from(pods.values).toSet().toList();
-    processors.addAll(getPodAwareProcessors());
-
-    AnnotationAwareOrderComparator.sort(processors);
-
-    for (final processor in processors) {
-      addPodAwareProcessor(processor);
-    }
-
-    return Future.value();
+    registerDefinition(name, definition);
   }
 
   @override

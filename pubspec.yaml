@@ -1,35 +1,43 @@
 name: jetleaf_core
-description: The core module that cuts across pod, context, application startup and so much more.
-version: 1.0.0+1
+description: The core runtime that powers JetLeaf’s pod, context, and app lifecycle.
+version: 1.0.0+2
 
 homepage: https://jetleaf.hapnium.com
 repository: https://github.com/jetleaf/jetleaf_core
+issue_tracker: https://github.com/jetleaf/jetleaf_core/issues
+documentation: https://jetleaf.hapnium.com/docs/core
 
 topics:
   - ioc
-  - dependency-injection
-  - service-locator
-  - pod-management
+  - jetleaf
+  - context
+  - lifecycle
   - application-core
 
 keywords:
   - ioc
-  - dependency-injection
+  - jetleaf
   - service-locator
+  - context
   - pod
-  - application-startup
 
 environment:
   sdk: ^3.9.0
 
 dependencies:
   meta: ^1.17.0
-  jetleaf_lang: ^1.0.0+1
-  jetleaf_logging: ^1.0.0
-  jetleaf_convert: ^1.0.0
-  jetleaf_utils: ^1.0.0
-  jetleaf_env: ^1.0.0
-  jetleaf_pod: ^1.0.0
+  jetleaf_lang: 
+    path: ../jetleaf_lang
+  jetleaf_logging: 
+    path: ../jetleaf_logging
+  jetleaf_convert: 
+    path: ../jetleaf_convert
+  jetleaf_utils: 
+    path: ../jetleaf_utils
+  jetleaf_env: 
+    path: ../jetleaf_env
+  jetleaf_pod: 
+    path: ../jetleaf_pod
 
 dev_dependencies:
   test: ^1.21.0

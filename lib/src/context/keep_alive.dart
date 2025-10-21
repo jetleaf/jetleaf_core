@@ -50,7 +50,7 @@ final class KeepAlive implements ApplicationEventListener<ApplicationContextEven
   bool supportsEventOf(ApplicationEvent event) => event is ApplicationContextEvent;
 
   @override
-  void onApplicationEvent(ApplicationContextEvent event) {
+  Future<void> onApplicationEvent(ApplicationContextEvent event) async {
     if (event is ContextRefreshedEvent) {
       startKeepAliveThread();
     } else if (event is ContextClosedEvent) {

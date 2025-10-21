@@ -16,6 +16,7 @@ import 'package:jetleaf_env/env.dart';
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
+import '../../annotations/configuration.dart';
 import '../../annotations/others.dart';
 import '../../aware.dart';
 import '../../condition/condition_evaluator.dart';
@@ -136,11 +137,33 @@ final class AnnotatedPodDefinitionReader implements EnvironmentAware, PodFactory
     String podName = (name != null ? name : AnnotatedPodNameGenerator().generate(definition, _podFactory));
     definition.name = podName;
 
+    // Process proxying capabilities (@Configuration, @AutoConfiguration)
+    processProxyingCapabilities(definition);
+
     // Process common annotations
     processCommonDefinitionAnnotations(definition);
 
     // Register pod
     await _podFactory.registerDefinition(podName, definition);
+  }
+
+  /// Processes **proxying-related annotations** for a Pod.
+  ///
+  /// This method checks for `@Configuration` and `@AutoConfiguration`
+  /// annotations to determine if the Pod's methods should be proxied.
+  /// If either annotation is present, it sets the Pod definition's
+  /// `canProxy` property accordingly.
+  /// ### Example
+  /// ```dart
+  /// final def = RootPodDefinition(type: MyService);
+  /// AnnotatedPodDefinitionReader.processProxyingCapabilities(def);
+  /// ```
+  static void processProxyingCapabilities(RootPodDefinition def) {
+    if (def.hasAnnotation<Configuration>()) {
+      def.canProxy = def.getAnnotation<Configuration>()?.proxyPodMethods ?? true;
+    } else if (def.hasAnnotation<AutoConfiguration>()) {
+      def.canProxy = def.getAnnotation<AutoConfiguration>()?.proxyPodMethods ?? true;
+    }
   }
 
   /// Processes **common definition annotations** for a Pod.
@@ -170,7 +193,15 @@ final class AnnotatedPodDefinitionReader implements EnvironmentAware, PodFactory
     // @DependsOn
     final dependsOn = def.getAnnotation<DependsOn>();
     if (dependsOn != null) {
-      def.dependsOn = dependsOn.value.map((d) => DependencyDesign(name: d)).toList();
+      def.dependsOn = dependsOn.names.map((d) {
+        if (d is String) {
+          return DependencyDesign(name: d);
+        } else if (d is ClassType) {
+          return DependencyDesign(type: d.toClass());
+        } else {
+          throw IllegalArgumentException("DependsOn annotation received an object of [${d.runtimeType}] which is unsupported. Supported types are [String] or [ClassType]");
+        }
+      }).toList();
     }
 
     // @Scope

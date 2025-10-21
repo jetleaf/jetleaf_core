@@ -79,7 +79,7 @@ class OnProductionEnvironmentCondition implements Condition {
 // Apply conditional configuration
 @Conditional([ClassType&lt;OnProductionEnvironmentCondition&gt;()])
 class ProductionDataSourceConfig {
-  // Beans/pods defined here will only be registered in production
+  // Pods/pods defined here will only be registered in production
 }
 </code></pre>
 <p>In this example, <code>ProductionDataSourceConfig</code> will only be processed by Jetleaf

@@ -18,7 +18,6 @@ import 'package:meta/meta_meta.dart';
 
 import '../scope/annotated_scope_metadata_resolver.dart';
 import '../scope/scope_metadata_resolver.dart';
-import 'stereotype.dart';
 
 @internal
 class CommonConfiguration {
@@ -260,7 +259,6 @@ final class AutoConfiguration extends CommonConfiguration with EqualsAndHashCode
 /// ---
 /// 
 /// {@endtemplate}
-@Component()
 @Target({TargetKind.classType})
 final class Configuration extends CommonConfiguration with EqualsAndHashCode {
   /// Optional configuration name
@@ -311,7 +309,6 @@ final class Configuration extends CommonConfiguration with EqualsAndHashCode {
 /// configuration classes, allowing you to reuse their pod definitions and 
 /// configurations in your application.
 /// {@endtemplate}
-@Component()
 @Target({TargetKind.classType})
 class Import extends ReflectableAnnotation with EqualsAndHashCode {
   /// {@template import_classes}

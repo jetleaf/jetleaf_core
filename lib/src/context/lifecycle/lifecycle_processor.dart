@@ -45,7 +45,7 @@
 /// }
 /// ```
 /// {@endtemplate}
-abstract class LifecycleProcessor {
+abstract interface class LifecycleProcessor {
   /// {@template lifecycle_processor_on_refresh}
   /// Called when the application context is refreshed.
   ///

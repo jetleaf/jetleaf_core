@@ -122,7 +122,7 @@ Future&lt;void&gt; refresh() async {
     &#47;&#47; Prepare this context for refreshing.
     await prepareRefresh();
 
-    &#47;&#47; Tell the subclass to refresh the internal bean factory.
+    &#47;&#47; Tell the subclass to refresh the internal pod factory.
     ConfigurableListablePodFactory podFactory = await doGetFreshPodFactory();
     this.podFactory = podFactory;
 
@@ -137,7 +137,7 @@ Future&lt;void&gt; refresh() async {
       await invokePodFactoryPostProcessors();
 
       &#47;&#47; Register pod processors that intercept pod creation.
-      await registerPodAwareProcessors();
+      await registerPodProcessors();
 
       &#47;&#47; Initialize message source for this context.
       await initMessageSource();

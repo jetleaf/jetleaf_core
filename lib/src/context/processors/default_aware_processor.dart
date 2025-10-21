@@ -9,7 +9,7 @@
 //
 // For licensing terms, see the LICENSE file in the root of this project.
 // ---------------------------------------------------------------------------
-// 
+//
 // 🔧 Powered by Hapnium — the Dart backend engine 🍃
 
 import 'package:jetleaf_lang/lang.dart';
@@ -22,7 +22,7 @@ import '../core/abstract_application_context.dart';
 /// {@template jetleaf_class_DefaultAwareProcessor}
 /// 🫘 Default processor that injects JetLeaf "aware" contracts into pods.
 ///
-/// [DefaultAwareProcessor] extends [PodAwareProcessor] and implements
+/// [DefaultAwareProcessor] extends [PodProcessor] and implements
 /// [PriorityOrdered], ensuring it runs at the highest precedence during
 /// pod initialization.
 ///
@@ -54,16 +54,18 @@ import '../core/abstract_application_context.dart';
 /// ```
 ///
 /// See also:
-/// - [PodAwareProcessor] 🫘 base class for processors.
+/// - [PodProcessor] 🫘 base class for processors.
+/// - [PriorityOrdered] 🫘 for ordering processors.
+/// - [PodInitializationProcessor] 🫘 for initialization-specific processing.
 /// - [AbstractApplicationContext] 🫘 for extended context features.
-/// 
+///
 /// {@endtemplate}
-final class DefaultAwareProcessor extends PodAwareProcessor implements PriorityOrdered {
+final class DefaultAwareProcessor extends PodInitializationProcessor implements PriorityOrdered {
   /// The application context this processor uses for dependency injection.
   final ApplicationContext applicationContext;
 
   /// Creates a new [DefaultAwareProcessor] bound to the given [applicationContext].
-  /// 
+  ///
   /// {@macro jetleaf_class_DefaultAwareProcessor}
   DefaultAwareProcessor(this.applicationContext);
 

@@ -16,10 +16,10 @@ import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_logging/logging.dart';
 import 'package:jetleaf_pod/pod.dart';
 
-import '../../annotations/stereotype.dart';
 import '../../condition/condition_evaluator.dart';
 import '../../scope/annotated_scope_metadata_resolver.dart';
 import '../../scope/scope_metadata_resolver.dart';
+import '../type_filters/type_filter.dart';
 import 'annotated_pod_definition_reader.dart';
 import 'annotated_pod_name_generator.dart';
 
@@ -35,7 +35,7 @@ import 'annotated_pod_name_generator.dart';
 /// ```dart
 /// final conditionEvaluator = ConditionEvaluator();
 /// final podFactory = DefaultPodFactory();
-/// final entryApp = Class<MyApplication>(null, 'com.example');
+/// final entryApp = Class<MyApplication>(null, 'package:example/test.dart');
 /// 
 /// final scanner = ClassPathPodDefinitionScanner(
 ///   conditionEvaluator,
@@ -48,7 +48,7 @@ import 'annotated_pod_name_generator.dart';
 /// scanner.addExcludeFilter(AnnotationTypeFilter(Class<Deprecated>(null, PackageNames.DART)));
 /// 
 /// // Scan package
-/// final definitions = await scanner.doScan('com.example.app');
+/// final definitions = await scanner.doScan('package:example/test.dart');
 /// print('Found ${definitions.length} pod definitions');
 /// ```
 /// {@endtemplate}
@@ -105,17 +105,17 @@ final class ClassPathPodDefinitionScanner {
   /// **Example:**
   /// ```dart
   /// // Scan a single package
-  /// final definitions = await scanner.doScan('com.example.controllers');
+  /// final definitions = await scanner.doScan('package:example/test.dart.controllers');
   /// 
   /// // Scan multiple packages sequentially
-  /// final controllerDefs = await scanner.doScan('com.example.controllers');
-  /// final serviceDefs = await scanner.doScan('com.example.services');
+  /// final controllerDefs = await scanner.doScan('package:example/test.dart.controllers');
+  /// final serviceDefs = await scanner.doScan('package:example/test.dart.services');
   /// final allDefs = [...controllerDefs, ...serviceDefs];
   /// 
   /// // Scan with custom configuration
   /// scanner.setScopeResolver(CustomScopeResolver());
   /// scanner.setNameGenerator(CustomNameGenerator());
-  /// final customDefs = await scanner.doScan('com.example.custom');
+  /// final customDefs = await scanner.doScan('package:example/test.dart.custom');
   /// ```
   /// {@endtemplate}
   Future<List<PodDefinition>> doScan(String basePackage) async {
@@ -145,6 +145,13 @@ final class ClassPathPodDefinitionScanner {
     for (final classDecl in classes) {
       final cls = Class.declared(classDecl, ProtectionDomain.current());
       final qualifiedName = cls.getQualifiedName();
+
+      if (Class<ReflectableAnnotation>(null, PackageNames.LANG).isAssignableFrom(cls)) {
+        if (_logger.getIsTraceEnabled()) {
+          _logger.trace('↩️ Class [$qualifiedName] is a reflectable annotation, skipping.');
+        }
+        continue;
+      }
 
       if (_scannedClasses.contains(qualifiedName)) {
         if (_logger.getIsTraceEnabled()) {
@@ -264,7 +271,7 @@ final class ClassPathPodDefinitionScanner {
   /// **Example:**
   /// ```dart
   /// final scanner = ClassPathPodDefinitionScanner(conditionEvaluator, podFactory, entryApp);
-  /// final definitions = await scanner.doScan('com.example');
+  /// final definitions = await scanner.doScan('package:example/test.dart');
   /// ```
   RootPodDefinition _createPodDefinition(Class type) {
     final definition = RootPodDefinition(type: type);

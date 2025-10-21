@@ -20,7 +20,6 @@ import '../../condition/condition_evaluator.dart';
 import '../application_context.dart';
 import '../application_module.dart';
 import '../application_type.dart';
-import '../processors/application_module_processor.dart';
 import '../processors/autowired_annotation_pod_processor.dart';
 import '../processors/common_annotation_pod_processor.dart';
 import '../processors/event_listener_method_processor.dart';
@@ -42,7 +41,7 @@ import 'generic_application_context.dart';
 /// - **@Autowired Injection**: Automatically wires dependencies between services
 /// - **Package Scanning**: Scans specified packages for annotated components
 /// - **Annotation Processors**: Built-in processors for common annotations
-/// - **Environment Integration**: Profile-based conditional bean registration
+/// - **Environment Integration**: Profile-based conditional pod registration
 ///
 /// ### Architecture:
 /// The context combines programmatic registration with automatic classpath scanning
@@ -134,16 +133,6 @@ class AnnotationConfigApplicationContext extends GenericApplicationContext imple
   /// Used internally by the framework and available for injection into application components.
   /// {@endtemplate}
   static final String ENVIRONMENT_POD_NAME = "jetleaf.environment.internalEnvironment";
-
-  /// {@template annotation_config_application_context.application_module_processor_pod_name}
-  /// Pod name for the internal application module processor.
-  ///
-  /// This processor handles application module configuration and processes
-  /// module-specific annotations and configurations.
-  ///
-  /// Used internally by the framework to support modular application architecture.
-  /// {@endtemplate}
-  static final String APPLICATION_MODULE_PROCESSOR_POD_NAME = "jetleaf.application.internalApplicationModuleProcessor";
 
   /// {@template annotation_config_application_context.application_context_pod_name}
   /// Pod name for the registered application context.
@@ -256,50 +245,53 @@ class AnnotationConfigApplicationContext extends GenericApplicationContext imple
   }
 
   @override
-  Future<void> preparePodFactory() async {
+  Future<void> preparePodFactory(ConfigurableListablePodFactory podFactory) async {
+    await super.preparePodFactory(podFactory);
+
     _reader = AnnotatedPodDefinitionReader();
     _reader.setEnvironment(getEnvironment());
-    _reader.setPodFactory(getPodFactory());
+    _reader.setPodFactory(podFactory);
 
     setAllowDefinitionOverriding(false);
     setAllowCircularReferences(true);
+    setAllowRawInjection(true);
 
     return await _reader.doRegister(getMainApplicationClass());
   }
 
   @override
-  Future<void> postProcessPodFactory() async {
+  Future<void> postProcessPodFactory(ConfigurableListablePodFactory podFactory) async {
     if (!containsSingleton(ENVIRONMENT_POD_NAME)) {
       final env = getEnvironment();
       final envClass = env.getClass();
 
-      registerSingleton(
+      await podFactory.registerSingleton(
         ENVIRONMENT_POD_NAME,
         envClass,
         object: ObjectHolder(env, packageName: env.getPackageName(), qualifiedName: envClass.getQualifiedName())
       );
     }
 
-    await registerAnnotationConfigProcessors();
+    await registerAnnotationConfigProcessors(podFactory, null);
 
-    return super.postProcessPodFactory();
+    return super.postProcessPodFactory(podFactory);
   }
 
   @override
-  Future<void> finishRefresh() {
+  Future<void> finishRefresh(ConfigurableListablePodFactory podFactory) async {
     if (!containsSingleton(APPLICATION_CONTEXT_POD_NAME)) {
       final contextClass = getClass();
 
-      registerSingleton(
+      await podFactory.registerSingleton(
         APPLICATION_CONTEXT_POD_NAME,
         contextClass,
         object: ObjectHolder(this, packageName: this.getPackageName(), qualifiedName: contextClass.getQualifiedName())
       );
     }
 
-    return super.finishRefresh();
+    return super.finishRefresh(podFactory);
   }
-
+  
   // ---------------------------------------------------------------------------------------------------------
   // PROTECTED METHODS
   // ---------------------------------------------------------------------------------------------------------
@@ -316,7 +308,7 @@ class AnnotationConfigApplicationContext extends GenericApplicationContext imple
   /// - [CommonAnnotationPodProcessor] - Handles common annotations
   /// - [AutowiredAnnotationPodProcessor] - Handles `@Autowired` injection
   /// - [EventListenerMethodProcessor] - Handles `@EventListener` methods
-  /// - [ApplicationModuleProcessor] - Handles application modules
+  /// - [DefaultInterceptorRegistry] - Handles method intercept modules
   ///
   /// All processors are registered with [DesignRole.INFRASTRUCTURE] to indicate
   /// they are framework infrastructure components.
@@ -333,45 +325,41 @@ class AnnotationConfigApplicationContext extends GenericApplicationContext imple
   /// - [AUTOWIRED_ANNOTATION_PROCESSOR_POD_NAME]
   /// - [COMMON_ANNOTATION_PROCESSOR_POD_NAME]
   /// - [EVENT_LISTENER_METHOD_PROCESSOR_POD_NAME]
-  /// - [APPLICATION_MODULE_PROCESSOR_POD_NAME]
+  /// - [INTERCEPT_SUPPORT_POD_NAME]
   /// {@endtemplate}
   @protected
-  Future<void> registerAnnotationConfigProcessors([Object? source]) async {
-    if (!containsDefinition(CONFIGURATION_ANNOTATION_PROCESSOR_POD_NAME)) {
+  Future<void> registerAnnotationConfigProcessors(ConfigurableListablePodFactory podFactory, [Object? source]) async {
+    if (!podFactory.containsDefinition(CONFIGURATION_ANNOTATION_PROCESSOR_POD_NAME)) {
       RootPodDefinition def = RootPodDefinition(type: Class<ConfigurationClassPostProcessor>(null, PackageNames.CORE));
       def.instance = source;
       def.design.role = DesignRole.INFRASTRUCTURE;
-      await registerDefinition(CONFIGURATION_ANNOTATION_PROCESSOR_POD_NAME, def);
+      await podFactory.registerDefinition(CONFIGURATION_ANNOTATION_PROCESSOR_POD_NAME, def);
     }
 
-    if (!containsDefinition(COMMON_ANNOTATION_PROCESSOR_POD_NAME)) {
+    if (!podFactory.containsDefinition(COMMON_ANNOTATION_PROCESSOR_POD_NAME)) {
       RootPodDefinition def = RootPodDefinition(type: Class<CommonAnnotationPodProcessor>(null, PackageNames.CORE));
       def.instance = source;
       def.design.role = DesignRole.INFRASTRUCTURE;
-      await registerDefinition(COMMON_ANNOTATION_PROCESSOR_POD_NAME, def);
+      await podFactory.registerDefinition(COMMON_ANNOTATION_PROCESSOR_POD_NAME, def);
     }
 
-    if (!containsDefinition(AUTOWIRED_ANNOTATION_PROCESSOR_POD_NAME)) {
+    if (!podFactory.containsDefinition(AUTOWIRED_ANNOTATION_PROCESSOR_POD_NAME)) {
       RootPodDefinition def = RootPodDefinition(type: Class<AutowiredAnnotationPodProcessor>(null, PackageNames.CORE));
       def.instance = source;
       def.design.role = DesignRole.INFRASTRUCTURE;
-      await registerDefinition(AUTOWIRED_ANNOTATION_PROCESSOR_POD_NAME, def);
+      await podFactory.registerDefinition(AUTOWIRED_ANNOTATION_PROCESSOR_POD_NAME, def);
     }
 
-    if (!containsDefinition(EVENT_LISTENER_METHOD_PROCESSOR_POD_NAME)) {
+    if (!podFactory.containsDefinition(EVENT_LISTENER_METHOD_PROCESSOR_POD_NAME)) {
       RootPodDefinition def = RootPodDefinition(type: Class<EventListenerMethodProcessor>(null, PackageNames.CORE));
       def.instance = source;
       def.design.role = DesignRole.INFRASTRUCTURE;
-      await registerDefinition(EVENT_LISTENER_METHOD_PROCESSOR_POD_NAME, def);
-    }
-
-    if (!containsDefinition(APPLICATION_MODULE_PROCESSOR_POD_NAME)) {
-      RootPodDefinition def = RootPodDefinition(type: Class<ApplicationModuleProcessor>(null, PackageNames.CORE));
-      def.instance = source;
-      def.design.role = DesignRole.INFRASTRUCTURE;
-      await registerDefinition(APPLICATION_MODULE_PROCESSOR_POD_NAME, def);
+      await podFactory.registerDefinition(EVENT_LISTENER_METHOD_PROCESSOR_POD_NAME, def);
     }
 
     return Future.value();
   }
+  
+  @override
+  int getPhase() => 0;
 }

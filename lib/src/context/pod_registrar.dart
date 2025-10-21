@@ -17,27 +17,73 @@ import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
 /// {@template jetleaf_pod_registrar}
-/// A contract in **Jetleaf** for components that can register pods
+/// A contract in **JetLeaf** for components that can register pods
 /// into the application’s dependency container.
 ///
 /// A `PodRegistrar` is responsible for describing how specific pods
-/// should be registered with the [`PodRegistry`].
+/// should be registered with the [`PodRegistry`].  
+/// Implementations are automatically instantiated by the JetLeaf pod factory at startup,
+/// so **any class implementing this interface must provide a no-argument constructor**.
+/// Failure to do so will prevent automatic registration of pods.
 ///
-/// ### Usage
-/// Implement this interface in your own registrar class to provide
-/// new pods at startup.
+/// ### Lifecycle & Workflow
+/// When the JetLeaf application context starts:
 ///
+/// 1. **Registrar Discovery**
+///    - The pod factory scans for all classes implementing `PodRegistrar`.
+///    - It instantiates each registrar using the no-arg constructor.
+///
+/// 2. **Registration Phase**
+///    - The `register` method of each registrar is called with:
+///      - `PodRegistry`: the central registry for managing pods.
+///      - `Environment`: access to runtime properties, profiles, and configuration.
+///
+/// 3. **Pod Declaration**
+///    - Within `register`, implementers declare the pods that should exist in the container:
+///      - Either via `registry.registerPod(...)` for individual pod registration.
+///      - Or by delegating to other registrars if needed.
+///
+/// 4. **Initialization**
+///    - Once registration is complete, the pod factory resolves dependencies,
+///      initializes pods according to their lifecycle (singleton, prototype, etc.),
+///      and applies ordering if the registrars implement `Ordered`.
+///
+/// ### Implementation Guidelines
+/// - Must have a **public no-arg constructor** because the pod factory must not have been initialized creates instances reflectively.
+/// - Can optionally implement `Ordered` to control registration order relative to other registrars.
+/// - Use the `Environment` parameter to conditionally register pods based on configuration,
+///   profiles, or system properties.
+/// - Registrars should focus on **declaration**, not **business logic**.
+///
+/// ### Example
 /// ```dart
-/// class MyRegistrar implements PodRegistrar {
+/// @Component() // If to be discovered by the scanner. Any stereotype annotation can suffice
+/// class MyServiceRegistrar implements PodRegistrar {
+///   // No-arg constructor is required for reflection-based instantiation
+///   MyServiceRegistrar();
+///
 ///   @override
 ///   void register(PodRegistry registry, Environment env) {
-///     registry.registerPod(MyService.classType);
+///     // Register a singleton pod
+///     registry.registerPod(Class<MyService>(), customizer: (spec) {
+///       spec.namedAs('myService').withScope(ScopeType.singleton);
+///     });
+///
+///     // Conditionally register based on environment
+///     if (env.getPropertyAs<bool>('featureX.enabled', Class<bool>()) == true) {
+///       registry.registerPod(Class<FeatureXService>());
+///     }
 ///   }
 /// }
 /// ```
+///
+/// ### Notes
+/// - JetLeaf guarantees that all discovered registrars are invoked once during startup.
+/// - Registration is performed **before** any pod dependencies are injected.
+/// - Improper constructors (e.g., missing no-arg constructor) will cause registrars to be skipped.
 /// {@endtemplate}
 abstract interface class PodRegistrar {
-  /// Registers one or more pods into the Jetleaf pod registry.
+  /// Registers one or more pods into the JetLeaf pod registry.
   ///
   /// - [registry] is the central pod registry used to manage pod
   ///   definitions and their lifecycle.
@@ -47,18 +93,53 @@ abstract interface class PodRegistrar {
 }
 
 /// {@template jetleaf_pod_registry}
-/// A contract in **Jetleaf** that provides methods for managing pods
-/// in the container.  
+/// A contract in **JetLeaf** that provides methods for managing pods
+/// in the container.
 ///
-/// The `PodRegistry` allows registration of pod definitions through
-/// [`PodRegistrar`] or directly with [`registerPod`].
+/// The `PodRegistry` allows registration of pod definitions either directly
+/// or through [`PodRegistrar`].
 ///
-/// ### Usage
+/// ### Workflow
+/// 1. **Registrar Registration**
+///    - A `PodRegistrar` is registered with the registry using `register`.
+///    - Its `register` method declares one or more pods.
+///
+/// 2. **Direct Pod Registration**
+///    - Use `registerPod<T>` to register a pod of type `T`.
+///    - Customize its metadata via the optional `customizer`.
+///    - Optionally assign a unique `name`.
+///
+/// 3. **Pod Resolution**
+///    - The pod registry maintains a mapping of pod names and types to instances.
+///    - Pods are initialized based on scope and lifecycle rules:
+///      - Singleton: a single shared instance.
+///      - Prototype: a new instance per request.
+///      - Lazy: created only when first requested.
+///
+/// 4. **Dependency Injection**
+///    - Once pods are registered, other pods can depend on them.
+///    - The registry ensures correct instantiation order respecting `Ordered` registrars.
+///
+/// ### Example
 /// ```dart
-/// registry.registerPod(MyService.classType,
-///   customizer: (spec) => spec.namedAs('myService').withScope(ScopeType.singleton),
-/// );
+/// final registry = DefaultPodRegistry();
+///
+/// // Register a registrar
+/// registry.register(MyServiceRegistrar());
+///
+/// // Direct pod registration
+/// registry.registerPod(Class<MyService>(), customizer: (spec) {
+///   spec.namedAs('myService').withScope(ScopeType.singleton);
+/// });
+///
+/// // Retrieve a pod
+/// final myService = registry.getPod<MyService>('myService');
 /// ```
+///
+/// ### Notes
+/// - Pod registration should be performed at startup before any dependent pods are used.
+/// - Registrars and pods can be conditionally registered based on runtime properties.
+/// - The registry supports ordering via `Ordered` interfaces to guarantee deterministic initialization.
 /// {@endtemplate}
 abstract interface class PodRegistry {
   /// Registers a [registrar] that declares pods into this registry.

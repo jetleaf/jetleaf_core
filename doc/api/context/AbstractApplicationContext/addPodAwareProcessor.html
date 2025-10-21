@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the addPodAwareProcessor method from the AbstractApplicationContext class, for the Dart programming language.">
-  <title>addPodAwareProcessor method - AbstractApplicationContext class - context library - Dart API</title>
+  <meta name="description" content="API docs for the addPodProcessor method from the AbstractApplicationContext class, for the Dart programming language.">
+  <title>addPodProcessor method - AbstractApplicationContext class - context library - Dart API</title>
 
 
   
@@ -27,9 +27,9 @@
     <li><a href="../../index.html">jetleaf_core</a></li>
     <li><a href="../../context/">context.dart</a></li>
     <li><a href="../../context/AbstractApplicationContext-class.html">AbstractApplicationContext</a></li>
-    <li class="self-crumb">addPodAwareProcessor method</li>
+    <li class="self-crumb">addPodProcessor method</li>
   </ol>
-  <div class="self-name">addPodAwareProcessor</div>
+  <div class="self-name">addPodProcessor</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
@@ -49,7 +49,7 @@
     data-above-sidebar="context&#47;AbstractApplicationContext-class-sidebar.html"
     data-below-sidebar="">
     <div>
-<h1><span class="kind-method">addPodAwareProcessor</span> method 
+<h1><span class="kind-method">addPodProcessor</span> method 
 </h1></div>
 
     <section class="multi-line-signature">
@@ -60,7 +60,7 @@
     </ol>
   </div>
 <span class="returntype">void</span>
-<span class="name ">addPodAwareProcessor</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="addPodAwareProcessor-param-processor"><span class="type-annotation">PodAwareProcessor</span> <span class="parameter-name">processor</span></span></li>
+<span class="name ">addPodProcessor</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="addPodProcessor-param-processor"><span class="type-annotation">PodProcessor</span> <span class="parameter-name">processor</span></span></li>
 </ol>)
 
       
@@ -72,7 +72,7 @@
 <p>Processors are called during pod creation and can modify pod
 definitions or instances.</p>
 <h2 id="usage-example">Usage Example:</h2>
-<pre class="language-dart"><code class="language-dart">factory.addPodAwareProcessor(MyCustomPodProcessor());
+<pre class="language-dart"><code class="language-dart">factory.addPodProcessor(MyCustomPodProcessor());
 </code></pre>
 <p>@param processor The processor to register</p>
 </section>
@@ -82,9 +82,9 @@ definitions or instances.</p>
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
-void addPodAwareProcessor(PodAwareProcessor processor) {
+void addPodProcessor(PodProcessor processor) {
   &#47;&#47; local-only mutation. registering on parent implicitly is surprising.
-  getPodFactory().addPodAwareProcessor(processor);
+  getPodFactory().addPodProcessor(processor);
 }</code></pre>
 </section>
 
@@ -101,7 +101,7 @@ void addPodAwareProcessor(PodAwareProcessor processor) {
     <li><a href="../../index.html">jetleaf_core</a></li>
     <li><a href="../../context/">context</a></li>
     <li><a href="../../context/AbstractApplicationContext-class.html">AbstractApplicationContext</a></li>
-    <li class="self-crumb">addPodAwareProcessor method</li>
+    <li class="self-crumb">addPodProcessor method</li>
 </ol>
 
     <h5>AbstractApplicationContext class</h5>

@@ -76,13 +76,13 @@ generic type information is erased at runtime.</li>
 <li>Exposes <a href="../../annotation/KeyValueOf/getKey.html">getKey</a> and <a href="../../annotation/KeyValueOf/getValue.html">getValue</a> to resolve <code>Class&lt;K&gt;</code> and <code>Class&lt;V&gt;</code>.</li>
 </ul>
 <h1 id="example">Example</h1>
-<pre class="language-dart"><code class="language-dart">@KeyValueOf("com.example.keys", "com.example.values")
+<pre class="language-dart"><code class="language-dart">@KeyValueOf("package:example/test.dart.keys", "package:example/test.dart.values")
 final KeyValueOf&lt;String, User&gt; userMapping = KeyValueOf();
 
 final keyClass = userMapping.getKey();
 final valueClass = userMapping.getValue();
-print(keyClass.getQualifiedName());   // com.example.keys.String
-print(valueClass.getQualifiedName()); // com.example.values.User
+print(keyClass.getQualifiedName());   // package:example/test.dart.keys.String
+print(valueClass.getQualifiedName()); // package:example/test.dart.values.User
 </code></pre>
 <h1 id="notes">Notes</h1>
 <ul>

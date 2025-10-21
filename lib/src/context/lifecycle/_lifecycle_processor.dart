@@ -22,33 +22,33 @@ import 'lifecycle.dart';
 import 'lifecycle_processor.dart';
 
 /// {@template default_lifecycle_processor}
-/// Default implementation of [LifecycleProcessor] that manages
-/// the discovery, startup, and shutdown of [Lifecycle] and
-/// [SmartLifecycle] pods in the application context.
+/// Default implementation of [LifecycleProcessor] that manages the lifecycle of pods.
 ///
-/// It uses a [ConfigurableListablePodFactory] to find pods
-/// that implement the [Lifecycle] contract and controls
-/// their lifecycle phases.
+/// This processor discovers and manages pods that implement [Lifecycle] or [SmartLifecycle],
+/// handling initialization and shutdown in a coordinated manner. It supports ordered
+/// lifecycle management and async shutdown operations for proper application lifecycle control.
 ///
-/// ### Behavior
-/// - **Startup (`onRefresh`)**
-///   - Discovers all [Lifecycle] pods from the pod factory.
-///   - Starts [SmartLifecycle] pods first, ordered by their
-///     [SmartLifecycle.getPhase] (lowest phase starts first).
-///   - Starts regular [Lifecycle] pods afterwards.
-/// - **Shutdown (`onClose`)**
-///   - Stops all [Lifecycle] pods in reverse order.
-///   - For [SmartLifecycle] pods, ensures async shutdown
-///     is completed via a [_AsyncRunnable].
+/// **Key Features:**
+/// - Automatic discovery of lifecycle-managed pods
+/// - Ordered startup and shutdown based on phase and priority
+/// - Support for async lifecycle operations via [SmartLifecycle]
+/// - Integration with [ConfigurableListablePodFactory] for pod discovery
 ///
-/// ### Example
+/// **Lifecycle Order:**
+/// - **Startup**: SmartLifecycle pods sorted by phase (lowest first), auto-startup only
+/// - **Shutdown**: All lifecycle pods in reverse discovery order
+///
+/// **Example:**
 /// ```dart
+/// final podFactory = DefaultPodFactory();
 /// final processor = DefaultLifecycleProcessor(podFactory);
 ///
-/// // Start lifecycle pods
-/// processor.onRefresh();
+/// // Initialize and discover lifecycle pods
+/// await processor.onRefresh();
 ///
-/// // Later, when shutting down
+/// // Application runs...
+///
+/// // Graceful shutdown
 /// await processor.onClose();
 /// ```
 /// {@endtemplate}
@@ -56,34 +56,53 @@ class DefaultLifecycleProcessor implements LifecycleProcessor {
   final ConfigurableListablePodFactory? _podFactory;
 
   /// {@macro default_lifecycle_processor}
-  DefaultLifecycleProcessor(this._podFactory) {
-    _discoverLifecyclePods();
-  }
+  DefaultLifecycleProcessor(this._podFactory);
 
+  /// Collection of discovered lifecycle-managed pods.
+  ///
+  /// This template documents the internal storage for pods
+  /// that implement lifecycle interfaces.
+  /// 
+  /// List of discovered lifecycle-managed pods.
   List<Lifecycle> _lifecycles = [];
+
+  /// Lifecycle processor running state flag.
+  ///
+  /// This template documents the flag that tracks whether
+  /// the lifecycle processor is actively managing lifecycles.
+  /// 
+  /// Flag indicating whether the processor is currently running.
   bool _running = false;
 
-  /// {@template default_lifecycle_processor_discover}
+  /// {@macro default_lifecycle_processor_discover}
   /// Discovers all pods from the pod factory that implement [Lifecycle].
   ///
-  /// This is used internally by [onRefresh] to initialize the
+  /// This method scans the pod factory for pods implementing the [Lifecycle] interface
+  /// and stores them internally. The discovered lifecycle pods are then sorted
+  /// according to their declared order for proper lifecycle management sequence.
+  ///
+  /// **Internal Usage:**
+  /// This method is used internally by [onRefresh] to initialize the
   /// list of lifecycle-managed pods.
-  /// {@endtemplate}
-  Future<List<Lifecycle>> _discoverLifecyclePods() async {
-    final list = <Lifecycle>[];
-    
-    final lc = Class<Lifecycle>(null, PackageNames.CORE);
-    final names = await _podFactory?.getPodNames(lc, includeNonSingletons: true, allowEagerInit: true) ?? [];
-    if (names.isNotEmpty) {
-      for (final n in names) {
-        if(_podFactory != null) {
-          final pod = await _podFactory.getPod(n);
-          list.add(pod);
-        }
+  ///
+  /// **Example (Internal):**
+  /// ```dart
+  /// final processor = DefaultLifecycleProcessor(podFactory);
+  /// await processor.discover(); // Internal discovery
+  /// await processor.onRefresh(); // Starts discovered lifecycles
+  /// ```
+  Future<void> discover() async {
+    if (_podFactory != null) {
+      final lc = Class<Lifecycle>(null, PackageNames.CORE);
+      final lcNames = await _podFactory.getPodNames(lc, includeNonSingletons: true, allowEagerInit: true);
+      
+      for (final name in lcNames) {
+        final pod = await _podFactory.getPod(name, null, lc);
+        _lifecycles.add(pod);
       }
     }
 
-    return list;
+    AnnotationAwareOrderComparator.sort(_lifecycles);
   }
   
   @override
@@ -106,38 +125,81 @@ class DefaultLifecycleProcessor implements LifecycleProcessor {
 
   @override
   void onRefresh() async {
-    // Discover lifecycle pods
-    _lifecycles.clear();
-    _lifecycles.addAll(await _discoverLifecyclePods());
-
-    AnnotationAwareOrderComparator.sort(_lifecycles);
-
-    final smart = _lifecycles.where((l) => l is SmartLifecycle).toList();
+    final smart = <SmartLifecycle>[];
+    final nsmart = <Lifecycle>[];
+    
+    for (final lc in _lifecycles) {
+      if (lc is SmartLifecycle) {
+        smart.add(lc);
+      } else {
+        nsmart.add(lc);
+      }
+    }
 
     // Sort by phase (lowest first)
-    smart.sort((a, b) => (a as SmartLifecycle).getPhase().compareTo((b as SmartLifecycle).getPhase()));
-    smart.process((s) async {
-      final sl = s as SmartLifecycle;
-      if(sl.isAutoStartup()) {
-        await sl.start();
-      }
-    });
+    smart.sort((a, b) => a.getPhase().compareTo(b.getPhase()));
 
-    final nsmart = _lifecycles.where((l) => l is! SmartLifecycle).toList();
-    nsmart.process((s) async => await s.start());
+    for (final s in smart) {
+      if(s.isAutoStartup()) {
+        await s.start();
+      }
+    }
 
     _running = true;
   }
 }
 
 /// {@template default_lifecycle_processor_async_runnable}
-/// Internal adapter used to complete a [Completer] once a
-/// [SmartLifecycle] asynchronous shutdown is finished.
+/// Internal runnable implementation for completing async lifecycle operations.
+///
+/// This private class implements the [Runnable] interface to provide a simple
+/// mechanism for completing [Completer] instances as part of asynchronous
+/// lifecycle processing. It's used internally by lifecycle processors to
+/// coordinate async initialization and destruction sequences.
+///
+/// **Internal Usage Only:**
+/// This class is designed for internal framework use and should not be
+/// used directly by application code. It provides the bridge between
+/// synchronous runnable interfaces and asynchronous completion patterns.
+///
+/// **Example (Internal Framework Usage):**
+/// ```dart
+/// // Internal lifecycle processor implementation
+/// class DefaultLifecycleProcessor {
+///   Future<void> _executeAsyncShutdown() async {
+///     final completer = Completer<void>();
+///     final runnable = _AsyncRunnable(completer);
+///     
+///     // Schedule the runnable for execution
+///     await _executor.execute(runnable);
+///     
+///     // Wait for completion
+///     await completer.future;
+///   }
+/// }
+/// ```
 /// {@endtemplate}
 final class _AsyncRunnable implements Runnable {
+  /// {@macro asyncRunnableCompleter}
+  /// The completer that will be completed when this runnable executes.
   final Completer _completer;
 
   /// {@macro default_lifecycle_processor_async_runnable}
+  /// Creates a new async runnable that will complete the given completer.
+  ///
+  /// **Parameters:**
+  /// - `_completer`: The completer to complete when this runnable is executed
+  ///
+  /// **Internal Usage:**
+  /// ```dart
+  /// // Internal framework usage pattern
+  /// final completer = Completer<void>();
+  /// final runnable = _AsyncRunnable(completer);
+  /// 
+  /// // Execute the runnable (completes the completer)
+  /// await runnable.run();
+  /// // completer is now completed
+  /// ```
   _AsyncRunnable(this._completer);
 
   @override

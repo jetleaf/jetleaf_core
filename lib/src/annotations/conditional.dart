@@ -24,55 +24,99 @@ import '../condition/helpers.dart';
 // -------------------------------------------------------------------------------------------------------
 
 /// {@template conditional}
-/// The `Conditional` annotation in **Jetleaf** allows developers to specify 
-/// conditions that must be satisfied for a class or method to be processed 
-/// by the framework.
+/// An annotation that conditionally enables or disables JetLeaf-managed
+/// constructs such as [Component], [Pod], or configuration classes based
+/// on one or more declarative [Condition] evaluators.
 ///
-/// This annotation is typically used on configuration classes, pods, or 
-/// methods that should only be included when certain runtime conditions are met. 
-/// Conditions are implemented as classes that implement the [Condition] interface.
+/// The [Conditional] annotation is a reflective directive that instructs
+/// the JetLeaf framework to include the annotated type or method only if
+/// **all** specified [conditions] evaluate to `true` during pod resolution.
 ///
-/// ### Key Features:
-/// - Supports multiple conditions; all must match for the annotated type to be processed.
-/// - Can be applied to both classes and methods.
+/// ### Purpose
 ///
-/// ### Usage Example:
+/// In a modular JetLeaf application, certain [Component]s or configuration
+/// classes may only be applicable under specific runtime contexts, such as
+/// environment, platform, or other application state. [Conditional] provides
+/// a declarative and compile-time safe mechanism to express these
+/// contextual dependencies.
+///
+/// ### Behavior
+///
+/// - Each class in [conditions] must implement [Condition].
+/// - Each condition class **must have a `const` constructor** so that
+///   [Conditional] can be used as a compile-time constant.
+/// - JetLeaf evaluates all conditions in the order they are declared. The
+///   annotated construct is processed only if **every** condition returns
+///   `true` via [Condition.matches].
+///
+/// ### Example
+///
 /// ```dart
-/// import 'package:jetleaf/jetleaf.dart';
-///
-/// // A condition that only matches when the application is running in production
 /// class OnProductionEnvironmentCondition implements Condition {
+///   const OnProductionEnvironmentCondition();
+///
 ///   @override
-///   bool matches(ConditionalContext context, ClassType<Object> classType) {
-///     return context.environment.activeProfiles.contains('production');
-///   }
+///   bool matches(Environment env) => env.isProduction();
 /// }
 ///
-/// // Apply conditional configuration
-/// @Conditional([ClassType<OnProductionEnvironmentCondition>()])
-/// class ProductionDataSourceConfig {
-///   // Beans/pods defined here will only be registered in production
-/// }
+/// @Conditional([OnProductionEnvironmentCondition()])
+/// class ProductionDataSourceConfig {}
 /// ```
 ///
-/// In this example, `ProductionDataSourceConfig` will only be processed by Jetleaf 
-/// if `OnProductionEnvironmentCondition` evaluates to `true`. This allows 
-/// developers to define environment-specific configuration easily.
+/// Declaring conditions as `const` ensures deterministic evaluation and
+/// eliminates runtime instantiation overhead.
+///
+/// ### Related Components
+///
+/// - [Condition]: Interface that defines the logical predicate for
+///   conditional activation.
+/// - [ConditionalContext]: JetLeaf context responsible for evaluating conditions
+///   and initializing pods.
 /// {@endtemplate}
 @Target({TargetKind.classType, TargetKind.method})
-class Conditional extends ReflectableAnnotation with EqualsAndHashCode {
-  /// {@template conditional_value}
-  /// Condition classes that must match for the annotated type to be processed.
+final class Conditional extends ReflectableAnnotation with EqualsAndHashCode {
+  /// {@template when_conditional_field_key}
+  /// The key used to store or reference condition information for
+  /// a `Conditional` annotation. It matches [conditions] in [Conditional]
   ///
-  /// These classes are typically implementations of the [Condition] interface.
+  /// This constant is typically used as a metadata key when inspecting
+  /// annotations that are associated with conditional processing.
+  ///
+  /// ### Example
+  /// ```dart
+  /// final conditions = annotation.getFieldValue(Conditional.FIELD_KEY);
+  /// ```
+  /// {@endtemplate}
+  static const String FIELD_KEY = "conditions";
+
+  /// {@template conditional_value}
+  /// Condition classes that must match for the annotated type or method
+  /// to be processed.
+  ///
+  /// Each class in [conditions] must implement the [Condition] interface,
+  /// **and its constructor must be declared as `const`**.  
+  /// This allows the `@Conditional` annotation itself to be used as a
+  /// compile-time constant, enabling the Dart analyzer and reflection
+  /// system to resolve it safely.
   ///
   /// ### Example:
   /// ```dart
-  /// @Conditional([ClassType<OnProductionEnvironmentCondition>()])
+  /// class OnProductionEnvironmentCondition implements Condition {
+  ///   const OnProductionEnvironmentCondition();
+  ///
+  ///   @override
+  ///   bool matches(Environment env) => env.isProduction();
+  /// }
+  ///
+  /// @Conditional([OnProductionEnvironmentCondition()])
   /// class ProductionDataSourceConfig {}
   /// ```
+  ///
+  /// Declaring `const` constructors in condition classes ensures that
+  /// they can be evaluated deterministically and used in annotation
+  /// metadata without runtime instantiation overhead.
   /// {@endtemplate}
-  final List<ClassType<Condition>> conditions;
+  final List<Condition> conditions;
 
   /// {@macro conditional}
   const Conditional(this.conditions);
@@ -87,25 +131,86 @@ class Conditional extends ReflectableAnnotation with EqualsAndHashCode {
   List<Object?> equalizedProperties() => [conditions];
 }
 
+/// {@template when_conditional}
+/// The base class for all annotations that are eligible for conditional
+/// evaluation in the JetLeaf framework.
+///
+/// [WhenConditional] serves as a marker class for annotations that may be
+/// decorated with [Conditional] or its specialized variants (e.g., 
+/// [ConditionalOnClass], [ConditionalOnProperty], [ConditionalOnPod], etc.).
+///
+/// Any annotation that **does not extend or implement [WhenConditional]**
+/// will be ignored by the [ConditionEvaluator] during runtime pod or 
+/// configuration evaluation. This ensures that only explicitly marked 
+/// annotations participate in JetLeaf's conditional activation logic.
+///
+/// ### Purpose
+///
+/// - Acts as a **type filter** for the JetLeaf [ConditionEvaluator].
+/// - Ensures that only supported conditional annotations are evaluated.
+/// - Provides a common base for equality and hash code behavior through 
+///   [EqualsAndHashCode].
+///
+/// ### Example
+///
+/// ```dart
+/// @Conditional([OnPropertyCondition()])
+/// class ConditionalOnProperty extends WhenConditional {
+///   final List<String> names;
+///   const ConditionalOnProperty({this.names = const []});
+/// }
+///
+/// // During evaluation:
+/// // Only annotations extending WhenConditional are processed.
+/// ```
+///
+/// ### Related Components
+///
+/// - [Conditional]: The general annotation that enables conditional evaluation.
+/// - [ConditionEvaluator]: Responsible for evaluating conditions on annotations.
+/// - [EqualsAndHashCode]: Ensures consistent equality and hashcode behavior
+///   for all annotations extending this base class.
+/// {@endtemplate}
+abstract class WhenConditional extends ReflectableAnnotation with EqualsAndHashCode {
+  /// {@macro when_conditional}
+  const WhenConditional();
+}
+
 // -------------------------------------------------------------------------------------------------------
 // CONDITIONAL ON PROPERTY
 // -------------------------------------------------------------------------------------------------------
 
 /// {@template conditional_on_property}
-/// Marks a class or method as conditional based on the presence and value of 
-/// configuration properties.
+/// An annotation that conditionally enables a [Component], [Pod], or
+/// configuration class based on the value(s) of one or more properties.
 ///
-/// This annotation is used to include or exclude a class based on one
-/// or more environment or system properties. It is commonly used in 
-/// auto-configuration or module activation scenarios.
+/// The [ConditionalOnProperty] annotation evaluates property values at
+/// runtime and only allows the annotated type or method to be processed
+/// if the specified property conditions are met. This is particularly
+/// useful for feature toggles, environment-specific configuration,
+/// or conditional module activation.
 ///
-/// ### Matching Rules
-/// - You can specify multiple names via `names`.
-/// - If `havingValue` is specified, the property must match that value.
-/// - If `havingValue` is omitted, the property must not be equal to `'false'`.
-/// - If the property is missing and `matchIfMissing` is `true`, it will match.
+/// ### Purpose
+///
+/// In JetLeaf applications, certain components or configurations may only
+/// be relevant when specific properties are present or have certain values.
+/// [ConditionalOnProperty] allows declarative, property-based activation
+/// without requiring procedural checks in the component initialization
+/// logic.
+///
+/// ### Behavior
+///
+/// - [prefix] can be prepended to property names when matching, allowing
+///   hierarchical property keys like `server.port`.
+/// - [names] is a list of property names to check; at least one property
+///   in the list must match the expected condition.
+/// - [havingValue] is the expected property value; if omitted, any value
+///   other than `'false'` is considered a match.
+/// - [matchIfMissing] determines whether a missing property should count
+///   as a match. Defaults to `false`.
 ///
 /// ### Example
+///
 /// ```dart
 /// @ConditionalOnProperty(
 ///   prefix: 'server',
@@ -115,11 +220,19 @@ class Conditional extends ReflectableAnnotation with EqualsAndHashCode {
 /// class SslServerConfig {}
 /// ```
 ///
-/// This activates `SslServerConfig` only if `server.ssl.enabled=true`.
+/// This configuration will only activate if the property `server.ssl.enabled`
+/// or `server.ssl.enabled2` equals `'true'`.
+///
+/// ### Related Components
+///
+/// - [ConditionalContext]: Evaluates properties and determines whether to
+///   instantiate the annotated type.
+/// - [Conditional]: The general conditional annotation framework that
+///   [ConditionalOnProperty] builds upon.
 /// {@endtemplate}
-@Conditional([ClassType<OnPropertyCondition>()])
+@Conditional([OnPropertyCondition()])
 @Target({TargetKind.classType, TargetKind.method})
-class ConditionalOnProperty extends ReflectableAnnotation with EqualsAndHashCode {
+class ConditionalOnProperty extends WhenConditional {
   /// Optional prefix to prepend to the property name(s).
   ///
   /// For example, prefix `server` with name `port` will match `server.port`.
@@ -200,197 +313,240 @@ class ConditionalOnProperty extends ReflectableAnnotation with EqualsAndHashCode
   Type get annotationType => ConditionalOnProperty;
 
   @override
-  List<Object?> equalizedProperties() => [
-    prefix,
-    names,
-    havingValue,
-    matchIfMissing,
-  ];
+  List<Object?> equalizedProperties() => [prefix, names, havingValue, matchIfMissing];
 }
 
 // -------------------------------------------------------------------------------------------------------
 // CONDITIONAL ON MISSING CLASS
 // -------------------------------------------------------------------------------------------------------
 
-/// {@template conditionalOnMissingClass}
-/// The `ConditionalOnMissingClass` annotation in **Jetleaf** allows developers 
-/// to conditionally process a class or method only when certain classes are 
-/// **absent** from the runtime classpath.
+/// {@template conditional_on_missing_class}
+/// An annotation that conditionally activates a [Component], [Pod], or
+/// configuration class only if certain classes are **absent** from the
+/// Dart runtime or classpath.
 ///
-/// This is useful for providing default implementations or fallback 
-/// configurations when optional libraries or classes are missing.
+/// The [ConditionalOnMissingClass] annotation instructs JetLeaf to process
+/// the annotated type or method only when all classes listed in [value]
+/// are missing. This supports defining default or fallback configurations
+/// without introducing hard dependencies.
 ///
-/// ### Usage Examples:
+/// ### Purpose
+///
+/// In modular JetLeaf applications, it is common to provide default
+/// implementations or fallback components that should only be active when
+/// more specific classes are not present. [ConditionalOnMissingClass]
+/// enables this declaratively, avoiding manual runtime type checks.
+///
+/// ### Behavior
+///
+/// - [value] contains instances of [ClassType] representing the types that
+///   must be absent.
+/// - [ClassType] supports either actual Dart types (`ClassType<SomeClass>()`)
+///   or fully qualified names (`ClassType.qualified('package:...')`) for
+///   safe reference without importing the class directly.
+/// - The annotated element is only processed if **all specified classes are missing**.
+///
+/// ### Example
+///
 /// ```dart
-/// // Only load default cache if AdvancedCache is missing
-/// @ConditionalOnMissingClass(value: [ClassType<AdvancedCache>()])
+/// @ConditionalOnMissingClass([ClassType<AdvancedCache>()])
 /// class DefaultCacheConfig {}
 ///
-/// // Use fully qualified class names instead of direct references
-/// @ConditionalOnMissingClass(name: ['package:jetleaf/example/jetleaf_example.dart.LoggingService'])
-/// class DefaultLogger {}
+/// // Using fully qualified names to avoid compilation issues
+/// @ConditionalOnMissingClass([ClassType.qualified('package:jetleaf/example/jetleaf_example.dart.LoggingService')])
+/// class DefaultCacheConfig {}
 /// ```
+///
+/// ### Related Components
+///
+/// - [ConditionalContext]: Evaluates pod absence and manages conditional initialization.
+/// - [Conditional]: The general conditional annotation framework that
+///   [ConditionalOnMissingClass] extends.
 /// {@endtemplate}
-@Conditional([ClassType<OnClassCondition>()])
+@Conditional([OnClassCondition()])
 @Target({TargetKind.classType, TargetKind.method})
-class ConditionalOnMissingClass extends ReflectableAnnotation with EqualsAndHashCode {
+class ConditionalOnMissingClass extends WhenConditional {
   /// Classes that must be absent from the classpath.
   ///
-  /// Uses actual Dart types for checking absence.
+  /// Uses actual Dart types or JetLeaf's qualified names for checking absence.
   ///
   /// ### Example:
   /// ```dart
-  /// @ConditionalOnMissingClass(value: [ClassType<AdvancedCache>()])
+  /// @ConditionalOnMissingClass([ClassType<AdvancedCache>()])
+  /// class DefaultCacheConfig {}
+  /// 
+  /// or for compilation issues
+  /// @ConditionalOnMissingClass([ClassType.qualified('package:jetleaf/example/jetleaf_example.dart.LoggingService')])
   /// class DefaultCacheConfig {}
   /// ```
   final List<ClassType<Object>> value;
 
-  /// ClassType names (fully qualified) that must be absent from the classpath.
-  ///
-  /// Useful when you don’t want to directly reference the types.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// @ConditionalOnMissingClass(name: ['package:jetleaf/example/jetleaf_example.dart.LoggingService'])
-  /// class DefaultLogger {}
-  /// ```
-  final List<String> names;
-
-  /// {@macro conditionalOnMissingClass}
-  const ConditionalOnMissingClass({
-    this.value = const [],
-    this.names = const [],
-  });
+  /// {@macro conditional_on_missing_class}
+  const ConditionalOnMissingClass([this.value = const []]);
 
   @override
-  String toString() => 'ConditionalOnMissingClass(value: $value, name: $names)';
+  String toString() => 'ConditionalOnMissingClass($value)';
 
   @override
   Type get annotationType => ConditionalOnMissingClass;
 
   @override
-  List<Object?> equalizedProperties() => [value, names];
+  List<Object?> equalizedProperties() => value;
 }
 
-// -------------------------------------------------------------------------------------------------------
-// CONDITIONAL ON CLASS
-// -------------------------------------------------------------------------------------------------------
-
-/// {@template conditionalOnClass}
-/// The `ConditionalOnClass` annotation in **Jetleaf** allows developers 
-/// to conditionally process a class or method only when certain classes are 
-/// **present** in the runtime classpath.
+/// {@template conditional_on_class}
+/// An annotation that conditionally enables a [Component], [Pod], or
+/// configuration class only if certain classes are **present** in the Dart
+/// runtime or classpath.
 ///
-/// This is useful for optional dependencies, integration with external 
-/// libraries, or conditional configuration based on class availability.
+/// The [ConditionalOnClass] annotation instructs JetLeaf to process the
+/// annotated type or method only when all classes listed in [value] exist.
+/// This allows declarative activation of components that depend on specific
+/// optional or external classes.
 ///
-/// ### Usage Examples:
+/// ### Purpose
+///
+/// In JetLeaf applications, some components or configuration classes should
+/// only be loaded if certain other classes are available. [ConditionalOnClass]
+/// provides a safe and declarative way to express such dependencies without
+/// requiring procedural runtime checks.
+///
+/// ### Behavior
+///
+/// - [value] contains instances of [ClassType] representing the classes
+///   that must be present for activation.
+/// - [ClassType] supports either actual Dart types (`ClassType<SomeClass>()`)
+///   or fully qualified names (`ClassType.qualified('package:...')`) to avoid
+///   direct import dependencies.
+/// - The annotated element is only processed if **all specified classes exist**.
+///
+/// ### Example
+///
 /// ```dart
-/// // Only load HTTP client configuration if HttpClient exists
-/// @ConditionalOnClass(value: [ClassType<HttpClient>()])
-/// class HttpClientAutoConfig {}
+/// @ConditionalOnClass([ClassType<AdvancedCache>()])
+/// class AdvancedCacheConfig {}
 ///
-/// // Use fully qualified class names to avoid compilation errors
-/// @ConditionalOnClass(name: ['package:jetleaf/example/jetleaf_example.dart.LoggingService'])
-/// class OptionalFeatureConfig {}
+/// @ConditionalOnClass([ClassType.qualified('package:jetleaf/example/jetleaf_example.dart.LoggingService')])
+/// class LoggingConfig {}
 /// ```
+///
+/// ### Related Components
+/// 
+/// - [ConditionalContext]: Evaluates pod absence and manages conditional initialization.
+/// - [Conditional]: General conditional annotation framework that
+///   [ConditionalOnClass] extends.
 /// {@endtemplate}
-@Conditional([ClassType<OnClassCondition>()])
+@Conditional([OnClassCondition()])
 @Target({TargetKind.classType, TargetKind.method})
-class ConditionalOnClass extends ReflectableAnnotation with EqualsAndHashCode {
-  /// Classes that must be present at runtime.
+class ConditionalOnClass extends WhenConditional {
+  /// Classes that must be present in the classpath for the annotated
+  /// type or method to be processed.
   ///
-  /// Uses actual Dart types for checking availability.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// @ConditionalOnClass(value: [ClassType<HttpClient>()])
-  /// class HttpClientAutoConfig {}
-  /// ```
+  /// This is a list of [ClassType] instances representing required Dart
+  /// types or qualified class names. The annotated element is processed
+  /// only if **all classes** in [value] exist.
   final List<ClassType<Object>> value;
 
-  /// ClassType names (fully qualified) that must be present at runtime.
-  ///
-  /// This is useful when types are not directly referenced to avoid
-  /// compilation errors if missing.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// @ConditionalOnClass(name: ['package:jetleaf/example/jetleaf_example.dart.LoggingService'])
-  /// class OptionalFeatureConfig {}
-  /// ```
-  final List<String> names;
-
-  /// {@macro conditionalOnClass}
-  const ConditionalOnClass({
-    this.value = const [],
-    this.names = const [],
-  });
+  /// {@macro conditional_on_class}
+  const ConditionalOnClass([this.value = const []]);
 
   @override
-  String toString() => 'ConditionalOnClass(value: $value, name: $names)';
+  String toString() => 'ConditionalOnClass($value)';
 
   @override
   Type get annotationType => ConditionalOnClass;
 
   @override
-  List<Object?> equalizedProperties() => [value, names];
+  List<Object?> equalizedProperties() => value;
 }
 
 // -------------------------------------------------------------------------------------------------------
 // CONDITIONAL ON POD
 // -------------------------------------------------------------------------------------------------------
 
-/// {@template conditionalOnPod}
-/// The `ConditionalOnPod` annotation in **Jetleaf** allows developers to 
-/// conditionally process classes or methods based on the presence of specific 
-/// pods in the application context.
+/// {@template conditional_on_pod}
+/// An annotation that conditionally activates a [Component], [Pod], or
+/// configuration class based on the presence of other pods within the
+/// current [ConditionalContext].
 ///
-/// This is especially useful when you want a configuration, service, or pod 
-/// to only be loaded if another pod (or set of pods) already exists. 
-/// Conditions can be defined by pod type, annotation, or name.
+/// The [ConditionalOnPod] annotation allows the JetLeaf framework to
+/// declaratively control which constructs are instantiated or registered
+/// by evaluating dependencies on existing pods. This enables modular
+/// configuration and ensures that certain components are only loaded when
+/// their required pods are available.
 ///
-/// ### Key Features:
-/// - Require specific pod types to exist in the context.
-/// - Require pods annotated with certain annotations.
-/// - Require pods with given names.
+/// ### Purpose
 ///
-/// ### Usage Examples:
+/// In complex JetLeaf applications, some components should only initialize
+/// if their dependencies (pods) are present. Instead of manually checking
+/// for these pods at runtime, [ConditionalOnPod] provides a declarative,
+/// framework-native mechanism for:
+///
+/// - Enforcing type-safe pod dependencies using [types].
+/// - Checking for specific pod identifiers using [names].
+/// - Avoiding initialization errors or unnecessary object creation when
+///   dependencies are missing.
+/// - Supporting conditional wiring and composition in modular pod designs.
+///
+/// ### Behavior
+///
+/// - [types] contains [ClassType] instances representing the required pod
+///   types. The annotated element will only be processed if **all** of
+///   these types are present in the current [ConditionalContext].
+/// - [names] contains string identifiers of pods that must exist. Useful
+///   when type references are not sufficient or to check for dynamically
+///   registered pods.
+/// - The evaluation is performed during pod resolution. If any required
+///   type or name is missing, the annotated component will be skipped
+///   without throwing an error, maintaining graceful degradation.
+///
+/// ### Example
+///
 /// ```dart
-/// // Require a specific pod type
+/// // Activate only if a DataSource pod is present
 /// @ConditionalOnPod(types: [ClassType<DataSource>()])
 /// class JdbcTemplateConfig {}
 ///
-/// // Require a pod with a specific name
+/// // Activate only if a pod named 'myCustomService' exists
 /// @ConditionalOnPod(names: ['myCustomService'])
 /// class FallbackServiceConfig {}
+///
+/// // Activate only if both a type and name condition are met
+/// @ConditionalOnPod(
+///   types: [ClassType<Cache>()],
+///   names: ['metricsService']
+/// )
+/// class CachedMetricsConfig {}
 /// ```
 ///
-/// Using this annotation ensures your configuration or beans are only 
-/// registered when the expected pods are already available in the Jetleaf 
-/// context.
+/// ### Related Components
+///
+/// - [ConditionalContext]: Evaluates pod absence and manages conditional initialization.
+/// - [Conditional]: The base conditional annotation that [ConditionalOnPod]
+///   builds upon for evaluating contextual activation rules.
+/// - [ClassType]: Represents type references used for type-safe pod
+///   checks.
 /// {@endtemplate}
-@Conditional([ClassType<OnPodCondition>()])
+@Conditional([OnPodCondition()])
 @Target({TargetKind.classType, TargetKind.method})
-class ConditionalOnPod extends ReflectableAnnotation with EqualsAndHashCode {
-  /// Pod types that must be present in the context.
+class ConditionalOnPod extends WhenConditional {
+  /// Pod types that must be present in the [ConditionalContext] for the annotated
+  /// element to be processed.
   ///
-  /// Equivalent to [type], kept for semantic clarity.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// @ConditionalOnPod(types: [ClassType<DataSource>()])
-  /// class JdbcTemplateConfig {}
-  /// ```
+  /// This field is used for type-safe checks, allowing the JetLeaf
+  /// framework to determine the presence of required pods by type. The
+  /// annotated component will only be activated if **all specified types**
+  /// exist.
   final List<ClassType<Object>> types;
 
-  /// Pod names that must be present in the context.
+  /// Pod names that must be present in the [ConditionalContext] for the annotated
+  /// element to be processed.
   ///
-  /// ### Example:
-  /// ```dart
-  /// @ConditionalOnPod(names: ['myCustomService'])
-  /// class FallbackServiceConfig {}
-  /// ```
+  /// This field provides flexibility for identifying pods by string
+  /// identifiers rather than types. It is particularly useful when
+  /// pod registration occurs dynamically, or type references are not
+  /// available. The annotated component will only be activated if
+  /// **all specified names** exist in the pod context.
   final List<String> names;
 
   /// {@macro conditionalOnPod}
@@ -410,30 +566,50 @@ class ConditionalOnPod extends ReflectableAnnotation with EqualsAndHashCode {
 // CONDITIONAL ON MISSING POD
 // -------------------------------------------------------------------------------------------------------
 
-/// {@template conditionalOnMissingPod}
-/// The `ConditionalOnMissingPod` annotation in **Jetleaf** allows developers 
-/// to conditionally process a class or method only when certain pods are 
-/// **not present** in the application context.
+/// {@template conditional_on_missing_pod}
+/// An annotation that conditionally activates a [Component], [Pod], or
+/// configuration class only if certain pods are **absent** from the
+/// current [ConditionalContext].
 ///
-/// This is particularly useful for providing fallback configurations or 
-/// alternative beans/pods when expected ones are absent.
+/// The [ConditionalOnMissingPod] annotation enables JetLeaf to define
+/// fallback or alternative components that should only be initialized
+/// when specified pods are missing. This supports graceful degradation
+/// and modular configuration without causing runtime errors.
 ///
-/// ### Key Features:
-/// - Ensures a pod is only loaded if another pod type or name is missing.
-/// - Supports ignoring specific annotations when determining pod presence.
-/// - Supports ignoring entire pod types to avoid conflicts with infrastructure.
+/// ### Purpose
 ///
-/// ### Usage Examples:
+/// In JetLeaf applications, it is common to provide default or alternative
+/// configurations that should only be active if certain pods are not
+/// registered. [ConditionalOnMissingPod] provides a declarative way to:
+///
+/// - Avoid conflicts with existing pods.
+/// - Conditionally register fallback services or configurations.
+/// - Exclude infrastructure or support pods from blocking fallback
+///   registration using [ignoredTypes].
+///
+/// ### Behavior
+///
+/// - [types] is a list of [ClassType] representing pod types that must
+///   **not** exist for the annotated element to be processed.
+/// - [names] is a list of pod names that must **not** exist for activation.
+/// - [ignoredTypes] allows certain pod types to be disregarded when
+///   evaluating conflicts. This is useful for excluding common or
+///   infrastructure pods that should not prevent fallback registration.
+/// - The annotated element is skipped if any pod in [types] or [names]
+///   exists, unless it is included in [ignoredTypes].
+///
+/// ### Example
+///
 /// ```dart
-/// // Only load an embedded database when no DataSource is present
+/// // Activate only if DataSource pod is missing
 /// @ConditionalOnMissingPod(types: [ClassType<DataSource>()])
 /// class EmbeddedDatabaseConfig {}
 ///
-/// // Provide a fallback service if a specific pod name is missing
-/// @ConditionalOnMissingPod(name: ['myCustomService'])
+/// // Activate only if pod named 'myCustomService' is missing
+/// @ConditionalOnMissingPod(names: ['myCustomService'])
 /// class FallbackServiceConfig {}
 ///
-/// // Ignore infrastructure pods while checking for missing dependencies
+/// // Ignore DataSource while checking for conflicts
 /// @ConditionalOnMissingPod(
 ///   types: [ClassType<MyService>()],
 ///   ignoredTypes: [ClassType<DataSource>()],
@@ -441,43 +617,33 @@ class ConditionalOnPod extends ReflectableAnnotation with EqualsAndHashCode {
 /// class AlternativeServiceConfig {}
 /// ```
 ///
-/// This ensures Jetleaf applications remain flexible by enabling conditional 
-/// fallbacks and context-aware configuration.
+/// ### Related Components
+///
+/// - [ConditionalContext]: Evaluates pod absence and manages conditional initialization.
+/// - [Conditional]: Base conditional annotation that [ConditionalOnMissingPod]
+///   extends for declarative activation rules.
+/// - [ClassType]: Represents pod types used in type-safe evaluation.
 /// {@endtemplate}
-@Conditional([ClassType<OnPodCondition>()])
+@Conditional([OnPodCondition()])
 @Target({TargetKind.classType, TargetKind.method})
-class ConditionalOnMissingPod extends ReflectableAnnotation with EqualsAndHashCode {
-  /// Pod types that must **not** be present in the context.
+class ConditionalOnMissingPod extends WhenConditional {
+  /// Pod types that must **not** be present in the [ConditionalContext].
   ///
-  /// ### Example:
-  /// ```dart
-  /// @ConditionalOnMissingPod(types: [ClassType<DataSource>()])
-  /// class EmbeddedDatabaseConfig {}
-  /// ```
+  /// The annotated element is only processed if **all** of the specified
+  /// types are missing.
   final List<ClassType<Object>> types;
 
-  /// Pod names that must **not** be present in the context.
+  /// Pod names that must **not** be present in the [ConditionalContext].
   ///
-  /// ### Example:
-  /// ```dart
-  /// @ConditionalOnMissingPod(name: ['myCustomService'])
-  /// class FallbackServiceConfig {}
-  /// ```
+  /// Provides a flexible alternative to [types] for dynamically registered
+  /// pods. Activation occurs only if **all specified names** are absent.
   final List<String> names;
 
-  /// Types to **ignore** while searching for conflicting pods.
+  /// Pod types to **ignore** during absence checks.
   ///
-  /// Often used to exclude infrastructure or support pods that shouldn’t 
-  /// prevent fallback registration.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// @ConditionalOnMissingPod(
-  ///   types: [ClassType<MyService>()],
-  ///   ignoredTypes: [ClassType<DataSource>()],
-  /// )
-  /// class AlternativeServiceConfig {}
-  /// ```
+  /// Useful for excluding common infrastructure or support pods that should
+  /// not block fallback registration. Any type in this list is disregarded
+  /// when evaluating [types] conflicts.
   final List<ClassType<Object>> ignoredTypes;
 
   /// {@macro conditionalOnMissingPod}
@@ -501,32 +667,67 @@ class ConditionalOnMissingPod extends ReflectableAnnotation with EqualsAndHashCo
 // CONDITIONAL ON PROFILE
 // -------------------------------------------------------------------------------------------------------
 
-/// {@template conditionalOnProfile}
-/// Marks a class or method to be included **only when specific profiles are active**.
+/// {@template conditional_on_profile}
+/// An annotation that conditionally activates a [Component], [Pod], or
+/// configuration class based on the currently active profiles in the
+/// [ConditionalContext].
 ///
-/// This is useful for registering pods or configuration only in certain environments
-/// such as `dev`, `test`, or `prod`.
+/// The [ConditionalOnProfile] annotation allows JetLeaf to selectively
+/// include or exclude components depending on environment, runtime,
+/// or deployment profiles. This is useful for differentiating
+/// configuration between development, staging, production, or other
+/// environment-specific contexts.
+///
+/// ### Purpose
+///
+/// In JetLeaf applications, different pods or components may only be
+/// relevant under certain profiles. [ConditionalOnProfile] provides a
+/// declarative way to ensure:
+///
+/// - Components are activated only for the intended environment(s).
+/// - Profile-specific pods, services, or configurations do not interfere
+///   with other environments.
+/// - Conditional wiring and pod initialization are evaluated at runtime
+///   in the current [ConditionalContext].
+///
+/// ### Behavior
+///
+/// - [value] is a list of profile names (strings) that determine when the
+///   annotated component should be active.
+/// - The component is registered only if the currently active profile(s)
+///   in the [ConditionalContext] match any of the profiles specified in [value].
+/// - Multiple profiles can be specified to allow activation under
+///   multiple contexts.
 ///
 /// ### Example
+///
 /// ```dart
 /// @ConditionalOnProfile(['dev', 'local'])
 /// class DevConfig {}
+///
+/// @ConditionalOnProfile(['prod'])
+/// class ProductionConfig {}
 /// ```
 ///
-/// If none of the specified profiles are active, the pod or class will be skipped.
-/// 
-/// Profile activation is typically controlled via `Environment.activeProfiles`.
+/// In this example, `DevConfig` will only be active if the pod context
+/// has a profile of `'dev'` or `'local'`, while `ProductionConfig` is
+/// active only in `'prod'`.
+///
+/// ### Related Components
+///
+/// - [ConditionalContext]: Evaluates the currently active profiles and determines
+///   conditional registration.
+/// - [Conditional]: The base conditional annotation that
+///   [ConditionalOnProfile] extends to evaluate contextual activation.
 /// {@endtemplate}
-@Conditional([ClassType<OnProfileCondition>()])
+@Conditional([OnProfileCondition()])
 @Target({TargetKind.classType, TargetKind.method})
-class ConditionalOnProfile extends ReflectableAnnotation with EqualsAndHashCode {
-  /// The set of profiles for which the annotated component should be registered.
-  /// 
-  /// ### Example:
-  /// ```dart
-  /// @ConditionalOnProfile(['dev', 'local'])
-  /// class DevConfig {}
-  /// ```
+class ConditionalOnProfile extends WhenConditional {
+  /// Profiles for which the annotated component should be registered.
+  ///
+  /// The annotated component is only activated if at least one of the
+  /// specified profiles in [value] matches the currently active profiles
+  /// in the [ConditionalContext].
   final List<String> value;
 
   /// {@macro conditionalOnProfile}
@@ -547,33 +748,68 @@ class ConditionalOnProfile extends ReflectableAnnotation with EqualsAndHashCode 
 // -------------------------------------------------------------------------------------------------------
 
 /// {@template conditional_on_dart}
-/// The `ConditionalOnDart` annotation in **Jetleaf** allows developers to 
-/// conditionally process a class or method based on the Dart SDK version.
+/// An annotation that conditionally activates a [Component], [Pod], or
+/// configuration class based on the current Dart SDK version.
 ///
-/// This annotation evaluates the Dart runtime version using the 
-/// [OnDartCondition] condition class. Developers can specify a specific 
-/// version or a range of versions that must match for the annotated element 
-/// to be processed.
+/// The [ConditionalOnDart] annotation allows JetLeaf to include or exclude
+/// annotated elements depending on the Dart version present at runtime or
+/// compile-time. This is particularly useful for maintaining compatibility
+/// across multiple SDK versions, leveraging version-specific features, or
+/// avoiding breaking changes.
 ///
-/// ### Usage Example:
+/// ### Purpose
+///
+/// In JetLeaf applications, certain components or pods may only work with
+/// specific Dart versions. [ConditionalOnDart] provides a declarative
+/// mechanism to:
+///
+/// - Ensure compatibility with a target Dart SDK version or range.
+/// - Conditionally register version-specific components.
+/// - Prevent runtime errors or unsupported operations due to SDK mismatches.
+///
+/// ### Behavior
+///
+/// - [version] specifies the required Dart SDK version for the annotated
+///   element. It can be a single version (e.g., `'3.1.0'`) or interpreted
+///   by the [range] to match a broader version range.
+/// - [range] is an optional [VersionRange] that defines minimum, maximum,
+///   or compatible version intervals. Defaults to an unrestricted range.
+/// - The element is processed only if the current Dart SDK version satisfies
+///   the specified constraints.
+///
+/// ### Example
+///
 /// ```dart
-/// @ConditionalOnDart('3.1.0')
-/// class ModernFeaturePod {
-///   // This pod will only be loaded if the Dart SDK version matches 3.1.0
-/// }
+/// // Activate only for Dart SDK >=3.1.0
+/// @ConditionalOnDart('3.1.0', VersionRange(min: '3.1.0'))
+/// class ModernFeatureConfig {}
+///
+/// // Activate for a specific version
+/// @ConditionalOnDart('3.0.5')
+/// class LegacyFeatureConfig {}
 /// ```
+///
+/// ### Related Components
+///
+/// - [ConditionalContext]: Evaluates version constraints and determines conditional
+///   registration of pods or components.
+/// - [VersionRange]: Represents version constraints for evaluation.
+/// - [Conditional]: Base conditional annotation that [ConditionalOnDart]
+///   extends for declarative activation.
 /// {@endtemplate}
-@Conditional([ClassType<OnDartCondition>()])
+@Conditional([OnDartCondition()])
 @Target({TargetKind.classType, TargetKind.method})
-class ConditionalOnDart extends ReflectableAnnotation with EqualsAndHashCode {
+class ConditionalOnDart extends WhenConditional {
   /// The Dart SDK version required for the annotated element to be processed.
   ///
-  /// Can be a single version (e.g., '3.1.0') or interpreted by the condition 
-  /// class to match a range.
+  /// Can be a single version string (e.g., `'3.1.0'`) or interpreted by
+  /// the [range] for broader version matching.
   final String version;
 
-  /// Optional version [Range] used internally by Jetleaf to evaluate 
-  /// version constraints.
+  /// Optional [VersionRange] used by JetLeaf to evaluate version constraints.
+  ///
+  /// Provides minimum, maximum, or compatible version intervals. Defaults
+  /// to an unrestricted range if not specified.
   final VersionRange range;
 
   /// {@macro conditional_on_dart}
@@ -594,26 +830,58 @@ class ConditionalOnDart extends ReflectableAnnotation with EqualsAndHashCode {
 // -------------------------------------------------------------------------------------------------------
 
 /// {@template conditional_on_expression}
-/// The `ConditionalOnExpression` annotation in **Jetleaf** allows developers 
-/// to conditionally process a class or method based on a runtime expression.
+/// An annotation that conditionally activates a [Component], [Pod], or
+/// configuration class based on the evaluation of a custom expression.
 ///
-/// This annotation uses [OnExpressionCondition] to evaluate the expression 
-/// provided as a string. If the expression evaluates to `true`, the annotated 
-/// element is processed.
+/// The [ConditionalOnExpression] annotation allows JetLeaf to determine
+/// at runtime whether the annotated element should be processed by
+/// evaluating the provided [expression]. This enables dynamic, context-aware
+/// conditional activation beyond static type or property checks.
 ///
-/// ### Usage Example:
+/// ### Purpose
+///
+/// In JetLeaf applications, some components require complex conditional
+/// logic that cannot be expressed with simple presence checks, properties,
+/// or profiles. [ConditionalOnExpression] provides a flexible mechanism to:
+///
+/// - Enable or disable components based on arbitrary runtime expressions.
+/// - Support conditional wiring that depends on multiple factors.
+/// - Allow developers to define custom activation rules using a single expression.
+///
+/// ### Behavior
+///
+/// - [expression] is evaluated during pod resolution to determine whether
+///   the annotated element should be included.
+/// - The expression can reference context values, environment variables,
+///   or any data accessible through JetLeaf’s [ConditionalContext].
+/// - If the expression evaluates to `true`, the annotated element is
+///   processed; otherwise, it is skipped.
+/// - This annotation is evaluated at runtime and allows maximum flexibility
+///   for conditional activation.
+///
+/// ### Example
+///
 /// ```dart
-/// @ConditionalOnExpression('env["ENABLE_FEATURE"] == "true"')
-/// class FeaturePod {
-///   // This pod will only be loaded if the expression evaluates to true
-/// }
+/// // Activate if a custom condition evaluates to true
+/// @ConditionalOnExpression('env["FEATURE_FLAG"] == true')
+/// class ExperimentalFeatureConfig {}
 /// ```
+///
+/// ### Related Components
+///
+/// - [ConditionalContext]: Provides runtime values used in expression evaluation.
+/// - [Conditional]: Base conditional annotation that [ConditionalOnExpression]
+///   extends for declarative activation.
 /// {@endtemplate}
-@Conditional([ClassType<OnExpressionCondition>()])
+@Conditional([OnExpressionCondition()])
 @Target({TargetKind.classType, TargetKind.method})
-class ConditionalOnExpression extends ReflectableAnnotation with EqualsAndHashCode {
-  /// The expression to evaluate for determining if the annotated element 
+class ConditionalOnExpression extends WhenConditional {
+  /// The expression to evaluate to determine if the annotated element
   /// should be processed.
+  ///
+  /// Can reference runtime context, environment variables, or other
+  /// evaluatable data within the current [ConditionalContext]. The annotated
+  /// element is only activated if the expression evaluates to `true`.
   final Object expression;
 
   /// {@macro conditional_on_expression}
@@ -634,25 +902,66 @@ class ConditionalOnExpression extends ReflectableAnnotation with EqualsAndHashCo
 // -------------------------------------------------------------------------------------------------------
 
 /// {@template conditional_on_asset}
-/// The `ConditionalOnAsset` annotation in **Jetleaf** allows developers to 
-/// conditionally process a class or method based on the presence of an asset.
+/// An annotation that conditionally activates a [Component], [Pod], or
+/// configuration class based on the presence of a specific asset in the
+/// application's resources.
 ///
-/// This annotation uses [OnAssetCondition] to check whether a specified 
-/// asset is available in the application's resources. If the asset exists, 
-/// the annotated element is processed.
+/// The [ConditionalOnAsset] annotation leverages [OnAssetCondition] to
+/// evaluate whether the provided asset path exists. If the asset is present,
+/// the annotated element is processed and registered within the JetLeaf
+/// [ConditionalContext].
 ///
-/// ### Usage Example:
+/// ### Purpose
+///
+/// In JetLeaf applications, certain components or pods may depend on
+/// external resources such as configuration files, templates, or
+/// static assets. [ConditionalOnAsset] allows developers to:
+///
+/// - Load pods only when required assets are available.
+/// - Avoid runtime errors caused by missing resources.
+/// - Implement conditional configuration and modular resource-based
+///   activation.
+///
+/// ### Behavior
+///
+/// - [asset] is the relative or absolute path to the asset to check for
+///   presence.
+/// - The annotated element is processed only if the asset exists in the
+///   application's resources as evaluated by [OnAssetCondition].
+/// - Evaluation occurs at pod initialization time, ensuring early
+///   conditional activation without manual checks.
+///
+/// ### Example
+///
 /// ```dart
+/// // Loads AppConfigPod only if the configuration file exists
 /// @ConditionalOnAsset('config/app_config.json')
 /// class AppConfigPod {
-///   // This pod will only be loaded if 'config/app_config.json' exists
+///   // Initialization code that depends on 'config/app_config.json'
 /// }
+///
+/// // Conditional pod based on multiple assets (if wrapped in a custom condition)
+/// @ConditionalOnAsset('assets/logo.png')
+/// class LogoPod {}
 /// ```
+///
+/// ### Related Components
+///
+/// - [ConditionalContext]: Provides the environment in which assets are evaluated
+///   and pods are initialized.
+/// - [OnAssetCondition]: Evaluates the presence of assets for conditional
+///   activation.
+/// - [Conditional]: Base conditional annotation that [ConditionalOnAsset]
+///   extends for declarative activation logic.
 /// {@endtemplate}
-@Conditional([ClassType<OnAssetCondition>()])
+@Conditional([OnAssetCondition()])
 @Target({TargetKind.classType, TargetKind.method})
-class ConditionalOnAsset extends ReflectableAnnotation with EqualsAndHashCode {
+class ConditionalOnAsset extends WhenConditional {
   /// The asset path that must exist for the annotated element to be processed.
+  ///
+  /// This path can be relative to the project root or the assets directory
+  /// and is evaluated at pod initialization time. The element is activated
+  /// only if the asset exists.
   final String asset;
 
   /// {@macro conditional_on_asset}

@@ -77,7 +77,7 @@ application context.</p>
 <h3 id="usage">Usage</h3>
 <p>Developers apply this annotation at the configuration class level:</p>
 <pre class="language-dart"><code class="language-dart">@ComponentScan(
-  basePackages: ['com.example.myapp.services', 'com.example.myapp.repositories'],
+  basePackages: ['package:example/test.dart.Services', 'package:example/test.dart.Repository'],
   includeFilters: [
     ComponentScanFilter(
       type: FilterType.ANNOTATION,

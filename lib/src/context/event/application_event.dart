@@ -415,6 +415,44 @@ class ContextStoppedEvent extends ApplicationContextEvent {
   String getPackageName() => PackageNames.CORE;
 }
 
+// =================================== COMPLETED INITIALIZATION EVENT ====================================
+
+/// {@template completed_initialization_event}
+/// Event published when the [ApplicationContext] has completed its initialization phase.
+///
+/// This event indicates that the context has finished setting up all necessary
+/// configurations, pod registrations, and is now fully operational.
+///
+/// It is typically fired after the context has been refreshed and all singleton
+/// pods have been instantiated.
+///
+/// Listeners may use this event to trigger actions that should only occur
+/// once the application is fully initialized, such as starting background tasks,
+/// initializing caches, or logging startup metrics.
+///
+/// ---
+//// ### Example:
+/// ```dart
+/// class InitializationLogger implements ApplicationListener<CompletedInitializationEvent> {
+///   @override
+///   void onApplicationEvent(CompletedInitializationEvent event) {
+///     print("Application context initialization completed: ${event.getSource()}");
+///   }
+/// }
+/// ```
+/// 
+/// {@endtemplate}
+class CompletedInitializationEvent extends ApplicationContextEvent {
+  /// {@macro completed_initialization_event}
+  CompletedInitializationEvent(super.source);
+
+  /// {@macro completed_initialization_event}
+  CompletedInitializationEvent.withClock(ApplicationContext source, DateTime Function() clock) : super.withClock(source, clock);
+
+  @override
+  String getPackageName() => PackageNames.CORE;
+}
+
 // ======================================== APPLICATION EVENT MULTICASTER =====================================
 
 /// {@template application_event_multicaster}

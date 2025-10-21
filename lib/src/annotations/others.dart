@@ -737,7 +737,7 @@ class PostConstruct extends ReflectableAnnotation {
 /// ### Example:
 /// ```dart
 /// @Component()
-/// @DependsOn(["emailNotifier", "databaseService"])
+/// @DependsOn("emailNotifier", "databaseService"])
 /// class ApplicationService {
 ///   // This service will be initialized after DatabaseService and CacheService
 /// }
@@ -745,29 +745,29 @@ class PostConstruct extends ReflectableAnnotation {
 ///
 /// ### Method-level Example:
 /// ```dart
-/// class Config {
+/// class ConfigCombined {
 ///   @Pod()
-///   @DependsOn(["connectionPool"])
+///   @DependsOn("connectionPool", ClassType<ConnectionPool>()])
 ///   DatabaseClient databaseClient() => DatabaseClient();
 /// }
 /// ```
 /// {@endtemplate}
 @Target({TargetKind.classType, TargetKind.method})
 class DependsOn extends ReflectableAnnotation with EqualsAndHashCode {
-  /// The list of [String] pods that must be created first.
-  final List<String> value;
+  /// The list of [Object] pods/[ClassType] that must be created first.
+  final List<Object> names;
 
   /// {@macro dependson}
-  const DependsOn(this.value);
+  const DependsOn(this.names);
 
   @override
-  String toString() => 'DependsOn(value: $value)';
+  String toString() => 'DependsOn(value: $names)';
 
   @override
   Type get annotationType => DependsOn;
 
   @override
-  List<Object?> equalizedProperties() => [value];
+  List<Object?> equalizedProperties() => [names];
 }
 
 /// {@template role}

@@ -80,7 +80,7 @@ before initialization is finalized.</p>
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
 Future&lt;void&gt; postProcessPodFactory() async {
-  addPodAwareProcessor(DefaultAwareProcessor(this));
+  addPodProcessor(DefaultAwareProcessor(this));
 
   return Future.value();
 }</code></pre>

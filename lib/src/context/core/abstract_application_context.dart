@@ -9,7 +9,7 @@
 //
 // For licensing terms, see the LICENSE file in the root of this project.
 // ---------------------------------------------------------------------------
-// 
+//
 // 🔧 Powered by Hapnium — the Dart backend engine 🍃
 
 import 'dart:async';
@@ -21,16 +21,20 @@ import 'package:jetleaf_logging/logging.dart';
 import 'package:jetleaf_pod/pod.dart';
 import 'package:meta/meta.dart';
 
-import '../../annotations/lifecycle.dart';
+import '../../aware.dart';
 import '../../message/delegating_message_source.dart';
 import '../../message/message_source.dart';
+import '../application_module.dart';
 import '../helpers.dart';
 import '../lifecycle/_lifecycle_processor.dart';
 import '../application_context.dart';
 import '../event/application_event.dart';
 import '../event/event_listener.dart';
 import '../event/simple_application_event_bus.dart';
+import '../lifecycle/application_annotated_lifecycle_processor.dart';
 import '../lifecycle/lifecycle_processor.dart';
+import '../processors/default_aware_processor.dart';
+import 'pod_post_processor_manager.dart';
 
 /// {@template abstract_application_context}
 /// The base implementation of a configurable **Jetleaf Application Context**.
@@ -88,13 +92,13 @@ import '../lifecycle/lifecycle_processor.dart';
 ///
 /// void main() async {
 ///   final context = MyCustomApplicationContext();
-///   
+///
 ///   // Standard lifecycle sequence
 ///   await context.refresh(); // Prepares, initializes, and publishes refresh event
 ///   await context.start();   // Marks context as running and publishes start event
-///   
+///
 ///   // Application logic here...
-///   
+///
 ///   await context.stop();    // Stops the context and publishes stop event
 ///   await context.close();   // Closes the context and releases resources
 /// }
@@ -121,7 +125,7 @@ import '../lifecycle/lifecycle_processor.dart';
 /// - [GenericApplicationContext] for a ready-to-use implementation
 /// - [AnnotationConfigApplicationContext] for annotation-based configuration
 /// {@endtemplate}
-abstract class AbstractApplicationContext extends ConfigurableApplicationContext {
+abstract class AbstractApplicationContext implements ConfigurableApplicationContext {
   /// {@template abstract_application_context.jetleaf_application_name_property}
   /// The property key used to override the Jetleaf application name.
   ///
@@ -155,7 +159,7 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// The property key used as fallback for application name configuration.
   ///
   /// This property serves as a fallback if `JETLEAF_APPLICATION_NAME`
-  /// is not set in the environment. It follows standard Spring-inspired
+  /// is not set in the environment. It follows standard Jetleaf-inspired
   /// property naming conventions.
   ///
   /// ### Usage:
@@ -166,6 +170,37 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// ```
   /// {@endtemplate}
   static final String APPLICATION_NAME = "application.name";
+
+  /// {@template abstract_application_context.application_timezone_property}
+  /// The property key used to configure the application's default timezone.
+  ///
+  /// This property defines the timezone context for the entire application,
+  /// influencing components that rely on time-based operations, such as
+  /// caching, scheduling, and logging.
+  ///
+  /// ### Usage:
+  /// ```yaml
+  /// application:
+  ///   timezone: UTC
+  /// ```
+  ///
+  /// If not explicitly set, the system timezone or a predefined framework
+  /// default may be used.
+  /// {@endtemplate}
+  static final String APPLICATION_TIMEZONE = "application.timezone";
+
+  /// {@template abstract_application_context.lifecycle_processor_pod_name}
+  /// The reserved pod name for the [ConversionService] within the Jetleaf context.
+  ///
+  /// This pod is responsible for managing the conversion of values to and from
+  /// different types, such as strings to numbers or objects to JSON.
+  ///
+  /// ### Responsibilities:
+  /// - Converting values to and from different types
+  /// - Managing the conversion of values to and from different types
+  ///
+  /// {@endtemplate}
+  static final String CONVERSION_SERVICE_POD_NAME = "conversionService";
 
   /// {@template abstract_application_context.lifecycle_processor_pod_name}
   /// The reserved pod name for the [LifecycleProcessor] within the Jetleaf context.
@@ -198,9 +233,9 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// ```dart
   /// class MyService {
   ///   final ApplicationEventBus eventBus;
-  ///   
+  ///
   ///   MyService(this.eventBus);
-  ///   
+  ///
   ///   void performAction() {
   ///     eventBus.publish(MyCustomEvent(this, actionData));
   ///   }
@@ -282,9 +317,9 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// ```dart
   /// class MyService {
   ///   final ApplicationArguments args;
-  ///   
+  ///
   ///   MyService(this.args);
-  ///   
+  ///
   ///   void checkArgs() {
   ///     if (args.containsOption('verbose')) {
   ///       print('Verbose mode enabled');
@@ -294,28 +329,6 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// ```
   /// {@endtemplate}
   static final String JETLEAF_ARGUMENT_POD_NAME = "jetleaf.internal.jetleafApplicationArgument";
-
-  /// {@template abstract_application_context.lock_field}
-  /// The lock object used for thread-safe operations.
-  ///
-  /// This lock ensures that critical sections of the context lifecycle
-  /// (refresh, start, stop, close) are executed atomically, preventing
-  /// race conditions in multi-threaded environments.
-  ///
-  /// ### Usage:
-  /// ```dart
-  /// void someThreadSafeMethod() {
-  ///   synchronized(_lock, () {
-  ///     // Critical section
-  ///     if (!_isActive) {
-  ///       initializeComponents();
-  ///       _isActive = true;
-  ///     }
-  ///   });
-  /// }
-  /// ```
-  /// {@endtemplate}
-  final Object _lock = new Object();
 
   /// {@template abstract_application_context.logger_field}
   /// The logger associated with this application context.
@@ -366,6 +379,25 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// [Ordered] interface or `@Order` annotation.
   /// {@endtemplate}
   final List<PodFactoryPostProcessor> _podFactoryPostProcessors = [];
+
+  /// {@template abstract_application_context.application_event_listeners_field}
+  /// The list of [ApplicationEventListener]s to be notified of application events.
+  ///
+  /// These listeners are invoked during the refresh process after the
+  /// pod factory is created but before any pods are instantiated. They
+  /// can modify pod definitions, change configuration, or apply custom
+  /// transformations to the factory.
+  ///
+  /// ### Common Processors:
+  /// - `PropertySourcesPlaceholderProcessor`: Resolves `${...}` placeholders
+  /// - `ConfigurationClassPostProcessor`: Processes `@Configuration` classes
+  /// - Custom processors for application-specific factory customization
+  ///
+  /// ### Execution Order:
+  /// Processors are executed in priority order as defined by the
+  /// [Ordered] interface or `@Order` annotation.
+  /// {@endtemplate}
+  final List<ApplicationEventListener> _applicationEventListeners = [];
 
   /// {@template abstract_application_context.is_active_field}
   /// Whether the application context is active.
@@ -439,7 +471,7 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// Duration getUptime() {
   ///   return DateTime.now().difference(_startupDate!);
   /// }
-  /// 
+  ///
   /// String getFormattedStartupTime() {
   ///   return DateFormat('yyyy-MM-dd HH:mm:ss').format(_startupDate!);
   /// }
@@ -549,46 +581,21 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// {@endtemplate}
   Class<Object>? _mainApplicationClass;
 
-  /// {@template abstract_application_context.pod_factory_field}
-  /// The pod factory associated with this application context.
+  /// {@template abstract_application_context.lifecycle_processor_field}
+  /// The lifecycle processor associated with this application context.
   ///
-  /// This is the core dependency injection container that manages
-  /// pod definitions, instantiation, and dependency resolution.
-  ///
-  /// ### Responsibilities:
-  /// - Pod definition registration and storage
-  /// - Dependency injection and resolution
-  /// - Singleton management and caching
-  /// - Lifecycle coordination with context
-  /// - Circular dependency detection and handling
-  ///
-  /// ### Access Pattern:
-  /// Subclasses should access the pod factory through `getPodFactory()`
-  /// rather than directly accessing this field to ensure proper
-  /// lifecycle state checking.
-  /// {@endtemplate}
-  @protected
-  ConfigurableListablePodFactory? podFactory;
-
-  /// {@template abstract_application_context.lifecycle_methods_field}
-  /// The lifecycle methods associated with this application context.
-  ///
-  /// These methods are annotated with lifecycle annotations like
-  /// `@OnApplicationStopping` and `@OnApplicationStopped` and are
-  /// invoked during the corresponding lifecycle phases.
+  /// This processor is responsible for managing the complete lifecycle of all pods within the context,
+  /// ensuring proper initialization order and cleanup.
   ///
   /// ### Supported Annotations:
   /// - `@OnApplicationStopping`: Called when context is stopping
   /// - `@OnApplicationStopped`: Called when context is fully stopped
-  /// - `@OnApplicationStarting`: Called when context is starting
-  /// - `@OnApplicationStarted`: Called when context is fully started
   ///
   /// ### Method Requirements:
-  /// - Must be `static` methods
   /// - Can accept `ApplicationContext` parameter
   /// - Should not throw exceptions (handled gracefully)
   /// {@endtemplate}
-  List<Method> _lifecycleMethods = [];
+  late ApplicationAnnotatedLifecycleProcessor _annotatedLifecycleProcessor;
 
   /// {@template abstract_application_context.conversion_service_field}
   /// The conversion service to be used in this context.
@@ -627,118 +634,95 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// Automatically discovers methods annotated with:
   /// - `@OnApplicationStopping`
   /// - `@OnApplicationStopped`
-  /// 
+  ///
   /// These methods are invoked during the corresponding lifecycle phases.
   ///
   /// ### Important:
   /// Subclasses should not override this constructor. Instead, override
   /// the template methods for custom initialization logic.
   /// {@endtemplate}
-  /// 
+  ///
   /// {@macro abstract_application_context}
   AbstractApplicationContext() {
-    final methods = Runtime.getAllMethods().where((m) => m.getAnnotations().any((a) {
-      return a.getType() == OnApplicationStopping || a.getType() == OnApplicationStopped;
-    }));
-
-    _lifecycleMethods.addAll(methods.map((m) => Method.declared(m, ProtectionDomain.system())));
     _conversionService = DefaultConversionService();
+    _annotatedLifecycleProcessor = ApplicationAnnotatedLifecycleProcessor(this);
   }
 
   // ---------------------------------------------------------------------------------------------------------
   // OVERRIDDEN METHODS
   // ---------------------------------------------------------------------------------------------------------
-  
+
   @override
   bool isAutoStartup() => true; // Auto-start by default
-  
+
   @override
-  bool isRunning() => _isRunning;
+  bool isRunning() => _isRunning || _isActive;
 
   @override
   bool isActive() => _isActive;
 
   @override
   bool isClosed() => _isClosed;
-  
-  @override
-  FutureOr<void> start() {
-    return synchronized(_lock, () async {
-      if (!_isRunning) {
-        _isRunning = true;
-        await publishEvent(ContextStartedEvent.withClock(this, () => getStartTime()));
 
-        await doStart();
-      }
-    });
-  }
-  
-  @override
-  FutureOr<void> stop([Runnable? callback]) {
-    return synchronized(_lock, () async {
-      if (_isRunning) {
-        final stoppingMethods = List.from(_lifecycleMethods.where((m) => m.hasDirectAnnotation<OnApplicationStopping>()));
-        
-        for(final method in stoppingMethods) {
-          final cls = method.getDeclaringClass();
-          final instance = cls.isAbstract() ? null : cls.getNoArgConstructor()?.newInstance();
-
-          final arguments = <String, Object?>{};
-          final parameters = method.getParameters();
-          final contextArgName = parameters.find((p) => _isAssignableFromApplicationContext(p.getClass()))?.getName();
-          
-          if(contextArgName != null) {
-            arguments[contextArgName] = this;
-          }
-          
-          method.invoke(instance, arguments);
-        }
-        
-        _isRunning = false;
-        await publishEvent(ContextStoppedEvent.withClock(this, () => DateTime.now()));
-
-        await doStop();
-
-        final stoppedMethods = _lifecycleMethods.where((m) => m.hasDirectAnnotation<OnApplicationStopped>());
-        
-        for(final method in stoppedMethods) {
-          final cls = method.getDeclaringClass();
-          final instance = cls.isAbstract() ? null : cls.getNoArgConstructor()?.newInstance();
-
-          final arguments = <String, Object?>{};
-          final parameters = method.getParameters();
-          final contextArgName = parameters.find((p) => _isAssignableFromApplicationContext(p.getClass()))?.getName();
-          
-          if(contextArgName != null) {
-            arguments[contextArgName] = this;
-          }
-          
-          method.invoke(instance, arguments);
-        }
-      }
-      
-      callback?.run();
-    });
-  }
-  
   @override
   String getApplicationName() {
-    final name = getEnvironment().getProperty(JETLEAF_APPLICATION_NAME) ?? getEnvironment().getProperty(APPLICATION_NAME);
-    return name ?? "JetLeafApplication";
+    final jan = getEnvironment().getProperty(JETLEAF_APPLICATION_NAME);
+    final an = getEnvironment().getProperty(APPLICATION_NAME);
+    final app = _mainApplicationClass?.getName();
+
+    return jan ?? an ?? app ?? "JetLeafApplication";
   }
-  
+
   @override
   DateTime getStartTime() => _startupDate ?? DateTime.now();
 
   @override
   Future<void> publishEvent(ApplicationEvent event) async {
     await _applicationEventBus?.onEvent(event);
+
+    final parent = getParent();
+    if (parent != null) {
+      return await parent.publishEvent(event);
+    }
+
+    return Future.value();
+  }
+
+  @override
+  LifecycleProcessor getLifecycleProcessor() {
+    if (_lifecycleProcessor == null) {
+      _lifecycleProcessor = DefaultLifecycleProcessor(getPodFactory());
+    }
+
+    return _lifecycleProcessor!;
   }
 
   @override
   void addPodFactoryPostProcessor(PodFactoryPostProcessor processor) {
     _podFactoryPostProcessors.add(processor);
+
+    try {
+      Comparator<Object>? comparator;
+      if (getPodFactory() is DefaultListablePodFactory) {
+        final comp = (getPodFactory() as DefaultListablePodFactory).getDependencyComparator();
+        if (comp != null) {
+          comparator = comp;
+        }
+      }
+
+      comparator ??= OrderComparator.INSTANCE;
+      _podFactoryPostProcessors.sort(comparator.compare);
+    } catch (_) {}
   }
+
+  /// {@macro abstract_application_context.pod_factory_post_processors_field}
+  /// This method returns the list of pod factory post processors registered with this application context.
+  ///
+  /// ### Usage:
+  /// ```dart
+  /// final postProcessors = context.getPodFactoryPostProcessors();
+  /// ```
+  List<PodFactoryPostProcessor> getPodFactoryPostProcessors() => _podFactoryPostProcessors;
 
   @override
   Environment getEnvironment() {
@@ -770,104 +754,16 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
 
   @override
   Future<void> addApplicationListener(ApplicationEventListener listener) async {
-    await _applicationEventBus?.addApplicationListener(listener: listener);
-  }
+    if (_applicationEventBus == null) {
+      await _applicationEventBus?.addApplicationListener(listener: listener);
+    }
 
-  @override
-  Future<void> close() async {
-    return synchronized(_lock, () async {
-      if (_isClosed) {
-        return;
-      }
-
-      _isClosed = true;
-      
-      try {
-        // Stop lifecycle processors
-        await _lifecycleProcessor?.onClose();
-
-        // Publish close event
-        await publishEvent(ContextClosedEvent.withClock(this, () => DateTime.now()));
-
-        // Destroy singletons
-        destroySingletons();
-
-        // Perform actual cleanup
-        await doClose();
-
-        _isActive = false;
-        _isRunning = false;
-      } catch (e) {
-        if(logger.getIsErrorEnabled()) {
-          logger.error("Unable to close context due to some issues.", error: e);
-        }
-      }
-    });
-  }
-
-  @override
-  Future<void> refresh() async {
-    return synchronized(_lock, () async {
-      // Prepare this context for refreshing.
-      await prepareRefresh();
-
-      // Tell the subclass to refresh the internal bean factory.
-      ConfigurableListablePodFactory podFactory = await doGetFreshPodFactory();
-      this.podFactory = podFactory;
-
-      // Prepare the pod factory for use in this context.
-      await preparePodFactory();
-
-      try {
-        // Allows post-processing of the pod factory in context subclasses.
-        await postProcessPodFactory();
-
-        // Invoke factory processors registered as pods in the context.
-        await invokePodFactoryPostProcessors();
-
-        // Register pod processors that intercept pod creation.
-        await registerPodAwareProcessors();
-
-        // Initialize message source for this context.
-        await initMessageSource();
-
-        // Initialize event multicaster for this context.
-        await initApplicationEventBus();
-
-        // Initialize other special pods in specific context subclasses.
-        await completeRefresh();
-
-        // Check for listener pods and register them.
-        await registerListeners();
-
-        // Instantiate all remaining (non-lazy-init) singletons.
-        await finishPodFactoryInitialization();
-
-        // Last step: publish corresponding event.
-        await finishRefresh();
-      } on PodException catch (ex) {
-        if (logger.getIsWarnEnabled()) {
-          logger.warn("Exception encountered during context initialization - cancelling refresh attempt: $ex");
-        }
-        
-        // Destroy already created singletons to avoid dangling resources.
-        await destroyPods();
-
-        // Reset 'active' flag.
-        await cancelRefresh(ex);
-
-        // Propagate exception to caller.
-        throw ex;
-      } finally {
-        // Reset common introspection caches ...
-        await resetCommonCaches();
-      }
-    });
+    _applicationEventListeners.add(listener);
   }
 
   @override
   String getMessage(String code, {List<Object>? args, Locale? locale, String? defaultMessage}) {
-    if(_messageSource == null) {
+    if (_messageSource == null) {
       throw InvalidArgumentException("Message source has not been initialized yet");
     }
 
@@ -881,7 +777,7 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
 
   @override
   MessageSource getMessageSource() {
-    if(_messageSource == null) {
+    if (_messageSource == null) {
       throw IllegalStateException("Cannot access message source since it has not been initialized yet.");
     }
 
@@ -895,7 +791,7 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
 
   @override
   ApplicationEventBus getApplicationEventBus() {
-    if(_applicationEventBus == null) {
+    if (_applicationEventBus == null) {
       throw IllegalStateException("Cannot access application event bus since it has not been initialized yet.");
     }
 
@@ -904,7 +800,7 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
 
   @override
   ApplicationStartup getApplicationStartup() {
-    if(_applicationStartup == null) {
+    if (_applicationStartup == null) {
       throw IllegalStateException("Cannot access application startup since it has not been initialized yet.");
     }
 
@@ -923,7 +819,7 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
 
   @override
   Class<Object> getMainApplicationClass() {
-    if(_mainApplicationClass == null) {
+    if (_mainApplicationClass == null) {
       throw IllegalStateException("Cannot access main application class since it has not been initialized yet.");
     }
 
@@ -939,657 +835,152 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   ConversionService getConversionService() => _conversionService;
 
   @override
-  Future<T> get<T>(Class<T> type, [List<ArgumentValue>? args]) async {
-    final f = getPodFactory();
+  String getPackageName() => PackageNames.CORE;
 
-    // Prefer local beans (without forcing eager init of parent beans)
-    if (await _hasLocalPodsOfType(type)) {
-      return await f.get(type, args);
+  /// {@template abstract_application_context_application_event_listeners_field}
+  /// The list of [ApplicationEventListener]s to be notified of application events.
+  /// {@endtemplate}
+  List<ApplicationEventListener> getApplicationEventListeners() => _applicationEventListeners;
+
+  @override
+  FutureOr<void> start() async {
+    if (!_isRunning) {
+      _isRunning = true;
+      await publishEvent(ContextStartedEvent.withClock(this, () => getStartTime()));
+      await doStart();
     }
 
-    // Fallback to parent
-    if (_parent != null) {
-      return await _parent!.get(type, args);
-    }
-
-    throw NoSuchPodDefinitionException.byTypeWithMessage(type, 'No pod of type ${type} found in context or ancestors');
+    return Future.value();
   }
 
   @override
-  Future<bool> containsPod(String podName) async {
-    final f = getPodFactory();
+  FutureOr<void> stop([Runnable? callback]) async {
+    if (_isRunning) {
+      _annotatedLifecycleProcessor.onStopping();
 
-    final localContains = await f.containsPod(podName);
-    if (localContains) {
-      return true;
+      _isRunning = false;
+      await publishEvent(ContextStoppedEvent.withClock(this, () => DateTime.now()));
+      await doStop();
+
+      _annotatedLifecycleProcessor.onStopped();
     }
 
-    if (_parent != null) {
-      return await _parent!.containsPod(podName);
-    }
-    
-    return false;
+    callback?.run();
+    return Future.value();
   }
 
   @override
-  Future<bool> isSingleton(String podName) async {
-    final f = getPodFactory();
-
-    if (await f.containsLocalPod(podName)) {
-      return await f.isSingleton(podName);
-    }
-
-    if (_parent != null) {
-      return await _parent!.isSingleton(podName);
-    }
-    
-    return false;
-  }
-
-  @override
-  Future<bool> isPrototype(String podName) async {
-    final f = getPodFactory();
-
-    if (await f.containsLocalPod(podName)) {
-      return await f.isPrototype(podName);
-    }
-
-    if (_parent != null) {
-      return await _parent!.isPrototype(podName);
-    }
-    
-    return false;
-  }
-
-  @override
-  bool getAllowCircularReferences() => getPodFactory().getAllowCircularReferences();
-  
-  @override
-  bool getAllowDefinitionOverriding() => getPodFactory().getAllowDefinitionOverriding();
-  
-  @override
-  bool getAllowRawInjectionEvenWhenWrapped() => getPodFactory().getAllowRawInjectionEvenWhenWrapped();
-  
-  @override
-  void setAllowRawInjectionEvenWhenWrapped(bool value) => getPodFactory().setAllowRawInjectionEvenWhenWrapped(value);
-
-  @override
-  Future<ObjectProvider<T>> getProvider<T>(Class<T> type, {String? podName, bool allowEagerInit = false}) async {
-    final f = getPodFactory();
-
-    if (_parent != null) {
-      return await _parent!.getProvider(type, podName: podName, allowEagerInit: allowEagerInit);
-    }
-
-    return await f.getProvider(type, podName: podName, allowEagerInit: allowEagerInit);
-  }
-
-  @override
-  Future<Class> getPodClass(String podName) async {
-    final f = getPodFactory();
-
-    if (await f.containsLocalPod(podName)) {
-      return await f.getPodClass(podName);
-    }
-
-    if (_parent != null) {
-      return await _parent!.getPodClass(podName);
-    }
-    
-    throw NoSuchPodDefinitionException.byNameWithMessage(podName, 'No pod class for pod $podName');
-  }
-
-  @override
-  Future<T> getPod<T>(String podName, [List<ArgumentValue>? args, Class<T>? type]) async {
-    final f = getPodFactory();
-
-    if (await f.containsLocalPod(podName)) {
-      return await f.getPod<T>(podName, args, type);
-    }
-
-    if (_parent != null) {
-      return await _parent!.getPod<T>(podName, args, type);
-    }
-    
-    throw NoSuchPodDefinitionException.byNameWithMessage(podName, 'No pod $podName');
-  }
-
-  @override
-  Future<Object> getObject(Class<Object> type, [List<ArgumentValue>? args]) async {
-    final f = getPodFactory();
-
-    if (await _hasLocalPodsOfType(type)) {
-      return await f.getObject(type, args);
-    }
-
-    if (_parent != null) {
-      return await _parent!.getObject(type, args);
-    }
-    
-    throw NoSuchPodDefinitionException.byTypeWithMessage(type, 'No object of type $type');
-  }
-
-  @override
-  Future<Object> getNamedObject(String podName, [List<ArgumentValue>? args]) async {
-    final f = getPodFactory();
-
-    if (await f.containsLocalPod(podName)) {
-      return await f.getNamedObject(podName, args);
-    }
-
-    if (_parent != null) {
-      return await _parent!.getNamedObject(podName, args);
-    }
-    
-    throw NoSuchPodDefinitionException.byNameWithMessage(podName, 'No named pod $podName');
-  }
-
-  @override
-  List<String> getAliases(String podName) {
-    // aliases are metadata; always copy local collection before merging
-    final f = getPodFactory();
-
-    final local = List<String>.from(f.getAliases(podName));
-    if (_parent != null) {
-      local.addAll(_parent!.getAliases(podName));
-    }
-
-    return local;
-  }
-
-  @override
-  Future<Object?> resolveDependency(DependencyDescriptor descriptor, [Set<String>? candidates]) async {
-    final f = getPodFactory();
-
-    final result = await f.resolveDependency(descriptor, candidates);
-    if (result != null) {
-      return result;
-    }
-
-    if (_parent != null) {
-      return await _parent!.resolveDependency(descriptor, candidates);
-    }
-    
-    return null;
-  }
-
-  @override
-  void addSingletonCallback(String name, Class type, Consumer<Object> callback) {
-    // local-only mutation. registering on parent implicitly is surprising.
-    getPodFactory().addSingletonCallback(name, type, callback);
-  }
-
-  @override
-  void addPodAwareProcessor(PodAwareProcessor processor) {
-    // local-only mutation. registering on parent implicitly is surprising.
-    getPodFactory().addPodAwareProcessor(processor);
-  }
-  
-  @override
-  void clearMetadataCache() {
-    getPodFactory().clearMetadataCache();
-
-    if (_parent != null) {
-      _parent!.getPodFactory().clearMetadataCache();
-    }
-  }
-  
-  @override
-  void clearSingletonCache() {
-    getPodFactory().clearSingletonCache();
-
-    if (_parent != null) {
-      _parent!.getPodFactory().clearSingletonCache();
-    }
-  }
-  
-  @override
-  bool containsDefinition(String name) {
-    if (_parent != null && _parent!.getPodFactory().containsDefinition(name)) {
-      return true;
-    }
-
-    return getPodFactory().containsDefinition(name);
-  }
-  
-  @override
-  Future<bool> containsLocalPod(String podName) => getPodFactory().containsLocalPod(podName);
-  
-  @override
-  bool containsSingleton(String name) {
-    if (_parent != null && _parent!.getPodFactory().containsSingleton(name)) {
-      return true;
-    }
-    
-    return getPodFactory().containsSingleton(name);
-  }
-  
-  @override
-  void copyConfigurationFrom(ConfigurablePodFactory otherFactory) {
-    // local-only copy
-    getPodFactory().copyConfigurationFrom(otherFactory);
-  }
-  
-  @override
-  Future<void> destroyPod(String podName, Object podInstance) async {
-    if (_parent != null && await _parent!.getPodFactory().containsLocalPod(podName)) {
-      return await _parent!.getPodFactory().destroyPod(podName, podInstance);
-    }
-
-    return await getPodFactory().destroyPod(podName, podInstance);
-  }
-  
-  @override
-  void destroyScopedPod(String podName) async {
-    if (_parent != null && await _parent!.getPodFactory().containsLocalPod(podName)) {
-      _parent!.getPodFactory().destroyScopedPod(podName);
+  Future<void> close() async {
+    if (_isClosed) {
       return;
     }
 
-    getPodFactory().destroyScopedPod(podName);
-  }
-  
-  @override
-  void destroySingletons() {
-    // lifecycle ops stay local; do not force parent to run its lifecycle from a child
-    getPodFactory().destroySingletons();
-  }
-  
-  @override
-  Future<Set<A>> findAllAnnotationsOnPod<A>(String podName, Class<A> type) async {
-    if (_parent != null && await _parent!.getPodFactory().containsDefinition(podName)) {
-      return await _parent!.getPodFactory().findAllAnnotationsOnPod(podName, type);
-    }
+    _isClosed = true;
 
-    return await getPodFactory().findAllAnnotationsOnPod(podName, type);
-  }
-  
-  @override
-  Future<A?> findAnnotationOnPod<A>(String podName, Class<A> type) async {
-    if (_parent != null && await _parent!.getPodFactory().containsDefinition(podName)) {
-      return await _parent!.getPodFactory().findAnnotationOnPod(podName, type);
-    }
+    try {
+      // Stop lifecycle processors
+      await getLifecycleProcessor().onClose();
 
-    return await getPodFactory().findAnnotationOnPod(podName, type);
-  }
-  
-  @override
-  PodDefinition getDefinition(String name) {
-    if (_parent != null && _parent!.getPodFactory().containsDefinition(name)) {
-      return _parent!.getPodFactory().getDefinition(name);
-    }
+      // Publish close event
+      await publishEvent(ContextClosedEvent.withClock(this, () => DateTime.now()));
 
-    return getPodFactory().getDefinition(name);
-  }
-  
-  @override
-  List<String> getDefinitionNames() {
-    final local = List<String>.from(getPodFactory().getDefinitionNames());
-    if (_parent != null) {
-      local.addAll(_parent!.getPodFactory().getDefinitionNames());
-    }
+      // Destroy singletons
+      await destroyPods();
 
-    return local;
-  }
-  
-  @override
-  RootPodDefinition getMergedPodDefinition(String podName) {
-    if (_parent != null && _parent!.getPodFactory().containsDefinition(podName)) {
-      return _parent!.getPodFactory().getMergedPodDefinition(podName);
-    }
+      // Perform actual cleanup
+      await doClose();
 
-    return getPodFactory().getMergedPodDefinition(podName);
-  }
-  
-  @override
-  int getNumberOfPodDefinitions() {
-    int count = getPodFactory().getNumberOfPodDefinitions();
+      // Reset common caches
+      await resetCommonCaches();
 
-    if (_parent != null) {
-      count += _parent!.getPodFactory().getNumberOfPodDefinitions();
-    }
+      _applicationEventBus = null;
+      _messageSource = null;
+      _environment = null;
+      _parent = null;
+      _podFactoryPostProcessors.clear();
+      _applicationEventListeners.clear();
+      _lifecycleProcessor = null;
+      _applicationStartup = null;
+      _mainApplicationClass = null;
 
-    return count;
-  }
-  
-  @override
-  PodFactory? getParentFactory() => _parent?.getPodFactory();
-  
-  @override
-  int getPodAwareProcessorCount() {
-    int count = getPodFactory().getPodAwareProcessorCount();
-
-    if (_parent != null) {
-      count += _parent!.getPodFactory().getPodAwareProcessorCount();
-    }
-
-    return count;
-  }
-  
-  @override
-  List<PodAwareProcessor> getPodAwareProcessors() {
-    final list = List<PodAwareProcessor>.from(getPodFactory().getPodAwareProcessors());
-
-    if (_parent != null) {
-      list.addAll(_parent!.getPodFactory().getPodAwareProcessors());
-    }
-
-    return list;
-  }
-  
-  @override
-  PodExpressionResolver? getPodExpressionResolver() {
-    if (_parent != null) {
-      return _parent!.getPodFactory().getPodExpressionResolver();
-    }
-
-    return getPodFactory().getPodExpressionResolver();
-  }
-  
-  @override
-  Future<List<String>> getPodNames(Class type, {bool includeNonSingletons = false, bool allowEagerInit = false}) async {
-    List<String> list = List<String>.from(await getPodFactory().getPodNames(type, includeNonSingletons: includeNonSingletons, allowEagerInit: allowEagerInit));
-    
-    if (_parent != null) {
-      list.addAll(await _parent!.getPodFactory().getPodNames(type, includeNonSingletons: includeNonSingletons, allowEagerInit: allowEagerInit));
-    }
-    
-    return list;
-  }
-  
-  @override
-  Future<List<String>> getPodNamesForAnnotation<A>(Class<A> type) async {
-    List<String> list = List<String>.from(await getPodFactory().getPodNamesForAnnotation(type));
-    
-    if (_parent != null) {
-      list.addAll(await _parent!.getPodFactory().getPodNamesForAnnotation(type));
-    }
-    
-    return list;
-  }
-  
-  @override
-  Iterator<String> getPodNamesIterator() {
-    final allNames = <String>{};
-    
-    // Add pod definition names first
-    allNames.addAll(getDefinitionNames());
-    
-    // Add manually registered singleton names
-    final singletonNames = getSingletonNames();
-    for (final name in singletonNames) {
-      if (!allNames.contains(name)) {
-        allNames.add(name);
+      _isActive = false;
+      _isRunning = false;
+    } catch (e) {
+      if (logger.getIsErrorEnabled()) {
+        logger.error("Unable to close context due to some issues.", error: e);
       }
     }
-    
-    return allNames.iterator;
-  }
-  
-  @override
-  Future<Map<String, T>> getPodsOf<T>(Class<T> type, {bool includeNonSingletons = false, bool allowEagerInit = false}) async {
-    Map<String, T> map = Map<String, T>.from(await getPodFactory().getPodsOf(type, includeNonSingletons: includeNonSingletons, allowEagerInit: allowEagerInit));
-    
-    if (_parent != null) {
-      map.addAll(await _parent!.getPodFactory().getPodsOf(type, includeNonSingletons: includeNonSingletons, allowEagerInit: allowEagerInit));
-    }
-    
-    return map;
-  }
-  
-  @override
-  Future<Map<String, Object>> getPodsWithAnnotation<A>(Class<A> type) async {
-    Map<String, Object> map = Map<String, Object>.from(await getPodFactory().getPodsWithAnnotation(type));
-    
-    if (_parent != null) {
-      map.addAll(await _parent!.getPodFactory().getPodsWithAnnotation(type));
-    }
-    
-    return map;
-  }
-  
-  @override
-  PodScope? getRegisteredScope(String scopeName) {
-    if (_parent != null) {
-      return _parent!.getPodFactory().getRegisteredScope(scopeName);
-    }
-    
-    return getPodFactory().getRegisteredScope(scopeName);
-  }
-  
-  @override
-  List<String> getRegisteredScopeNames() {
-    List<String> list = List<String>.from(getPodFactory().getRegisteredScopeNames());
-    
-    if (_parent != null) {
-      list.addAll(_parent!.getPodFactory().getRegisteredScopeNames());
-    }
-    
-    return list;
-  }
-  
-  @override
-  Future<Object?> getSingleton(String name, {bool allowEarlyReference = true, ObjectFactory<Object>? factory}) async {
-    // prefer local singleton; if not found, delegate to parent (no exceptions swallowed)
-    final f = getPodFactory();
 
-    if (f.containsSingleton(name)) return await f.getSingleton(name, allowEarlyReference: allowEarlyReference, factory: factory);
-    if (_parent != null) return await _parent!.getPodFactory().getSingleton(name, allowEarlyReference: allowEarlyReference, factory: factory);
-    
-    return null;
-  }
-  
-  @override
-  int getSingletonCount() {
-    int count = getPodFactory().getSingletonCount();
-    
-    if (_parent != null) {
-      count += _parent!.getPodFactory().getSingletonCount();
-    }
-    
-    return count;
-  }
-  
-  @override
-  List<String> getSingletonNames() {
-    List<String> list = List<String>.from(getPodFactory().getSingletonNames());
-    
-    if (_parent != null) {
-      list.addAll(_parent!.getPodFactory().getSingletonNames());
-    }
-    
-    return list;
-  }
-  
-  @override
-  bool isAutowireCandidate(String podName, DependencyDescriptor descriptor) {
-    final f = getPodFactory();
-
-    if (f.isAutowireCandidate(podName, descriptor)) {
-      return true;
-    }
-    
-    if (_parent != null) {
-      return _parent!.getPodFactory().isAutowireCandidate(podName, descriptor);
-    }
-    
-    return false;
-  }
-  
-  @override
-  bool isCachePodMetadata() {
-    final f = getPodFactory();
-
-    if (_parent != null) {
-      return f.isCachePodMetadata() || _parent!.getPodFactory().isCachePodMetadata();
-    }
-    
-    return f.isCachePodMetadata();
-  }
-  
-  @override
-  bool isActuallyInCreation(String podName) {
-    final f = getPodFactory();
-
-    if (f.isActuallyInCreation(podName)) {
-      return true;
-    }
-    
-    if (_parent != null) {
-      return _parent!.getPodFactory().isActuallyInCreation(podName);
-    }
-    
-    return false;
+    return Future.value();
   }
 
   @override
-  Future<bool> containsType(Class type, [bool allowPodProviderInit = false]) async {
-    final f = getPodFactory();
+  Future<void> refresh() async {
+    // Start refresh step
+    StartupStep step = getApplicationStartup().start("context.refresh");
 
-    if (await f.containsType(type, allowPodProviderInit)) {
-      return true;
+    // Prepare this context for refreshing.
+    await prepareRefresh();
+
+    // Tell the subclass to refresh the internal pod factory.
+    final podFactory = await doGetFreshPodFactory();
+
+    // Prepare the pod factory for use in this context.
+    await preparePodFactory(podFactory);
+
+    try {
+      // Allows post-processing of the pod factory in context subclasses.
+      await postProcessPodFactory(podFactory);
+
+      // Start post process step
+      StartupStep postProcess = getApplicationStartup().start("context.pods.post-process");
+
+      // Invoke factory processors registered as pods in the context.
+      await invokePodFactoryPostProcessors(podFactory);
+
+      // Register pod processors that intercept pod creation.
+      await registerPodProcessors(podFactory);
+
+      postProcess.end();
+
+      // Initialize message source for this context.
+      await initializeMessageSource();
+
+      // Initialize event multicaster for this context.
+      await initializeApplicationEventBus();
+
+      // Initialize other special pods in specific context subclasses.
+      await doRefresh(podFactory);
+
+      // Setup the pod expression resolver for this context.
+      await findPodExpressionResolver();
+
+      // Check for listener pods and register them.
+      await registerListeners();
+
+      // Instantiate all remaining (non-lazy-init) singletons.
+      await completePodFactoryInitialization(podFactory);
+
+      // Last step: publish corresponding event.
+      await finishRefresh(podFactory);
+    } catch (ex) {
+      if (logger.getIsWarnEnabled()) {
+        logger.warn("Failed to initialize application context '${getDisplayName()}': ${ex.runtimeType}. Aborting refresh operation.");
+      }
+
+      // Destroy already created singletons to avoid dangling resources.
+      await destroyPods();
+
+      // Reset 'active' flag.
+      await cancelRefresh(ex);
+
+      // Propagate exception to caller.
+      rethrow;
+    } finally {
+      step.end();
     }
-    
-    if (_parent != null) {
-      return _parent!.getPodFactory().containsType(type, allowPodProviderInit);
-    }
-    
-    return false;
-  }
 
-  @override
-  Future<bool> isTypeMatch(String name, Class typeToMatch, [bool allowPodProviderInit = false]) async {
-    final f = getPodFactory();
-
-    if (await f.isTypeMatch(name, typeToMatch, allowPodProviderInit)) {
-      return true;
-    }
-    
-    if (_parent != null) {
-      return _parent!.getPodFactory().isTypeMatch(name, typeToMatch, allowPodProviderInit);
-    }
-    
-    return false;
-  }
-  
-  @override
-  Future<bool> isNameInUse(String name) async {
-    final f = getPodFactory();
-
-    if (await f.isNameInUse(name)) {
-      return true;
-    }
-    
-    if (_parent != null) {
-      return await _parent!.getPodFactory().isNameInUse(name);
-    }
-    
-    return false;
-  }
-  
-  @override
-  Future<bool> isPodProvider(String podName, [RootPodDefinition? rpd]) async {
-    final f = getPodFactory();
-
-    if (await f.isPodProvider(podName, rpd)) {
-      return true;
-    }
-    
-    if (_parent != null) {
-      return await _parent!.getPodFactory().isPodProvider(podName, rpd);
-    }
-    
-    return false;
-  }
-  
-  @override
-  Future<void> preInstantiateSingletons() async {
-    await getPodFactory().preInstantiateSingletons();
-  }
-  
-  @override
-  void registerAlias(String name, String alias) {
-    // registration is local-only
-    getPodFactory().registerAlias(name, alias);
-  }
-  
-  @override
-  Future<void> registerDefinition(String name, PodDefinition pod) async {
-    await getPodFactory().registerDefinition(name, pod);
-  }
-  
-  @override
-  void registerIgnoredDependency(Class type) {
-    getPodFactory().registerIgnoredDependency(type);
-  }
-  
-  @override
-  void registerResolvableDependency(Class type, [Object? autowiredValue]) {
-    getPodFactory().registerResolvableDependency(type, autowiredValue);
-  }
-  
-  @override
-  void registerScope(String scopeName, PodScope scope) {
-    getPodFactory().registerScope(scopeName, scope);
-  }
-  
-  @override
-  Future<void> registerSingleton(String name, Class type, {ObjectHolder<Object>? object, ObjectFactory<Object>? factory}) async {
-    await getPodFactory().registerSingleton(name, type, object: object, factory: factory);
-  }
-  
-  @override
-  Future<void> removeDefinition(String name) async {
-    await getPodFactory().removeDefinition(name);
-  }
-  
-  @override
-  void removeSingleton(String name) {
-    getPodFactory().removeSingleton(name);
-  }
-  
-  @override
-  void setAllowCircularReferences(bool value) {
-    getPodFactory().setAllowCircularReferences(value);
-  }
-  
-  @override
-  void setAllowDefinitionOverriding(bool value) {
-    getPodFactory().setAllowDefinitionOverriding(value);
-  }
-  
-  @override
-  void setCachePodMetadata(bool cachePodMetadata) {
-    getPodFactory().setCachePodMetadata(cachePodMetadata);
-  }
-  
-  @override
-  void setParentFactory(PodFactory? parentFactory) {
-    getPodFactory().setParentFactory(parentFactory);
-  }
-  
-  @override
-  void setPodExpressionResolver(PodExpressionResolver? valueResolver) {
-    getPodFactory().setPodExpressionResolver(valueResolver);
-  }
-
-  @override
-  String getPackageName() => PackageNames.CORE;
-
-  // ---------------------------------------------------------------------------------------------------------
-  // PRIVATE METHODS
-  // ---------------------------------------------------------------------------------------------------------
-
-  /// Checks if the given [clazz] is assignable to [ApplicationContext]
-  bool _isAssignableFromApplicationContext(Class clazz) {
-    return Class<ApplicationContext>().isAssignableFrom(clazz);
-  }
-
-  // Helper: returns true if the local factory has at least one pod of the given type
-  Future<bool> _hasLocalPodsOfType(Class type, {bool includeNonSingletons = false, bool allowEagerInit = false}) async {
-    final f = getPodFactory();
-    final names = await f.getPodNames(type, includeNonSingletons: includeNonSingletons, allowEagerInit: allowEagerInit);
-    return names.isNotEmpty;
+    return Future.value();
   }
 
   // ---------------------------------------------------------------------------------------------------------
@@ -1601,14 +992,6 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// {@endtemplate}
   @protected
   bool getIsRefreshed() => _isRefreshed;
-  
-  /// {@template pod_factory_post_processors_field}
-  /// The list of [PodFactoryPostProcessor]s to be applied to the pod factory.
-  /// 
-  /// These are processors that are applied to the pod factory after it has been created.
-  /// {@endtemplate}
-  @protected
-  List<PodFactoryPostProcessor> getPodFactoryPostProcessors() => _podFactoryPostProcessors;
 
   /// {@template abstract_application_context_do_start}
   /// Template method invoked during [start] to perform startup logic.
@@ -1627,9 +1010,8 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// *This is part of Jetleaf – a framework which developers can use to build web applications.*
   /// {@endtemplate}
   @protected
-  Future<void> doStart() async {
-    // Default implementation - subclasses can override
-  }
+  @mustCallSuper
+  Future<void> doStart() async => Future.value();
 
   /// {@template abstract_application_context_do_stop}
   /// Template method invoked during [stop] to perform shutdown logic.
@@ -1648,9 +1030,8 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// *This is part of Jetleaf – a framework which developers can use to build web applications.*
   /// {@endtemplate}
   @protected
-  Future<void> doStop() async {
-    // Default implementation - subclasses can override
-  }
+  @mustCallSuper
+  Future<void> doStop() async => Future.value();
 
   /// {@template abstract_application_context_do_close}
   /// Template method for actual cleanup logic when the context is closed.
@@ -1661,9 +1042,8 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// *This is part of Jetleaf – a framework which developers can use to build web applications.*
   /// {@endtemplate}
   @protected
-  Future<void> doClose() async {
-    // Default implementation - subclasses can override
-  }
+  @mustCallSuper
+  Future<void> doClose() async {}
 
   /// {@template prepare_refresh}
   /// Prepares the application context for a refresh.
@@ -1687,14 +1067,22 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// *This is part of Jetleaf – a framework which developers can use to build web applications.*
   /// {@endtemplate}
   @protected
+  @mustCallSuper
   Future<void> prepareRefresh() async {
     _startupDate = DateTime.now();
     _isClosed = false;
     _isActive = true;
 
     if (logger.getIsInfoEnabled()) {
-      logger.info("Starting refresh of ${runtimeType} application context...");
+      logger.info("Starting refresh of ${getDisplayName()} application context...");
     }
+
+    final env = getEnvironment();
+    if (env is ConfigurableEnvironment) {
+      env.validateRequiredProperties();
+    }
+
+    return Future.value();
   }
 
   /// {@template do_get_fresh_pod_factory}
@@ -1714,7 +1102,14 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// *This is part of Jetleaf – a framework which developers can use to build web applications.*
   /// {@endtemplate}
   @protected
-  Future<ConfigurableListablePodFactory> doGetFreshPodFactory();
+  Future<ConfigurableListablePodFactory> doGetFreshPodFactory() async {
+    await refreshPodFactory();
+    return getPodFactory();
+  }
+
+  @protected
+  @mustCallSuper
+  Future<void> refreshPodFactory() async => Future.value();
 
   /// {@template prepare_pod_factory}
   /// Prepares the [ConfigurableListablePodFactory] for this context.
@@ -1733,7 +1128,29 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// *This is part of Jetleaf – a framework which developers can use to build web applications.*
   /// {@endtemplate}
   @protected
-  Future<void> preparePodFactory() async {}
+  @mustCallSuper
+  Future<void> preparePodFactory(ConfigurableListablePodFactory podFactory) async {
+    podFactory.addPodProcessor(DefaultAwareProcessor(this));
+
+    if (podFactory is AbstractAutowirePodFactory) {
+      final aapf = podFactory as AbstractAutowirePodFactory;
+
+      aapf.ignoreDependencyInterface(Class<EnvironmentAware>(null, PackageNames.CORE));
+      aapf.ignoreDependencyInterface(Class<EntryApplicationAware>(null, PackageNames.CORE));
+      aapf.ignoreDependencyInterface(Class<PodNameAware>(null, PackageNames.CORE));
+      aapf.ignoreDependencyInterface(Class<MessageSourceAware>(null, PackageNames.CORE));
+      aapf.ignoreDependencyInterface(Class<ConversionServiceAware>(null, PackageNames.CORE));
+      aapf.ignoreDependencyInterface(Class<ApplicationContextAware>(null, PackageNames.CORE));
+      aapf.ignoreDependencyInterface(Class<ApplicationStartupAware>(null, PackageNames.CORE));
+      aapf.ignoreDependencyInterface(Class<ApplicationEventBusAware>(null, PackageNames.CORE));
+    }
+
+    podFactory.registerResolvableDependency(Class<PodFactory>(null, PackageNames.POD));
+    podFactory.registerResolvableDependency(Class<ApplicationEventBus>(null, PackageNames.CORE));
+    podFactory.registerResolvableDependency(Class<ApplicationContext>(null, PackageNames.CORE));
+
+    return Future.value();
+  }
 
   /// {@template post_process_pod_factory}
   /// Post-processes the [ConfigurableListablePodFactory] for this context.
@@ -1745,7 +1162,8 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// *This is part of Jetleaf – a framework developers can use to build web applications.*
   /// {@endtemplate}
   @protected
-  Future<void> postProcessPodFactory() async {}
+  @mustCallSuper
+  Future<void> postProcessPodFactory(ConfigurableListablePodFactory podFactory) async => Future.value();
 
   /// {@template invoke_pod_factory_post_processors}
   /// Invokes all registered pod factory post-processors on the given
@@ -1758,7 +1176,8 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// Typically invoked immediately after [postProcessPodFactory].
   /// {@endtemplate}
   @protected
-  Future<void> invokePodFactoryPostProcessors() async {}
+  @mustCallSuper
+  Future<void> invokePodFactoryPostProcessors(ConfigurableListablePodFactory podFactory) async => PodPostProcessorManager(podFactory).invokePodFactoryPostProcessor(getPodFactoryPostProcessors());
 
   /// {@template register_pod_aware_processors}
   /// Registers all *PodAware* processors into the given
@@ -1772,24 +1191,34 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// Jetleaf-specific processors.
   /// {@endtemplate}
   @protected
-  Future<void> registerPodAwareProcessors() async {}
+  @mustCallSuper
+  Future<void> registerPodProcessors(ConfigurableListablePodFactory podFactory) async => PodPostProcessorManager(podFactory).registerPodProcessors();
 
-  /// {@template complete_refresh}
-  /// Completes the refresh process for the given
-  /// [ConfigurableListablePodFactory].
+  /// Performs any extra processing before the [podFactory] is finalized.
   ///
-  /// This step finalizes the pod factory initialization, ensuring
-  /// that all post-processors have been executed, all metadata
-  /// validated, and the context is marked as "refreshed".
+  /// This method is called during the refresh phase of the application context,
+  /// allowing subclasses to perform additional initialization or setup tasks
+  /// before the `ConfigurableListablePodFactory` becomes fully available.
   ///
-  /// Override to perform custom logic after the container
-  /// has successfully completed initialization.
-  /// {@endtemplate}
+  /// ### Annotations
+  /// - `@protected` — intended for use within this class or subclasses only.
+  /// - `@mustCallSuper` — overriding implementations **must** call `super.doRefresh`.
+  ///
+  /// ### Parameters
+  /// - [podFactory]: The pod factory being finalized, which can be inspected or modified.
+  ///
+  /// ### Example
+  /// ```dart
+  /// @override
+  /// @mustCallSuper
+  /// Future<void> doRefresh(ConfigurableListablePodFactory podFactory) async {
+  ///   // Custom initialization logic
+  ///   await super.doRefresh(podFactory);
+  /// }
+  /// ```
   @protected
-  Future<void> completeRefresh() async {
-    _lifecycleProcessor?.onRefresh();
-    return Future.value();
-  }
+  @mustCallSuper
+  Future<void> doRefresh(ConfigurableListablePodFactory podFactory) async => Future.value();
 
   /// {@template destroy_pods}
   /// Destroys all managed pods in the given
@@ -1802,9 +1231,10 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// Subclasses can extend this for additional teardown steps.
   /// {@endtemplate}
   @protected
+  @mustCallSuper
   Future<void> destroyPods() async {
-    destroySingletons();
-    return Future.value();
+    final pf = getPodFactory();
+    return Future.value([pf.destroySingletons()]);
   }
 
   /// {@template cancel_refresh}
@@ -1818,7 +1248,11 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// refresh cycle.
   /// {@endtemplate}
   @protected
-  Future<void> cancelRefresh(PodException exception) async {}
+  @mustCallSuper
+  Future<void> cancelRefresh(Object exception) async {
+    _isActive = false;
+    return Future.value([await resetCommonCaches()]);
+  }
 
   /// {@template reset_common_caches}
   /// Resets common internal caches maintained by the container.
@@ -1830,10 +1264,8 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// framework-level caches.
   /// {@endtemplate}
   @protected
-  Future<void> resetCommonCaches() async {
-    clearMetadataCache();
-    clearSingletonCache();
-  }
+  @mustCallSuper
+  Future<void> resetCommonCaches() async => Future.value([clearMetadataCache(), clearSingletonCache()]);
 
   /// {@template init_message_source}
   /// Initializes the [MessageSource] for this context.
@@ -1849,22 +1281,29 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// *This is part of Jetleaf – a framework which developers can use to build web applications.*
   /// {@endtemplate}
   @protected
-  Future<void> initMessageSource() async {
-    if (podFactory != null && await containsLocalPod(MESSAGE_SOURCE_POD_NAME)) {
-      _messageSource = await getPod(MESSAGE_SOURCE_POD_NAME);
+  @mustCallSuper
+  Future<void> initializeMessageSource() async {
+    final factory = getPodFactory();
+
+    if (await factory.containsLocalPod(MESSAGE_SOURCE_POD_NAME)) {
+      _messageSource = await factory.getPod(MESSAGE_SOURCE_POD_NAME);
+
+      if (logger.getIsTraceEnabled()) {
+        logger.trace("Using message source ${_messageSource!.runtimeType}");
+      }
     } else {
       final mcl = Class<MessageSource>(null, PackageNames.CORE);
       final del = Class<DelegatingMessageSource>(null, PackageNames.CORE);
       final sources = <MessageSource>[];
       final classes = mcl.getSubClasses().where((cl) => cl.isInvokable());
 
-      for(final cl in classes) {
-        final defc = cl.getNoArgConstructor();
-        if(defc != null) {
+      for (final cl in classes) {
+        final defc = cl.getNoArgConstructor() ?? cl.getBestConstructor([]) ?? cl.getDefaultConstructor();
+        if (defc != null) {
           final source = defc.newInstance();
           sources.add(source);
         } else {
-          if(logger.getIsWarnEnabled()) {
+          if (logger.getIsWarnEnabled()) {
             logger.warn("Message ${cl.getName()} does not have a no-arg constructor");
           }
         }
@@ -1872,19 +1311,63 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
 
       _messageSource = DelegatingMessageSource(sources);
 
-      await registerSingleton(
+      await factory.registerSingleton(
         MESSAGE_SOURCE_POD_NAME,
         del,
         object: ObjectHolder<MessageSource>(
           _messageSource!,
           packageName: PackageNames.CORE,
-          qualifiedName: del.getQualifiedName()
-        )
+          qualifiedName: del.getQualifiedName(),
+        ),
       );
+
+      if (logger.getIsTraceEnabled()) {
+        logger.trace("No message source found, using default message source ${_messageSource!.runtimeType}");
+      }
     }
 
     return Future.value();
   }
+
+  /// {@template configurable_pod_factory.find_pod_expression_resolver}
+  /// Locates and registers a [PodExpressionResolver] within the current
+  /// [PodFactory] context.
+  ///
+  /// This method searches the configured [PodFactory] for an available
+  /// [PodExpressionResolver] of type `Class<PodExpressionResolver>` in
+  /// the **POD** package.  
+  /// If a resolver is found, it is automatically retrieved and registered
+  /// via [setPodExpressionResolver].
+  ///
+  /// ### Behavior
+  /// - Performs a type-based lookup using [factory.containsType].
+  /// - Lazily initializes and stores the resolver if present.
+  /// - Safe to call multiple times — subsequent calls will overwrite
+  ///   any previously registered resolver.
+  ///
+  /// ### Example
+  /// ```dart
+  /// await configurableFactory.findPodExpressionResolver();
+  ///
+  /// final resolver = configurableFactory.getPodExpressionResolver();
+  /// final context = resolver.createContext();
+  /// ```
+  ///
+  /// This mechanism ensures that expression evaluation within pod
+  /// definitions (e.g., `@Value` or `@Conditional`) is properly resolved
+  /// at runtime.
+  /// {@endtemplate}
+  @protected
+  Future<void> findPodExpressionResolver() async {
+    final factory = getPodFactory();
+    final type = Class<PodExpressionResolver>(null, PackageNames.POD);
+
+    if (await factory.containsType(type) && factory.getPodExpressionResolver() == null) {
+      final resolver = await factory.get<PodExpressionResolver>(type);
+      setPodExpressionResolver(resolver);
+    }
+  }
+
 
   /// {@template init_application_event_bus}
   /// Initializes the [ApplicationEventBus] for this context.
@@ -1896,22 +1379,77 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// *This is part of Jetleaf – a framework which developers can use to build web applications.*
   /// {@endtemplate}
   @protected
-  Future<void> initApplicationEventBus() async {
-    if (podFactory != null && await containsLocalPod(APPLICATION_EVENT_BUS_POD_NAME)) {
-      _applicationEventBus = await getPod<ApplicationEventBus>(APPLICATION_EVENT_BUS_POD_NAME);
+  @mustCallSuper
+  Future<void> initializeApplicationEventBus() async {
+    final factory = getPodFactory();
+
+    if (await factory.containsLocalPod(APPLICATION_EVENT_BUS_POD_NAME)) {
+      _applicationEventBus = await factory.getPod<ApplicationEventBus>(APPLICATION_EVENT_BUS_POD_NAME);
+
+      if (logger.getIsTraceEnabled()) {
+        logger.trace("Using application event bus ${_applicationEventBus!.runtimeType}");
+      }
     } else {
       final aeb = Class<SimpleApplicationEventBus>(null, PackageNames.CORE);
-      _applicationEventBus = SimpleApplicationEventBus(podFactory);
+      _applicationEventBus = SimpleApplicationEventBus(factory);
 
-      await registerSingleton(
+      await factory.registerSingleton(
         APPLICATION_EVENT_BUS_POD_NAME,
         aeb,
         object: ObjectHolder<ApplicationEventBus>(
           _applicationEventBus!,
           packageName: PackageNames.CORE,
-          qualifiedName: aeb.getQualifiedName()
-        )
+          qualifiedName: aeb.getQualifiedName(),
+        ),
       );
+
+      if (logger.getIsTraceEnabled()) {
+        logger.trace("No application event bus found, using default application event bus ${_applicationEventBus!.runtimeType}");
+      }
+    }
+
+    return Future.value();
+  }
+
+  /// {@template init_lifecycle_processor}
+  /// Initializes the [LifecycleProcessor] for this context.
+  ///
+  /// By default, it registers a [DefaultLifecycleProcessor] in the pod factory.
+  /// Subclasses can override to supply a different lifecycle strategy.
+  ///
+  /// *This is part of Jetleaf – a framework which developers can use to build web applications.*
+  /// {@endtemplate}
+  @protected
+  @mustCallSuper
+  Future<void> initializeLifecycleProcessor() async {
+    final factory = getPodFactory();
+
+    if (await factory.containsLocalPod(LIFECYCLE_PROCESSOR_POD_NAME)) {
+      _lifecycleProcessor = await factory.getPod<LifecycleProcessor>(LIFECYCLE_PROCESSOR_POD_NAME);
+
+      if (logger.getIsTraceEnabled()) {
+        logger.trace("Using lifecycle processor ${_lifecycleProcessor!.runtimeType}");
+      }
+    } else {
+      final dlp = Class<DefaultLifecycleProcessor>(null, PackageNames.CORE);
+      final defaultLp = DefaultLifecycleProcessor(factory);
+      _lifecycleProcessor = defaultLp;
+
+      await factory.registerSingleton(
+        LIFECYCLE_PROCESSOR_POD_NAME,
+        Class<DefaultLifecycleProcessor>(),
+        object: ObjectHolder<LifecycleProcessor>(
+          _lifecycleProcessor!,
+          packageName: PackageNames.CORE,
+          qualifiedName: dlp.getQualifiedName(),
+        ),
+      );
+
+      if (logger.getIsTraceEnabled()) {
+        logger.trace("No lifecycle processor found, using default lifecycle processor ${_lifecycleProcessor!.runtimeType}");
+      }
+
+      await defaultLp.discover();
     }
 
     return Future.value();
@@ -1926,14 +1464,21 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// *This is part of Jetleaf – a framework which developers can use to build web applications.*
   /// {@endtemplate}
   @protected
+  @mustCallSuper
   Future<void> registerListeners() async {
+    final eventBus = getApplicationEventBus();
+
+    for (final listener in getApplicationEventListeners()) {
+      eventBus.addApplicationListener(listener: listener);
+    }
+
     // Register ApplicationListener pods
     final al = Class<ApplicationEventListener>(null, PackageNames.CORE);
+    final names = await getPodNames(al, includeNonSingletons: true);
 
-    final names = await getPodNames(al);
-    for (final listenerName in names) {
-      final listener = await getPod(listenerName);
-      _applicationEventBus?.addApplicationListener(listener: listener, podName: listenerName);
+    for (final name in names) {
+      final listener = await getPod(name, null, al);
+      eventBus.addApplicationListener(listener: listener, podName: name);
     }
 
     return Future.value();
@@ -1948,42 +1493,33 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// *This is part of Jetleaf – a framework which developers can use to build web applications.*
   /// {@endtemplate}
   @protected
-  Future<void> finishPodFactoryInitialization() async {
-    // Initialize lifecycle processor
-    await initLifecycleProcessor();
+  @mustCallSuper
+  Future<void> completePodFactoryInitialization(ConfigurableListablePodFactory podFactory) async {
+    // Initialize ConversionService
+    final cc = Class<ConversionService>(null, PackageNames.CONVERT);
+    if (await podFactory.containsPod(CONVERSION_SERVICE_POD_NAME) && await podFactory.containsType(cc)) {
+      podFactory.setConversionService(await podFactory.getPod(CONVERSION_SERVICE_POD_NAME, null, cc));
+    }
+
+    // Initialize ApplicationModules
+    final am = Class<ApplicationModule>(null, PackageNames.CORE);
+    final moduleNames = await getPodNames(am, includeNonSingletons: true);
+    for (final moduleName in moduleNames) {
+      final module = await podFactory.getPod(moduleName, null, am);
+      module.configure(this);
+    }
+
+    // Freeze configuration
+    if (podFactory is DefaultListablePodFactory) {
+      podFactory.freezeConfiguration();
+    }
 
     // Instantiate all remaining non-lazy-init singletons
     await preInstantiateSingletons();
+    await _annotatedLifecycleProcessor.onSingletonReady();
 
-    return Future.value();
-  }
-
-  /// {@template init_lifecycle_processor}
-  /// Initializes the [LifecycleProcessor] for this context.
-  ///
-  /// By default, it registers a [DefaultLifecycleProcessor] in the pod factory.
-  /// Subclasses can override to supply a different lifecycle strategy.
-  ///
-  /// *This is part of Jetleaf – a framework which developers can use to build web applications.*
-  /// {@endtemplate}
-  @protected
-  Future<void> initLifecycleProcessor() async {
-    if (podFactory != null && await containsLocalPod(LIFECYCLE_PROCESSOR_POD_NAME)) {
-      _lifecycleProcessor = await getPod(LIFECYCLE_PROCESSOR_POD_NAME);
-    } else {
-      final dlp = Class<DefaultLifecycleProcessor>(null, PackageNames.CORE);
-      _lifecycleProcessor = DefaultLifecycleProcessor(podFactory);
-
-      await registerSingleton(
-        LIFECYCLE_PROCESSOR_POD_NAME,
-        Class<DefaultLifecycleProcessor>(),
-        object: ObjectHolder<LifecycleProcessor>(
-          _lifecycleProcessor!,
-          packageName: PackageNames.CORE,
-          qualifiedName: dlp.getQualifiedName()
-        )
-      );
-    }
+    // Publish completed initialization event
+    await publishEvent(CompletedInitializationEvent.withClock(this, () => DateTime.now()));
 
     return Future.value();
   }
@@ -2005,19 +1541,451 @@ abstract class AbstractApplicationContext extends ConfigurableApplicationContext
   /// *This is part of Jetleaf – a framework which developers can use to build web applications.*
   /// {@endtemplate}
   @protected
-  Future<void> finishRefresh() async {
+  @mustCallSuper
+  Future<void> finishRefresh(ConfigurableListablePodFactory podFactory) async {
+    await resetCommonCaches();
+
+    // Initialize lifecycle processor
+    await initializeLifecycleProcessor();
+
     // Start lifecycle processor
-    _lifecycleProcessor?.onRefresh();
+    getLifecycleProcessor().onRefresh();
 
     // Publish refresh event
     await publishEvent(ContextRefreshedEvent.withClock(this, () => DateTime.now()));
 
     if (logger.getIsDebugEnabled()) {
-      logger.debug("${runtimeType} application context refreshed successfully.");
+      logger.debug("${getDisplayName()}: ${runtimeType} application context refreshed successfully.");
     }
 
     _isRefreshed = true;
 
-    return Future.value();
+    // Publish ready event
+    return Future.value([await publishEvent(ContextReadyEvent.withClock(this, () => DateTime.now()))]);
+  }
+
+  /// {@template jet_pod_factory_assert_active}
+  /// Ensures that the current JetLeaf Pod Factory is in an active state before
+  /// performing any operation that depends on an initialized or refreshed
+  /// application context.
+  ///
+  /// This safeguard method validates the internal lifecycle state of the
+  /// `PodFactory` by checking two key conditions:
+  ///
+  /// 1. **Closed State** — If the factory has already been shut down
+  ///    (indicated by `_isClosed`), an [IllegalStateException] is thrown with
+  ///    a message indicating that the factory has been closed and cannot be
+  ///    accessed further.
+  ///
+  /// 2. **Inactive State** — If the factory has not yet been activated or
+  ///    refreshed (i.e., `_isActive` is `false` but `_isClosed` is also
+  ///    `false`), it indicates that the Pod container has not completed its
+  ///    bootstrap or dependency registration phase. In this case, an
+  ///    [IllegalStateException] is thrown to prevent premature access to
+  ///    pods or configuration objects.
+  ///
+  /// This check is invoked internally by lifecycle-sensitive methods such as
+  /// `getPod()`, `createPod()`, or other dependency resolution logic within
+  /// JetLeaf’s container infrastructure.
+  ///
+  /// ### Example
+  /// ```dart
+  /// void initializePod() {
+  ///   _assertThatPodFactoryIsActive();
+  ///   final myService = getPod<MyService>();
+  ///   myService.initialize();
+  /// }
+  /// ```
+  ///
+  /// In the example above, the `_assertThatPodFactoryIsActive()` call ensures
+  /// that the container has been refreshed before any `Pod` retrieval occurs.
+  ///
+  /// ### Throws
+  /// - [IllegalStateException] — If the factory is closed or not yet active.
+  ///
+  /// ### See also
+  /// - [IllegalStateException]
+  /// - [getDisplayName] — Used to display a readable context name in the
+  ///   exception message.
+  /// {@endtemplate}
+  void _assertThatPodFactoryIsActive() {
+    if (!_isActive) {
+      if (_isClosed) {
+        throw IllegalStateException('${getDisplayName()} has been closed');
+      }
+
+      throw IllegalStateException('${getDisplayName()} has not been refreshed yet');
+    }
+  }
+
+  // ------------------------------------------------------------------------------------------------------
+  // POD FACTORY METHODS
+  // ------------------------------------------------------------------------------------------------------
+
+  @override
+  Future<T> get<T>(Class<T> type, [List<ArgumentValue>? args]) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().get(type, args);
+  }
+
+  @override
+  Future<bool> isSingleton(String podName) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().isSingleton(podName);
+  }
+
+  @override
+  Future<bool> isPrototype(String podName) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().isPrototype(podName);
+  }
+
+  @override
+  bool getAllowCircularReferences() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().getAllowCircularReferences();
+  }
+
+  @override
+  bool getAllowDefinitionOverriding() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().getAllowDefinitionOverriding();
+  }
+
+  @override
+  bool getAllowRawInjection() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().getAllowRawInjection();
+  }
+
+  @override
+  Future<ObjectProvider<T>> getProvider<T>(Class<T> type, {String? podName, bool allowEagerInit = false}) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().getProvider(type, podName: podName, allowEagerInit: allowEagerInit);
+  }
+
+  @override
+  Future<Class> getPodClass(String podName) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().getPodClass(podName);
+  }
+
+  @override
+  Future<T> getPod<T>(String podName, [List<ArgumentValue>? args, Class<T>? type]) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().getPod<T>(podName, args, type);
+  }
+
+  @override
+  Future<Object> getObject(Class<Object> type, [List<ArgumentValue>? args]) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().getObject(type, args);
+  }
+
+  @override
+  Future<Object> getNamedObject(String podName, [List<ArgumentValue>? args]) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().getNamedObject(podName, args);
+  }
+
+  @override
+  Future<Object?> resolveDependency(DependencyDescriptor descriptor, [Set<String>? candidates]) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().resolveDependency(descriptor, candidates);
+  }
+
+  @override
+  void addSingletonCallback(String name, Class type, Consumer<Object> callback) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().addSingletonCallback(name, type, callback);
+  }
+
+  @override
+  void addPodProcessor(PodProcessor processor) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().addPodProcessor(processor);
+  }
+
+  @override
+  void clearMetadataCache() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().clearMetadataCache();
+  }
+
+  @override
+  void clearSingletonCache() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().clearSingletonCache();
+  }
+
+  @override
+  bool containsSingleton(String name) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().containsSingleton(name);
+  }
+
+  @override
+  void copyConfigurationFrom(ConfigurablePodFactory otherFactory) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().copyConfigurationFrom(otherFactory);
+  }
+
+  @override
+  Future<void> destroyPod(String podName, Object podInstance) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().destroyPod(podName, podInstance);
+  }
+
+  @override
+  void destroyScopedPod(String podName) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().destroyScopedPod(podName);
+  }
+
+  @override
+  void destroySingletons() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().destroySingletons();
+  }
+
+  @override
+  Future<Set<A>> findAllAnnotationsOnPod<A>(String podName, Class<A> type) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().findAllAnnotationsOnPod(podName, type);
+  }
+
+  @override
+  Future<A?> findAnnotationOnPod<A>(String podName, Class<A> type) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().findAnnotationOnPod(podName, type);
+  }
+
+  @override
+  RootPodDefinition getMergedPodDefinition(String podName) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().getMergedPodDefinition(podName);
+  }
+
+  @override
+  PodFactory? getParentFactory() => _parent?.getPodFactory();
+
+  @override
+  int getPodProcessorCount() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().getPodProcessorCount();
+  }
+
+  @override
+  List<PodProcessor> getPodProcessors() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().getPodProcessors();
+  }
+
+  @override
+  PodExpressionResolver? getPodExpressionResolver() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().getPodExpressionResolver();
+  }
+
+  @override
+  Future<List<String>> getPodNames(Class type, {bool includeNonSingletons = false, bool allowEagerInit = false}) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().getPodNames(type, includeNonSingletons: includeNonSingletons, allowEagerInit: allowEagerInit);
+  }
+
+  @override
+  Future<List<String>> getPodNamesForAnnotation<A>(Class<A> type) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().getPodNamesForAnnotation(type);
+  }
+
+  @override
+  Iterator<String> getPodNamesIterator() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().getPodNamesIterator();
+  }
+
+  @override
+  Future<Map<String, T>> getPodsOf<T>(Class<T> type, {bool includeNonSingletons = false, bool allowEagerInit = false}) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().getPodsOf(type, includeNonSingletons: includeNonSingletons, allowEagerInit: allowEagerInit);
+  }
+
+  @override
+  Future<Map<String, Object>> getPodsWithAnnotation<A>(Class<A> type) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().getPodsWithAnnotation(type);
+  }
+
+  @override
+  PodScope? getRegisteredScope(String scopeName) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().getRegisteredScope(scopeName);
+  }
+
+  @override
+  List<String> getRegisteredScopeNames() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().getRegisteredScopeNames();
+  }
+
+  @override
+  Future<Object?> getSingleton(String name, {bool allowEarlyReference = true, ObjectFactory<Object>? factory}) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().getSingleton(name, allowEarlyReference: allowEarlyReference, factory: factory);
+  }
+
+  @override
+  int getSingletonCount() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().getSingletonCount();
+  }
+
+  @override
+  List<String> getSingletonNames() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().getSingletonNames();
+  }
+
+  @override
+  bool isAutowireCandidate(String podName, DependencyDescriptor descriptor) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().isAutowireCandidate(podName, descriptor);
+  }
+
+  @override
+  bool isCachePodMetadata() {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().isCachePodMetadata();
+  }
+
+  @override
+  bool isActuallyInCreation(String podName) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().isActuallyInCreation(podName);
+  }
+
+  @override
+  Future<bool> containsType(Class type, [bool allowPodProviderInit = false]) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().containsType(type, allowPodProviderInit);
+  }
+
+  @override
+  Future<bool> isTypeMatch(String name, Class typeToMatch, [bool allowPodProviderInit = false]) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().isTypeMatch(name, typeToMatch, allowPodProviderInit);
+  }
+
+  @override
+  Future<bool> isPodProvider(String podName, [RootPodDefinition? rpd]) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().isPodProvider(podName, rpd);
+  }
+
+  @override
+  Future<void> preInstantiateSingletons() async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().preInstantiateSingletons();
+  }
+
+  @override
+  void registerIgnoredDependency(Class type) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().registerIgnoredDependency(type);
+  }
+
+  @override
+  void registerResolvableDependency(Class type, [Object? autowiredValue]) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().registerResolvableDependency(type, autowiredValue);
+  }
+
+  @override
+  void registerScope(String scopeName, PodScope scope) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().registerScope(scopeName, scope);
+  }
+
+  @override
+  Future<void> registerSingleton(String name, Class type, {ObjectHolder<Object>? object, ObjectFactory<Object>? factory}) async {
+    _assertThatPodFactoryIsActive();
+
+    return await getPodFactory().registerSingleton(name, type, object: object, factory: factory);
+  }
+
+  @override
+  void removeSingleton(String name) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().removeSingleton(name);
+  }
+
+  @override
+  void setCachePodMetadata(bool cachePodMetadata) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().setCachePodMetadata(cachePodMetadata);
+  }
+
+  @override
+  void setParentFactory(PodFactory? parentFactory) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().setParentFactory(parentFactory);
+  }
+
+  @override
+  void setPodExpressionResolver(PodExpressionResolver? valueResolver) {
+    _assertThatPodFactoryIsActive();
+
+    return getPodFactory().setPodExpressionResolver(valueResolver);
   }
 }

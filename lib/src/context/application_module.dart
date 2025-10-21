@@ -25,7 +25,7 @@ import 'application_context.dart';
 ///
 /// ### Responsibilities
 /// - Encapsulate related services and components.
-/// - Register beans/pods, event listeners, and lifecycle processors.
+/// - Register pods, event listeners, and lifecycle processors.
 /// - Keep application configuration modular and reusable.
 ///
 /// ### Usage
@@ -60,7 +60,7 @@ abstract interface class ApplicationModule with EqualsAndHashCode {
   /// This method is invoked during application initialization. Implementations
   /// should use the provided context to:
   ///
-  /// - Register beans or singletons with the [PodFactory].
+  /// - Register pods or singletons with the [PodFactory].
   /// - Attach application event listeners.
   /// - Add lifecycle processors to customize startup or shutdown behavior.
   /// 
@@ -87,7 +87,7 @@ abstract interface class ApplicationModule with EqualsAndHashCode {
 ///
 /// Implementors are responsible for:
 /// - Resolving classes from package names.
-/// - Handling lifecycle management of registered beans/pods.
+/// - Handling lifecycle management of registered pods.
 /// - Ensuring thread-safety and idempotence of registration.
 abstract interface class AnnotationConfigRegistry {
   /// **Scans the given base packages for annotated components**
@@ -104,7 +104,7 @@ abstract interface class AnnotationConfigRegistry {
   ///
   /// # Example
   /// ```dart
-  /// registry.scan(['com.example.service', 'com.example.repository']);
+  /// registry.scan(['package:example/test.dart.service', 'package:example/test.dart.repository']);
   /// ```
   ///
   /// # Notes

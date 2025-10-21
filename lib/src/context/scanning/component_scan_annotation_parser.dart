@@ -18,6 +18,7 @@ import 'package:jetleaf_pod/pod.dart';
 
 import '../../annotations/configuration.dart';
 import '../../annotations/stereotype.dart';
+import '../type_filters/annotation_type_filter.dart';
 import 'class_path_pod_definition_scanner.dart';
 import 'configuration_class.dart';
 

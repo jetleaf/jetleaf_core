@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the getPodAwareProcessors method from the AbstractApplicationContext class, for the Dart programming language.">
-  <title>getPodAwareProcessors method - AbstractApplicationContext class - context library - Dart API</title>
+  <meta name="description" content="API docs for the getPodProcessors method from the AbstractApplicationContext class, for the Dart programming language.">
+  <title>getPodProcessors method - AbstractApplicationContext class - context library - Dart API</title>
 
 
   
@@ -27,9 +27,9 @@
     <li><a href="../../index.html">jetleaf_core</a></li>
     <li><a href="../../context/">context.dart</a></li>
     <li><a href="../../context/AbstractApplicationContext-class.html">AbstractApplicationContext</a></li>
-    <li class="self-crumb">getPodAwareProcessors method</li>
+    <li class="self-crumb">getPodProcessors method</li>
   </ol>
-  <div class="self-name">getPodAwareProcessors</div>
+  <div class="self-name">getPodProcessors</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
@@ -49,7 +49,7 @@
     data-above-sidebar="context&#47;AbstractApplicationContext-class-sidebar.html"
     data-below-sidebar="">
     <div>
-<h1><span class="kind-method">getPodAwareProcessors</span> method 
+<h1><span class="kind-method">getPodProcessors</span> method 
 </h1></div>
 
     <section class="multi-line-signature">
@@ -59,8 +59,8 @@
         <li>@<a href="https://api.dart.dev/stable/3.9.2/dart-core/override-constant.html">override</a></li>
     </ol>
   </div>
-<span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">PodAwareProcessor</span>&gt;</span></span>
-<span class="name ">getPodAwareProcessors</span>(<wbr>)
+<span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">PodProcessor</span>&gt;</span></span>
+<span class="name ">getPodProcessors</span>(<wbr>)
 
       
 
@@ -69,7 +69,7 @@
 <section class="desc markdown">
   <p>Retrieves all registered pod-aware processors.</p>
 <h2 id="usage-example">Usage Example:</h2>
-<pre class="language-dart"><code class="language-dart">final processors = factory.getPodAwareProcessors();
+<pre class="language-dart"><code class="language-dart">final processors = factory.getPodProcessors();
 for (final processor in processors) {
   processor.processBeforeInitialization();
 }
@@ -82,11 +82,11 @@ for (final processor in processors) {
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
-List&lt;PodAwareProcessor&gt; getPodAwareProcessors() {
-  final list = List&lt;PodAwareProcessor&gt;.from(getPodFactory().getPodAwareProcessors());
+List&lt;PodProcessor&gt; getPodProcessors() {
+  final list = List&lt;PodProcessor&gt;.from(getPodFactory().getPodProcessors());
 
   if (_parent != null) {
-    list.addAll(_parent!.getPodFactory().getPodAwareProcessors());
+    list.addAll(_parent!.getPodFactory().getPodProcessors());
   }
 
   return list;
@@ -106,7 +106,7 @@ List&lt;PodAwareProcessor&gt; getPodAwareProcessors() {
     <li><a href="../../index.html">jetleaf_core</a></li>
     <li><a href="../../context/">context</a></li>
     <li><a href="../../context/AbstractApplicationContext-class.html">AbstractApplicationContext</a></li>
-    <li class="self-crumb">getPodAwareProcessors method</li>
+    <li class="self-crumb">getPodProcessors method</li>
 </ol>
 
     <h5>AbstractApplicationContext class</h5>

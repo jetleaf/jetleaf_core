@@ -154,7 +154,7 @@ abstract interface class ApplicationEventListener<E extends ApplicationEvent> {
   /// See also:
   /// - [supportsEventOf] for conditional event handling
   /// {@endtemplate}
-  void onApplicationEvent(E event);
+  Future<void> onApplicationEvent(E event);
 
   /// {@template application_event_listener.supports_event_of}
   /// Returns true if the listener supports the given event.

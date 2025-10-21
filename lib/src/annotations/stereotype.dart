@@ -16,6 +16,7 @@ import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 import 'package:meta/meta_meta.dart';
 
+import '../context/type_filters/type_filter.dart';
 import '../scope/scope_metadata_resolver.dart';
 
 // ----------------------------------------------------------------------------------------------------------
@@ -387,7 +388,6 @@ class Component extends ReflectableAnnotation with EqualsAndHashCode {
 /// ---
 /// 
 /// {@endtemplate}
-@Component()
 @Target({TargetKind.classType})
 class Service extends ReflectableAnnotation with EqualsAndHashCode {
   /// Optional service name
@@ -437,7 +437,7 @@ class Service extends ReflectableAnnotation with EqualsAndHashCode {
 ///
 /// ```dart
 /// @ComponentScan(
-///   basePackages: ['com.example.myapp.services', 'com.example.myapp.repositories'],
+///   basePackages: ['package:example/test.dart.Services', 'package:example/test.dart.Repository'],
 ///   includeFilters: [
 ///     ComponentScanFilter(
 ///       type: FilterType.ANNOTATION,
@@ -593,32 +593,6 @@ enum FilterType {
   ASSIGNABLE,
   REGEX,
   CUSTOM;
-}
-
-/// {@macro type_filter}
-///
-/// ### Usage
-/// Developers can implement a custom `TypeFilter` when `FilterType.CUSTOM` is used:
-///
-/// ```dart
-/// class MyCustomFilter implements TypeFilter {
-///   @override
-///   bool matches(Class cls) {
-///     return cls.getName().startsWith('Special');
-///   }
-/// }
-/// ```
-///
-/// This allows full control over which classes are included/excluded in scanning.
-///
-abstract class TypeFilter {
-  const TypeFilter();
-
-  /// Returns `true` if the given [cls] matches this filter.
-  bool matches(Class cls);
-
-  /// Set the entry application class
-  void setEntryApplication(Class<Object> mainClass) {}
 }
 
 /// {@template repository}

@@ -25,7 +25,7 @@ import '../event/application_event_method_adapter.dart';
 import '../helpers.dart';
 
 /// {@template jetleaf_class_EventListenerMethodProcessor}
-/// A **Jetleaf lifecycle processor** that scans beans (pods) for methods
+/// A **Jetleaf lifecycle processor** that scans pods for methods
 /// annotated with [EventListener] and registers them as event listeners.
 ///
 /// This processor integrates into the application context lifecycle:
@@ -71,7 +71,7 @@ import '../helpers.dart';
 /// ```
 ///
 /// {@endtemplate}
-final class EventListenerMethodProcessor implements SmartInitializingSingleton, PodFactoryPostProcessor, ApplicationContextAware, PriorityOrdered {
+final class EventListenerMethodProcessor implements PodFactoryPostProcessor, ApplicationContextAware {
   /// {@template elmp_application_context}
   /// The current [ApplicationContext] for this processor.
   ///
@@ -79,15 +79,6 @@ final class EventListenerMethodProcessor implements SmartInitializingSingleton, 
   /// Used to register [ApplicationEventMethodAdapter]s with the context.
   /// {@endtemplate}
   late ApplicationContext _applicationContext;
-
-  /// {@template elmp_pod_factory}
-  /// The [ConfigurableListablePodFactory] managing pod creation.
-  ///
-  /// Set during [postProcessFactory], and used to:
-  /// - Retrieve pod names and classes.
-  /// - Resolve listener method targets.
-  /// {@endtemplate}
-  late ConfigurableListablePodFactory _podFactory;
 
   /// {@template elmp_logger}
   /// A [Log] instance for emitting debug and diagnostic information
@@ -99,27 +90,16 @@ final class EventListenerMethodProcessor implements SmartInitializingSingleton, 
   EventListenerMethodProcessor();
 
   @override
-  int getOrder() => Ordered.HIGHEST_PRECEDENCE;
-
-  @override
-  Future<void> postProcessFactory(ConfigurableListablePodFactory podFactory) async {
-    _podFactory = podFactory;
-  }
-
-  @override
   void setApplicationContext(ApplicationContext applicationContext) {
     _applicationContext = applicationContext;
   }
 
   @override
-  String getPackageName() => PackageNames.CORE;
-
-  @override
-  Future<void> onSingletonReady() async {
-    final podNames = await _podFactory.getPodNames(Class<Object>(null, PackageNames.DART));
+  Future<void> postProcessFactory(ConfigurableListablePodFactory podFactory) async {
+    final podNames = await podFactory.getPodNames(Class<Object>(null, PackageNames.DART));
     
     for (final podName in podNames) {
-      final cls = await _podFactory.getPodClass(podName);
+      final cls = await podFactory.getPodClass(podName);
       final methods = cls.getMethods().where((m) => m.hasDirectAnnotation<EventListener>());
 
       for (final method in methods) {
@@ -136,11 +116,10 @@ final class EventListenerMethodProcessor implements SmartInitializingSingleton, 
         }
 
         if (_applicationContext is AbstractApplicationContext) {
-          (_applicationContext as AbstractApplicationContext).addApplicationListener(ApplicationEventMethodAdapter(eventClass, podName, method, _podFactory));
+          (_applicationContext as AbstractApplicationContext).addApplicationListener(ApplicationEventMethodAdapter(eventClass, podName, method, podFactory));
         }
       }
     }
-    
   }
 
   /// Determines the event type from the [EventListener] annotation.

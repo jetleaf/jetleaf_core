@@ -17,166 +17,187 @@ import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
 /// {@template conditional_context}
-/// The `ConditionalContext` class in **Jetleaf** provides a unified 
-/// context for working with conditional configuration in your applications.
+/// Represents the conditional evaluation context in **JetLeaf** applications.
 ///
-/// It exposes core components required when writing logic that depends on 
-/// environment settings, registered pod definitions, or direct interaction 
-/// with the pod factory. This context ensures developers can implement 
-/// complex conditional flows while keeping their code clean and consistent.
+/// A [ConditionalContext] provides all necessary runtime information to
+/// determine whether a pod, component, or configuration should be activated
+/// based on environment variables, runtime conditions, active profiles, or
+/// the presence/absence of other pods.
 ///
-/// ### Core Properties:
-/// - [registry] → Access and manage pod definitions.
-/// - [environment] → Query environment profiles and properties.
-/// - [podFactory] → Retrieve or configure pods programmatically.
+/// This context is passed to condition evaluators such as [OnPropertyCondition],
+/// [OnProfileCondition], [OnPodCondition], or custom conditional evaluators
+/// to decide if annotated elements should be processed. It serves as the
+/// central point of access for environment, pod lifecycle, and runtime
+/// information required for conditional logic.
 ///
-/// ### Usage Example:
+/// ### Purpose
+///
+/// - Enables declarative conditional activation of pods and components.
+/// - Provides a unified interface for querying runtime and environment state.
+/// - Supports modular and environment-specific configurations in JetLeaf
+///   applications.
+/// - Reduces boilerplate by centralizing access to [Environment],
+///   [PodFactory], and [RuntimeProvider].
+///
+/// ### Behavior
+///
+/// - Maintains a list of unregistered [PodDefinition] instances that have been
+///   discovered but not yet registered.
+/// - Ensures thread-safe updates to pod definitions using [addDefinition].
+/// - Provides immutable access to currently unregistered pods via
+///   [getUnregisteredDefinitions].
+/// - Works seamlessly with JetLeaf's conditional evaluation framework,
+///   allowing multiple conditions to evaluate consistently using the same
+///   context.
+///
+/// ### Example
+///
 /// ```dart
-/// import 'package:jetleaf/jetleaf.dart';
+/// final context = ConditionalContext(environment, podFactory, runtimeProvider);
 ///
-/// // A custom conditional configuration context.
-/// class DatabaseConditionalContext extends ConditionalContext {
-///   DatabaseConditionalContext(
-///     Environment env,
-///     ConfigurableListablePodFactory factory,
-///   ) : super(env, factory);
-///
-///   void registerDatabasePodIfEnabled() {
-///     if (environment.getProperty('db.enabled') == 'true') {
-///       podFactory.registerPodDefinition(
-///         'databasePod',
-///         DatabasePod(),
-///       );
-///     }
-///   }
+/// // Query active profiles
+/// if (context.environment.activeProfiles.contains('production')) {
+///   print('Running in production mode.');
 /// }
 ///
-/// void main() {
-///   final context = DatabaseConditionalContext(
-///     PodDefinitionRegistry(),
-///     Environment(),
-///     ConfigurableListablePodFactory(),
-///   );
+/// // Add a new pod definition safely
+/// context.addDefinition(PodDefinition('cacheManager'));
 ///
-///   context.registerDatabasePodIfEnabled();
+/// // Retrieve unregistered definitions
+/// final pendingPods = context.getUnregisteredDefinitions();
+/// for (var pod in pendingPods) {
+///   print('Pending pod: ${pod.name}');
 /// }
 /// ```
 ///
-/// In this example, `DatabaseConditionalContext` extends `ConditionalContext` 
-/// and conditionally registers a database pod based on environment settings. 
-/// Developers can build similar contexts for custom configuration logic.
+/// ### Related Components
+///
+/// - [Environment]: Provides access to application properties, system settings,
+///   and active profiles.
+/// - [ConfigurableListablePodFactory]: Manages lifecycle of pods and allows
+///   retrieval or configuration of pod instances.
+/// - [RuntimeProvider]: Provides runtime-specific information required for
+///   conditional evaluation.
+/// - [PodDefinition]: Represents the metadata and configuration of a pod
+///   before registration.
 /// {@endtemplate}
 class ConditionalContext {
-  /// {@template conditional_context_environment}
-  /// The [Environment] for this context.
+  /// {@macro conditional_context_environment}
   ///
-  /// Provides access to application properties, active profiles, and system 
-  /// settings. Developers typically query this field to determine which pods 
-  /// should be conditionally enabled or disabled.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// if (environment.activeProfiles.contains('production')) {
-  ///   print('Running in production mode.');
-  /// }
-  /// ```
-  /// {@endtemplate}
+  /// Access application properties, system settings, and active profiles.
+  /// Often used in condition evaluations to determine whether a pod should
+  /// be activated.
   final Environment environment;
 
-  /// {@template conditional_context_podFactory}
-  /// The [ConfigurableListablePodFactory] associated with this context.
+  /// {@macro conditional_context_podFactory}
   ///
-  /// It manages the lifecycle of pods and enables developers to retrieve or 
-  /// configure pod instances programmatically, especially when applying 
-  /// conditional logic during application startup.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// final userService = podFactory.getPod<UserService>('userService');
-  /// ```
-  /// {@endtemplate}
+  /// Manages the lifecycle of pods in the current context.
+  /// Developers can programmatically retrieve or configure pods.
   final ConfigurableListablePodFactory podFactory;
 
-  /// {@template conditional_context_runtimeProvider}
-  /// The [RuntimeProvider] associated with this context.
+  /// {@macro conditional_context_runtimeProvider}
   ///
-  /// It provides access to the runtime environment, making it a key entry 
-  /// point for conditional runtime management.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// final runtime = runtimeProvider.getRuntime();
-  /// ```
-  /// {@endtemplate}
+  /// Provides access to runtime-specific information, which can influence
+  /// conditional activation logic.
   final RuntimeProvider runtimeProvider;
 
   /// {@macro conditional_context}
-  const ConditionalContext(this.environment, this.podFactory, this.runtimeProvider);
+  ConditionalContext(this.environment, this.podFactory, this.runtimeProvider);
+
+  /// {@macro pod_factory_support.unregistered_definitions}
+  ///
+  /// Internally stores pod definitions discovered but not yet registered.
+  List<PodDefinition> _unregisteredDefinitions = [];
+
+  /// {@macro pod_factory_support.add_definition}
+  ///
+  /// Adds a [PodDefinition] to the list of unregistered definitions.
+  /// Thread-safe and ensures uniqueness by removing existing instances
+  /// before re-adding.
+  void addDefinition(PodDefinition definition) {
+    return synchronized(_unregisteredDefinitions, () {
+      _unregisteredDefinitions.remove(definition);
+      _unregisteredDefinitions.add(definition);
+    });
+  }
+
+  /// {@macro pod_factory_support.get_unregistered_definitions}
+  ///
+  /// Returns an immutable snapshot of unregistered [PodDefinition] instances.
+  /// External modifications do not affect the internal state.
+  List<PodDefinition> getUnregisteredDefinitions() => List<PodDefinition>.unmodifiable(_unregisteredDefinitions);
 }
 
 /// {@template condition}
-/// The `Condition` interface in **Jetleaf** defines a contract for writing 
-/// conditional logic that determines whether certain pods, configurations, 
-/// or classes should be applied in an application context.
+/// The base interface for all **JetLeaf condition evaluators**.
 ///
-/// Implementations of this interface are used by Jetleaf's conditional 
-/// configuration system to evaluate runtime conditions (such as environment 
-/// profiles, system properties, or custom logic) before deciding whether 
-/// a pod or configuration should be activated.
+/// A [Condition] defines a contract for determining whether a pod, component, 
+/// or configuration element should be processed and included in the application 
+/// context based on runtime metadata, environment properties, or other contextual 
+/// information.
 ///
-/// ### Core Responsibility:
-/// - Provide the [matches] method to evaluate a condition against the 
-///   [ConditionalContext] and a target class type.
+/// Implementations of [Condition] are used in combination with annotations 
+/// such as [ConditionalOnProperty], [ConditionalOnClass], [ConditionalOnProfile], 
+/// [ConditionalOnPod], and others. JetLeaf evaluates these conditions during 
+/// pod registration or configuration scanning to control which elements are 
+/// active in the current application context.
 ///
-/// ### Usage Example:
-/// ```dart
-/// import 'package:jetleaf/jetleaf.dart';
+/// ### Responsibilities
 ///
-/// // A custom condition that activates only in production profile.
-/// class ProductionOnlyCondition implements Condition {
-///   @override
-///   Future<bool> matches(ConditionalContext context, Source source) async {
-///     return context.environment.activeProfiles.contains('production');
-///   }
-/// }
+/// - Evaluate runtime or static conditions against a given [ConditionalContext].
+/// - Return `true` if the annotated element should be included, `false` otherwise.
+/// - Integrate seamlessly with annotations for declarative conditional logic.
+/// - Provide detailed trace logging (optional) to aid debugging of configuration 
+///   evaluation flows.
 ///
-/// // Example usage in configuration
-/// @Configuration()
-/// @Conditional(ProductionOnlyCondition)
-/// class DatabaseConfig {
-///   // This configuration will only be active in production mode.
-/// }
-/// ```
+/// ### Related Components
 ///
-/// In this example, the `ProductionOnlyCondition` checks the active 
-/// environment profiles from [ConditionalContext] and only matches 
-/// when the application runs in production mode. Jetleaf uses this 
-/// condition to decide whether to load `DatabaseConfig`.
+/// - [ConditionalContext]: Provides access to environment properties, 
+///   active profiles, pod factory, and runtime information required for 
+///   condition evaluation.
+/// - [Annotation]: The metadata that is being conditionally evaluated.
+/// - [Source]: The annotated element (class, method, or field) that the 
+///   condition applies to.
+/// - JetLeaf condition implementations such as [OnClassCondition], 
+///   [OnPropertyCondition], [OnProfileCondition], [OnDartCondition], 
+///   [OnPodCondition], [OnAssetCondition], and [OnExpressionCondition].
 /// {@endtemplate}
 abstract interface class Condition {
+  /// {@macro condition}
+  const Condition();
+
   /// {@template condition_matches}
   /// Evaluates the condition against the given [ConditionalContext] and 
-  /// [source].
+  /// [annotation] for the specified [Source].
   ///
-  /// - [context] → Provides access to the pod registry, environment, 
-  ///   and pod factory.  
-  /// - [source] → The source that is being conditionally evaluated.
+  /// - [context]: Provides access to the environment, active profiles, pod 
+  ///   factory, and runtime state.
+  /// - [annotation]: The annotation instance associated with the conditional 
+  ///   evaluation (e.g., [ConditionalOnProperty], [ConditionalOnClass]).
+  /// - [source]: Represents the annotated class, method, or other element being 
+  ///   evaluated.
   ///
-  /// Returns `true` if the condition matches and the source should be 
-  /// included in the configuration; otherwise returns `false`.
+  /// Returns `true` if the condition matches and the annotated element should 
+  /// be included in the application context; returns `false` if the element 
+  /// should be skipped.
   ///
-  /// ### Example:
+  /// ### Example
+  ///
   /// ```dart
   /// class DatabaseEnabledCondition implements Condition {
   ///   @override
-  ///   Future<bool> matches(ConditionalContext context, Source source) async {
+  ///   Future<bool> matches(
+  ///       ConditionalContext context, 
+  ///       Annotation annotation, 
+  ///       Source source) async {
   ///     return context.environment.getProperty('db.enabled') == 'true';
   ///   }
   /// }
   /// ```
   ///
-  /// In this example, the condition evaluates an environment property 
-  /// `db.enabled` to decide if the target class should be configured.
+  /// In this example, the condition reads the environment property 
+  /// `db.enabled` to decide whether the target class should be configured 
+  /// and included in the application context.
   /// {@endtemplate}
-  Future<bool> matches(ConditionalContext context, Source source);
+  Future<bool> matches(ConditionalContext context, Annotation annotation, Source source);
 }

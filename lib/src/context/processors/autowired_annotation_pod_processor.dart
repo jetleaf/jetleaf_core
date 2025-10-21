@@ -9,7 +9,7 @@
 //
 // For licensing terms, see the LICENSE file in the root of this project.
 // ---------------------------------------------------------------------------
-// 
+//
 // 🔧 Powered by Hapnium — the Dart backend engine 🍃
 
 import 'package:jetleaf_env/env.dart';
@@ -59,14 +59,14 @@ import '../application_context.dart';
 /// ```
 ///
 /// ### When to use
-/// - If you want to **declaratively inject dependencies** using annotations.  
-/// - If you want to **inject configuration values** into Pods.  
-/// - If you need **automatic field population** without writing boilerplate code.  
+/// - If you want to **declaratively inject dependencies** using annotations.
+/// - If you want to **inject configuration values** into Pods.
+/// - If you need **automatic field population** without writing boilerplate code.
 ///
 /// This class is part of **Jetleaf** – a framework developers can use
 /// to build web applications.
 /// {@endtemplate}
-class AutowiredAnnotationPodProcessor extends InstantiationAwarePodProcessor implements PodFactoryAware, ApplicationContextAware, PriorityOrdered {
+class AutowiredAnnotationPodProcessor extends PodSmartInstantiationProcessor implements PodFactoryAware, ApplicationContextAware, PriorityOrdered {
   /// The [ConfigurableListablePodFactory] used to resolve dependencies
   /// and configuration values for fields annotated with `@Autowired` or `@Value`.
   late final ConfigurableListablePodFactory _podFactory;
@@ -74,13 +74,14 @@ class AutowiredAnnotationPodProcessor extends InstantiationAwarePodProcessor imp
   /// The [ApplicationContext] used to resolve dependencies and configuration values.
   late final ApplicationContext _applicationContext;
 
+  /// Logger instance for this class.
   final Log _logger = LogFactory.getLog(AutowiredAnnotationPodProcessor);
 
   /// Creates a new processor that uses the given [podFactory]
   /// to inject dependencies and values into Pods.
   ///
   /// Typically registered inside the Jetleaf application context.
-  /// 
+  ///
   /// {@macro jetleaf_class_AutowiredAnnotationPodProcessor}
   AutowiredAnnotationPodProcessor();
 
@@ -109,24 +110,28 @@ class AutowiredAnnotationPodProcessor extends InstantiationAwarePodProcessor imp
       if (param.hasDirectAnnotation<Qualifier>()) {
         final qualifier = param.getDirectAnnotation<Qualifier>();
 
-        final dep = await _podFactory.resolveDependency(DependencyDescriptor(
-          source: paramClass,
-          podName: podName,
-          propertyName: param.getName(),
-          type: paramClass,
-          args: null,
-          component: paramClass.componentType(),
-          key: paramClass.keyType(),
-          isEager: true,
-          isRequired: param.isRequired(),
-          lookup: qualifier?.value
-        ));
-        args.add(ArgumentValue(
-          dep,
-          qualifiedName: paramClass.getQualifiedName(),
-          packageName: paramClass.getPackage()?.getName(),
-          name: param.getName()
-        ));
+        final dep = await _podFactory.resolveDependency(
+          DependencyDescriptor(
+            source: paramClass,
+            podName: podName,
+            propertyName: param.getName(),
+            type: paramClass,
+            args: null,
+            component: paramClass.componentType(),
+            key: paramClass.keyType(),
+            isEager: true,
+            isRequired: param.isRequired(),
+            lookup: qualifier?.value,
+          ),
+        );
+        args.add(
+          ArgumentValue(
+            dep,
+            qualifiedName: paramClass.getQualifiedName(),
+            packageName: paramClass.getPackage()?.getName(),
+            name: param.getName(),
+          ),
+        );
       }
 
       if (executable is Constructor) {
@@ -140,49 +145,60 @@ class AutowiredAnnotationPodProcessor extends InstantiationAwarePodProcessor imp
   }
 
   @override
-  Future<bool> processAfterInstantiation(Object pod, Class podClass, String name) async {
+  Future<void> populateValues(Object pod, Class podClass, String name) async {
     // Process fields
     for (final field in podClass.getFields()) {
-      if (!field.isWritable()) {
-        continue;
-      }
-      final fieldClass = field.getReturnClass();
+      bool hasAutowired = field.hasDirectAnnotation<Autowired>();
+      bool hasValue = field.hasDirectAnnotation<Value>();
+      bool hasEnv = field.hasDirectAnnotation<Env>();
 
-      // Skip already initialized fields (set by constructor or factory)
-      try {
-        final currentValue = field.getValue(pod);
-        if (currentValue != null) {
-          if (_logger.getIsTraceEnabled()) {
-            _logger.trace("Skipping field '${field.getName()}' in $podClass — already initialized with value of type ${currentValue.runtimeType}.");
+      if (field.isWritable() && (hasAutowired || hasValue || hasEnv)) {
+        final fieldClass = field.getReturnClass();
+
+        if (fieldClass.isPrimitive() && hasAutowired) {
+          continue;
+        }
+
+        // Skip already initialized fields (set by constructor or factory)
+        try {
+          final currentValue = field.getValue(pod);
+          if (currentValue != null) {
+            if (_logger.getIsTraceEnabled()) {}
+
+            continue;
+          }
+        } catch (_) {}
+
+        // Handle @Autowired annotation
+        if (hasAutowired) {
+          final dependency = await _processAutowiredAnnotation(field, pod, name, podClass);
+
+          if (dependency != null && fieldClass.isInstance(dependency)) {
+            field.setValue(pod, dependency);
           }
 
           continue;
         }
-      } catch (_) {}
 
-      // Handle @Autowired annotation
-      if (field.hasDirectAnnotation<Autowired>()) {
-        final dependency = await _processAutowiredAnnotation(field, pod, name, podClass);
+        // Handle @Env annotation
+        if (hasEnv) {
+          final env = await _processEnvAnnotation(field, pod, name, podClass);
 
-        if (dependency != null && fieldClass.isInstance(dependency)) {
-          field.setValue(pod, dependency);
+          if (env != null && fieldClass.isInstance(env)) {
+            field.setValue(pod, env);
+            continue;
+          }
         }
 
-        continue;
-      }
-
-      // Handle @Env annotation
-      final env = await _processEnvAnnotation(field, pod, name, podClass);
-
-      if (env != null && fieldClass.isInstance(env)) {
-        field.setValue(pod, env);
-        continue;
-      }
-
-      // Handle @Value annotation
-      final value = await _processValueAnnotation(field, pod, name, podClass);
-      if (value != null && fieldClass.isInstance(value)) {
-        field.setValue(pod, value);
+        // Handle @Value annotation
+        if (hasValue) {
+          final value = await _processValueAnnotation(field, pod, name, podClass);
+          if (value != null && fieldClass.isInstance(value)) {
+            field.setValue(pod, value);
+            continue;
+          }
+        }
+      } else {
         continue;
       }
     }
@@ -190,6 +206,10 @@ class AutowiredAnnotationPodProcessor extends InstantiationAwarePodProcessor imp
     // Handle @RequiredAll annotation
     if (podClass.hasDirectAnnotation<RequiredAll>()) {
       for (final field in podClass.getFields()) {
+        if (field.hasDirectAnnotation<AutowiredIgnore>()) {
+          continue;
+        }
+
         final fieldClass = field.getReturnClass();
 
         if (!field.isWritable() || fieldClass.isPrimitive()) {
@@ -202,8 +222,6 @@ class AutowiredAnnotationPodProcessor extends InstantiationAwarePodProcessor imp
         }
       }
     }
-
-    return Future.value(true);
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -251,30 +269,34 @@ class AutowiredAnnotationPodProcessor extends InstantiationAwarePodProcessor imp
     Object? dependency;
 
     if (qualifier != null) {
-      dependency = await _podFactory.resolveDependency(DependencyDescriptor(
-        source: source,
-        podName: name,
-        propertyName: qualifier.value,
-        type: cls,
-        args: null,
-        component: classContent.component,
-        key: classContent.key,
-        isEager: true,
-        isRequired: source is Field ? !source.isNullable() : (source as Parameter).isRequired(),
-        lookup: qualifier.value
-      ));
+      dependency = await _podFactory.resolveDependency(
+        DependencyDescriptor(
+          source: source,
+          podName: name,
+          propertyName: qualifier.value,
+          type: cls,
+          args: null,
+          component: classContent.component,
+          key: classContent.key,
+          isEager: true,
+          isRequired: source is Field ? !source.isNullable() : (source as Parameter).isRequired(),
+          lookup: qualifier.value,
+        ),
+      );
     } else {
-      dependency = await _podFactory.resolveDependency(DependencyDescriptor(
-        source: source,
-        podName: name,
-        propertyName: source.getName(),
-        type: cls,
-        args: null,
-        component: classContent.component,
-        key: classContent.key,
-        isEager: true,
-        isRequired: source is Field ? !source.isNullable() : (source as Parameter).isRequired()
-      ));
+      dependency = await _podFactory.resolveDependency(
+        DependencyDescriptor(
+          source: source,
+          podName: name,
+          propertyName: source.getName(),
+          type: cls,
+          args: null,
+          component: classContent.component,
+          key: classContent.key,
+          isEager: true,
+          isRequired: source is Field  ? !source.isNullable() : (source as Parameter).isRequired(),
+        ),
+      );
     }
 
     return dependency;
@@ -304,7 +326,7 @@ class AutowiredAnnotationPodProcessor extends InstantiationAwarePodProcessor imp
     if (source.hasDirectAnnotation<TargetType>()) {
       component = source.getDirectAnnotation<TargetType>()?.get();
     }
-    
+
     if (source.hasDirectAnnotation<KeyValueOf>()) {
       component ??= source.getDirectAnnotation<KeyValueOf>()?.getValue();
     }
@@ -313,7 +335,7 @@ class AutowiredAnnotationPodProcessor extends InstantiationAwarePodProcessor imp
     if (source.hasDirectAnnotation<KeyValueOf>()) {
       key = source.getDirectAnnotation<KeyValueOf>()?.getKey();
     }
-    
+
     return _ClassContent(component, key);
   }
 
@@ -342,14 +364,9 @@ class AutowiredAnnotationPodProcessor extends InstantiationAwarePodProcessor imp
   ///
   /// {@endtemplate}
   Future<Object?> _processEnvAnnotation(Source source, Object pod, String name, Class podClass) async {
-    if (source.hasDirectAnnotation<Env>()) {
-      final value = source.getDirectAnnotation<Env>()?.value();
-
-      final cls = source is Field ? source.getReturnClass() : (source as Parameter).getClass();
-      return _podFactory.getConversionService().convert(value, cls);
-    }
-
-    return null;
+    final value = source.getDirectAnnotation<Env>()?.value();
+    final cls = source is Field ? source.getReturnClass() : (source as Parameter).getClass();
+    return _podFactory.getConversionService().convert(value, cls);
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -383,26 +400,25 @@ class AutowiredAnnotationPodProcessor extends InstantiationAwarePodProcessor imp
   /// ```
   /// {@endtemplate}
   Future<Object?> _processValueAnnotation(Source source, Object pod, String name, Class podClass) async {
-    if (source.hasDirectAnnotation<Value>()) {
-      Scope? scope;
-      if (podClass.hasDirectAnnotation<Scope>()) {
-        scope = podClass.getAnnotation<Scope>();
-      }
-      
-      final definition = _podFactory.containsDefinition(name) ? _podFactory.getDefinition(name) : null;
-      final scopeValue = scope?.value ?? definition?.scope.type;
-      final ps = scopeValue != null ? _podFactory.getRegisteredScope(scopeValue) : null;
-      final value = source.getDirectAnnotation<Value>()?.value;
-      final cls = source is Field ? source.getReturnClass() : (source as Parameter).getClass();
+    Scope? scope;
+    if (podClass.hasDirectAnnotation<Scope>()) {
+      scope = podClass.getAnnotation<Scope>();
+    }
 
-      Object? resolved;
+    final definition = _podFactory.containsDefinition(name) ? _podFactory.getDefinition(name) : null;
+    final scopeValue = scope?.value ?? definition?.scope.type;
+    final ps = scopeValue != null ? _podFactory.getRegisteredScope(scopeValue) : null;
+    final value = source.getDirectAnnotation<Value>()?.value;
+    final cls = source is Field ? source.getReturnClass() : (source as Parameter).getClass();
 
-      if (value is String && value.startsWith('#{') && value.endsWith('}')) {
-        // Handle environment values
-        final result = _applicationContext.getEnvironment().resolvePlaceholders(value);
+    Object? resolved;
 
-        if (result.equals(value)) {
-          throw IllegalArgumentException('''
+    if (value is String && value.startsWith('#{') && value.endsWith('}')) {
+      // Handle environment values
+      final result = _applicationContext.getEnvironment().resolvePlaceholders(value);
+
+      if (result.equals(value)) {
+        throw IllegalArgumentException('''
 Failed to resolve environment placeholder: "$value".
 
 JetLeaf attempted to resolve this value from:
@@ -416,13 +432,14 @@ But no matching property or environment variable was found.
 - Or export it as an environment variable before running your application.
 - If this placeholder is optional, consider using a default: #{value:defaultValue}.
 ''');
-        }
+      }
 
-        resolved = _podFactory.getConversionService().convert(result, cls);
-      } else if (value is String && value.startsWith('@{') && value.endsWith('}')) {
-        // Handle pod values
-        final podName = value.substring(2, value.length - 1);
-        resolved = await _podFactory.resolveDependency(DependencyDescriptor(
+      resolved = _podFactory.getConversionService().convert(result, cls);
+    } else if (value is String && value.startsWith('@{') && value.endsWith('}')) {
+      // Handle pod values
+      final podName = value.substring(2, value.length - 1);
+      resolved = await _podFactory.resolveDependency(
+        DependencyDescriptor(
           source: source,
           podName: name,
           propertyName: podName,
@@ -432,28 +449,26 @@ But no matching property or environment variable was found.
           key: cls.keyType(),
           isEager: true,
           isRequired: source is Field ? !source.isNullable() : (source as Parameter).isRequired(),
-          lookup: podName
-        ));
-      } else if (value is String && value.startsWith('&{') && value.endsWith('}')) {
-        // Handle pod expressions
-        final result = await _podFactory.getPodExpressionResolver()?.evaluate(value, PodExpressionContext(_podFactory, ps));
+          lookup: podName,
+        ),
+      );
+    } else if (value is String && value.startsWith('&{') && value.endsWith('}')) {
+      // Handle pod expressions
+      final result = await _podFactory.getPodExpressionResolver()?.evaluate(value, PodExpressionContext(_podFactory, ps));
 
-        if (result != null) {
-          resolved = _podFactory.getConversionService().convert(result.getValue(), cls);
-        }
-      } else if (value is! String) {
-        // Handle custom pod expressions
-        final result = await _podFactory.getPodExpressionResolver()?.evaluate(value, PodExpressionContext(_podFactory, ps));
-
-        if (result != null) {
-          resolved = _podFactory.getConversionService().convert(result.getValue(), cls);
-        }
+      if (result != null) {
+        resolved = _podFactory.getConversionService().convert(result.getValue(), cls);
       }
+    } else if (value is! String) {
+      // Handle custom pod expressions
+      final result = await _podFactory.getPodExpressionResolver()?.evaluate(value, PodExpressionContext(_podFactory, ps));
 
-      return resolved;
+      if (result != null) {
+        resolved = _podFactory.getConversionService().convert(result.getValue(), cls);
+      }
     }
 
-    return null;
+    return resolved;
   }
 }
 

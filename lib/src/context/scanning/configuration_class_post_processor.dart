@@ -23,8 +23,15 @@ import '../../annotations/pod.dart';
 import '../../annotations/stereotype.dart';
 import '../../aware.dart';
 import '../../condition/condition_evaluator.dart';
+import '../../package_order_comparator.dart';
 import '../../scope/annotated_scope_metadata_resolver.dart';
+import '../core/pod_spec.dart';
 import '../helpers.dart';
+import '../pod_registrar.dart';
+import '../type_filters/annotation_type_filter.dart';
+import '../type_filters/assignable_type_filter.dart';
+import '../type_filters/regex_pattern_type_filter.dart';
+import '../type_filters/type_filter.dart';
 import 'annotated_pod_definition_reader.dart';
 import 'annotated_pod_name_generator.dart';
 import 'class_path_pod_definition_scanner.dart';
@@ -69,29 +76,67 @@ final List<Class> _importStack = [];
 /// }
 /// ```
 /// {@endtemplate}
-class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryApplicationAware, EnvironmentAware, PriorityOrdered {
-  /// Set of configuration classes that have been processed
+class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryApplicationAware, EnvironmentAware, PodRegistry, PriorityOrdered {
+  /// Set of configuration classes that have already been processed.
+  ///
+  /// Used to avoid re-processing the same configuration class during
+  /// recursive scanning and registration.
   final Set<ConfigurationClass> _processedConfigurations = {};
-  
-  /// Set of pod definition names that have been processed
+
+  /// Set of pod definition names that have already been registered.
+  ///
+  /// Prevents duplicate registration of pod definitions by name,
+  /// ensuring unique naming within the [ConfigurableListablePodFactory].
   final Set<String> _processedPodNames = {};
 
-  /// The environment to use for configuration parsing
+  /// Environment instance used for configuration parsing.
+  ///
+  /// Provides access to environment properties, profiles, and
+  /// other runtime context necessary for evaluating conditional pods
+  /// or properties.
   late final Environment _environment;
 
-  /// The condition evaluator to use for configuration parsing
+  /// Evaluates conditions on classes and methods during configuration parsing.
+  ///
+  /// Used to determine whether a configuration class or pod method
+  /// should be included based on annotations or runtime conditions.
   late final ConditionEvaluator _conditionEvaluator;
 
+  /// Parser for configuration classes.
+  ///
+  /// Converts a [PodDefinition] or [Class] into a [ConfigurationClass]
+  /// representation, extracting metadata such as imports, component scans,
+  /// and pod methods.
   late final ConfigurationClassParser _parser;
 
+  /// Parser for `@ComponentScan` annotations.
+  ///
+  /// Detects packages, classes, or filters specified for component scanning
+  /// and returns discovered candidates for registration.
   late final ComponentScanAnnotationParser _componentScanParser;
 
-  /// The pod factory to use for configuration parsing
+  /// Factory for registering and retrieving pod definitions.
+  ///
+  /// Acts as the central registry for all pods in the application context,
+  /// supporting lookups, lifecycle management, and uniqueness enforcement.
   late final ConfigurableListablePodFactory _podFactory;
 
-  /// The entry application class
+  /// The entry point application class.
+  ///
+  /// Typically the main application class annotated with
+  /// configuration or bootstrapping annotations.
   late final Class<Object> _entryApplication;
 
+  /// Local cache of pod definitions collected during scanning.
+  ///
+  /// Maps pod names to their definitions for intermediate processing
+  /// before final registration in [_podFactory].
+  final Map<String, PodDefinition> _localDefinitions = {};
+
+  /// Logger instance for the post-processor.
+  ///
+  /// Provides trace, debug, and error logging capabilities specifically
+  /// for the configuration class processing lifecycle.
   final Log _logger = LogFactory.getLog(ConfigurationClassPostProcessor);
 
   /// {@macro configuration_class_post_processor}
@@ -111,9 +156,52 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
   }
 
   @override
+  Future<void> registerPod<T>(Class<T> podClass, {Consumer<Spec<T>>? customizer, String? name}) async {
+    PodDefinition podDef = RootPodDefinition(type: podClass);
+    String podName;
+
+    if(name != null) {
+      podDef.name = name;
+      podDef.scope = ScopeDesign.type(ScopeType.SINGLETON.name);
+      _localDefinitions.add(name, podDef);
+
+      podName = name;
+    } else if(customizer != null) {
+      final customizerImpl = PodSpec<T>(PodSpecContext(_podFactory));
+      customizer(customizerImpl);
+
+      podDef = customizerImpl.clone();
+      
+      if (podDef.name.isNotEmpty) {
+        _localDefinitions.add(podDef.name, podDef);
+      } else {
+        podName = AnnotatedPodNameGenerator().generate(podDef, _podFactory);
+        _localDefinitions.add(podName, podDef);
+      }
+    } else {
+      podDef.scope = ScopeDesign.type(ScopeType.SINGLETON.name);
+      podName = AnnotatedPodNameGenerator().generate(podDef, _podFactory);
+      _localDefinitions.add(podName, podDef);
+    }
+
+    return Future.value();
+  }
+
+  @override
+  void register(PodRegistrar registrar) {
+    registrar.register(this, _environment);
+
+    final definition = RootPodDefinition(type: registrar.getClass());
+    final name = AnnotatedPodNameGenerator().generate(definition, _podFactory);
+    definition.name = name;
+
+    _localDefinitions.add(name, definition);
+  }
+
+  @override
   Future<void> postProcessFactory(ConfigurableListablePodFactory podFactory) async {
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('🔧 Starting postProcessFactory for podFactory: ${podFactory.runtimeType}');
+    if (_logger.getIsDebugEnabled()) {
+      _logger.debug('🔧 $runtimeType starting postProcessFactory for podFactory ${podFactory.runtimeType}');
     }
 
     this._podFactory = podFactory;
@@ -148,74 +236,8 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
     final podMethods = <PodMethod>[];
     final disabledImports = <ImportClass>[];
 
-    // Queue for configuration classes to process
-    final queue = <ConfigurationClass>[];
-
-    // Step 1: Parse initial candidates
-    for (final candidate in candidates) {
-      final configClass = await _parser.parse(candidate);
-      if (configClass != null && !_processedConfigurations.contains(configClass)) {
-        queue.add(configClass);
-        _processedConfigurations.add(configClass);
-      }
-
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('✅ Parsed initial configuration class: ${configClass?.type.getQualifiedName()}');
-      }
-    }
-
-    // Step 2: Process queue iteratively until empty
-    var iteration = 0;
-    while (queue.isNotEmpty) {
-      iteration++;
-
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('🔁 Iteration $iteration — Processing ${queue.length} configuration class(es).');
-      }
-
-      final localDefinitions = <PodDefinition>[];
-      final localPodMethods = <PodMethod>[];
-      final current = queue.removeLast();
-
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('⚙️ Processing configuration: ${current.type.getQualifiedName()}');
-      }
-
-      // Process imports, scans, and pods
-      await _processImports(current, localDefinitions, disabledImports);
-      await _processComponentScan(current, localDefinitions);
-      await _processPodMethods(current, localPodMethods);
-
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('📦 Processed ${localDefinitions.length} local pod definition(s) and ${localPodMethods.length} pod method(s).');
-      }
-
-      // Step 3: Check for new configuration candidates
-      final newCandidates = <ConfigurationClass>[];
-      for (final def in localDefinitions) {
-        if (await _isConfigurationCandidate(def)) {
-          if (_logger.getIsTraceEnabled()) {
-            _logger.trace('🔎 Found nested configuration candidate: ${def.type.getQualifiedName()}');
-          }
-
-          final nestedConfig = await _parser.parse(def);
-          if (nestedConfig != null && !_processedConfigurations.contains(nestedConfig)) {
-            newCandidates.add(nestedConfig);
-            _processedConfigurations.add(nestedConfig);
-          }
-        }
-      }
-
-      if (_logger.getIsTraceEnabled() && newCandidates.isNotEmpty) {
-        _logger.trace('🧭 Added ${newCandidates.length} new configuration class(es) to queue.');
-      }
-
-      // Add discovered configs to queue for next iteration
-      queue.addAll(newCandidates);
-      definitions.addAll(localDefinitions);
-      podMethods.addAll(localPodMethods);
-      definitions.add(current.definition);
-    }
+    // Scan for classes
+    await _recursivelyScanClasses(candidates, definitions, disabledImports, podMethods);
 
     if (_logger.getIsTraceEnabled()) {
       _logger.trace('📋 Finished processing configuration queue. Total definitions: ${definitions.length}, total pod methods: ${podMethods.length}.');
@@ -224,27 +246,8 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
     final definitionSet = <PodDefinition>{};
     final mappedPodMethods = <String, PodMethod>{};
 
-    for (final podMethod in podMethods) {
-      final definition = await _createPodDefinitionFromMethod(podMethod);
-    
-      // Check if pod name is already in use
-      String finalPodName = definition.name;
-      if (_podFactory.containsDefinition(finalPodName)) {
-        finalPodName = SimplePodNameGenerator().generate(definition, _podFactory);
-      }
-
-      if (_podFactory.containsDefinition(finalPodName)) {
-        finalPodName = podMethod.method.getName();
-      }
-
-      definition.name = finalPodName;
-      definitionSet.add(definition);
-      mappedPodMethods[finalPodName] = podMethod;
-
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('🔧 Created pod definition from method: ${definition.name} (${definition.type.getQualifiedName()})');
-      }
-    }
+    // Map PodMethods
+    await _buildPodMethods(definitionSet, disabledImports, mappedPodMethods, podMethods);
 
     // Merge remaining definitions
     for (final definition in definitions) {
@@ -260,48 +263,16 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
       }
     }
 
-    _conditionEvaluator.types = definitionSet.map((def) => def.type).toList();
-    _conditionEvaluator.names = definitionSet.map((def) => def.name).toList();
-
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('🧠 Updated ConditionEvaluator context — ${_conditionEvaluator.types.length} types, ${_conditionEvaluator.names.length} names.');
+    // Add the pending definitions to the condition evaluator for late
+    for (final definition in definitionSet) {
+      _conditionEvaluator.addDefinition(definition);
     }
 
-    for (final def in definitionSet) {
-      if (disabledImports.any((i) => i.isQualifiedName ? def.type.getQualifiedName().equals(i.name) : (def.type.getPackage()?.getName().equals(i.name) ?? false))) {
-        if (_logger.getIsTraceEnabled()) {
-          _logger.trace('🧱 Skipping disabled import of ${def.type}');
-        }
+    // Complete pod registration
+    await _completeRegistration(definitionSet, disabledImports, mappedPodMethods);
 
-        continue;
-      }
-
-      if (mappedPodMethods.containsKey(def.name)) {
-        final source = mappedPodMethods[def.name]!;
-
-        if (await _conditionEvaluator.shouldInclude(source.method)) {
-          if (_logger.getIsTraceEnabled()) {
-            _logger.trace('✅ Registered pod from method: ${def.name}');
-          }
-
-          await _podFactory.registerDefinition(def.name, def);
-        } else {
-          if (_logger.getIsTraceEnabled()) {
-            _logger.trace('🚫 Skipped pod (condition failed): ${def.name}');
-          }
-        }
-      } else if (await _conditionEvaluator.shouldInclude(def.type)) {
-        if (_logger.getIsTraceEnabled()) {
-          _logger.trace('✅ Registered pod definition: ${def.name}');
-        }
-
-        await _podFactory.registerDefinition(def.name, def);
-      } else {
-        if (_logger.getIsTraceEnabled()) {
-          _logger.trace('🚫 Skipped pod (condition failed): ${def.name}');
-        }
-      }
-    }
+    // Add any local pod definition for registration
+    await _completeRegistration(_localDefinitions.values, disabledImports, {});
 
     if (_logger.getIsTraceEnabled()) {
       _logger.trace('🧹 Clearing processed configuration state.');
@@ -310,9 +281,11 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
     // Clear processed state
     clearProcessedState();
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('🏁 Completed post-processing for [ConfigurationClassPostProcessor].');
+    if (_logger.getIsDebugEnabled()) {
+      _logger.debug('🏁 Completed post-processing for [$runtimeType].');
     }
+
+    return Future.value();
   }
 
   /// Finds configuration candidates from registered pod definitions
@@ -443,6 +416,159 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
 
     return false;
   }
+
+  /// Recursively scans and processes configuration classes to discover pod definitions
+  /// and pod methods, including nested configurations and auto-configurations.
+  ///
+  /// This method performs a breadth-first traversal of configuration classes, starting
+  /// from the initial list of [candidates]. It iteratively parses classes, resolves
+  /// imports, component scans, and pod methods, while also detecting nested configuration
+  /// classes and auto-configurations.
+  ///
+  /// ### Processing Steps
+  ///
+  /// 1. **Parse Initial Candidates**
+  ///    - Each candidate [PodDefinition] is parsed via [_parser.parse].
+  ///    - Successfully parsed configuration classes that have not been processed before
+  ///      are added to the processing queue and tracked in [_processedConfigurations].
+  ///    - Trace logs show each initial configuration parsed.
+  ///
+  /// 2. **Iterative Queue Processing**
+  ///    - While the queue is not empty, classes are removed from the queue and processed.
+  ///    - For each configuration:
+  ///      - Imports are processed via [_processImports], potentially discovering more configuration classes.
+  ///      - Component scans are executed via [_processComponentScan] to detect pods.
+  ///      - Pod methods are resolved via [_processPodMethods].
+  ///      - Trace logs detail iteration number, current class, and number of discovered pods and methods.
+  ///
+  /// 3. **Nested Configuration Discovery**
+  ///    - Newly discovered pod definitions are checked via [_isConfigurationCandidate].
+  ///    - If a definition qualifies as a nested configuration and has not been processed,
+  ///      it is added to the queue for subsequent processing.
+  ///    - Trace logs indicate any nested configuration candidates found.
+  ///
+  /// 4. **Auto-Configuration Processing**
+  ///    - For each configuration class discovered during imports:
+  ///      - A pod definition is created via [_createPodDefinition].
+  ///      - If not already processed, the auto-configuration is added to the queue.
+  ///    - Trace logs indicate any auto-configuration candidates added.
+  ///
+  /// 5. **Queue Update and Aggregation**
+  ///    - Newly discovered configuration classes are added to the queue for the next iteration.
+  ///    - Locally discovered pod definitions and pod methods are merged into the overall
+  ///      [definitions] and [podMethods] lists.
+  ///    - The current configuration class’ own pod definition is also added.
+  ///
+  /// ### Parameters
+  /// - [candidates]: Initial list of [PodDefinition] instances to scan for configurations.
+  /// - [definitions]: Aggregated list where discovered [PodDefinition] instances are collected.
+  /// - [disabledImports]: List of imports that should be ignored during processing.
+  /// - [podMethods]: Aggregated list where discovered [PodMethod] instances are collected.
+  ///
+  /// ### Notes
+  /// - The method ensures that configuration classes are processed only once
+  ///   using [_processedConfigurations].
+  /// - Trace logging provides detailed insights at each step for debugging and
+  ///   understanding the discovery process.
+  /// - Nested and auto-configurations are automatically queued for processing.
+  ///
+  /// ### Example
+  /// ```dart
+  /// final candidates = await loadInitialCandidates();
+  /// final definitions = <PodDefinition>[];
+  /// final podMethods = <PodMethod>[];
+  /// final disabledImports = <ImportClass>[];
+  ///
+  /// await _recursivelyScanClasses(candidates, definitions, disabledImports, podMethods);
+  /// ```
+  Future<void> _recursivelyScanClasses(List<PodDefinition> candidates, List<PodDefinition> definitions, List<ImportClass> disabledImports, List<PodMethod> podMethods) async {
+    // Queue for configuration classes to process
+    final queue = <ConfigurationClass>[];
+
+    // Step 1: Parse initial candidates
+    for (final candidate in candidates) {
+      final configClass = await _parser.parse(candidate);
+      if (configClass != null && !_processedConfigurations.contains(configClass)) {
+        queue.add(configClass);
+        _processedConfigurations.add(configClass);
+      }
+
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('✅ Parsed initial configuration class: ${configClass?.type.getQualifiedName()}');
+      }
+    }
+
+    // Step 2: Process queue iteratively until empty
+    var iteration = 0;
+    while (queue.isNotEmpty) {
+      iteration++;
+
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('🔁 Iteration $iteration — Processing ${queue.length} configuration class(es).');
+      }
+
+      final localDefinitions = <PodDefinition>[];
+      final localPodMethods = <PodMethod>[];
+      final configurationClasses = <Class>[];
+      final current = queue.removeLast();
+
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('⚙️ Processing configuration: ${current.type.getQualifiedName()}');
+      }
+
+      // Process imports, scans, and pods
+      configurationClasses.addAll(await _processImports(current, localDefinitions, disabledImports));
+      await _processComponentScan(current, localDefinitions);
+      await _processPodMethods(current, localPodMethods);
+
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('📦 Processed ${localDefinitions.length} local pod definition(s) and ${localPodMethods.length} pod method(s).');
+      }
+
+      // Step 3: Check for new configuration candidates
+      final newCandidates = <ConfigurationClass>[];
+      for (final def in localDefinitions) {
+        if (await _isConfigurationCandidate(def)) {
+          if (_logger.getIsTraceEnabled()) {
+            _logger.trace('🔎 Found nested configuration candidate: ${def.type.getQualifiedName()}');
+          }
+
+          final nestedConfig = await _parser.parse(def);
+          if (nestedConfig != null && !_processedConfigurations.contains(nestedConfig)) {
+            newCandidates.add(nestedConfig);
+            _processedConfigurations.add(nestedConfig);
+          }
+        }
+      }
+
+      // Step 4: Process any auto-configurations
+      for (final configClass in configurationClasses) {
+        final definition = _createPodDefinition(configClass);
+        final cc = ConfigurationClass(definition.name, configClass, definition);
+
+        if (_logger.getIsTraceEnabled()) {
+          _logger.trace('🔍 Found auto-configuration candidate: ${configClass.getQualifiedName()}');
+        }
+
+        localDefinitions.add(definition);
+
+        if (!_processedConfigurations.contains(cc)) {
+          newCandidates.add(cc);
+          _processedConfigurations.add(cc);
+        }
+      }
+
+      if (_logger.getIsTraceEnabled() && newCandidates.isNotEmpty) {
+        _logger.trace('🧭 Added ${newCandidates.length} new configuration class(es) to queue.');
+      }
+
+      // Add discovered configs to queue for next iteration
+      queue.addAll(newCandidates);
+      definitions.addAll(localDefinitions);
+      podMethods.addAll(localPodMethods);
+      definitions.add(current.definition);
+    }
+  }
   
   /// Processes a single imported class
   /// 
@@ -467,7 +593,7 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
   /// final configClass = await parser.parse(PodDefinition(type: ConfigurationClass));
   /// await parser._processConfigurationClass(configClass);
   /// ```
-  Future<void> _processImports(ConfigurationClass configClass, List<PodDefinition> definitions, List<ImportClass> disableImports) async {
+  Future<List<Class>> _processImports(ConfigurationClass configClass, List<PodDefinition> definitions, List<ImportClass> importClasses) async {
     final imports = configClass.definition.getAnnotations<Import>().toSet().flatMap((i) => i.classes).toList();
 
     if (imports.isEmpty) {
@@ -475,14 +601,14 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
         _logger.trace('ℹ️ No @Import annotations in ${configClass.type.getQualifiedName()}');
       }
 
-      return;
+      return [];
     }
 
     if (_logger.getIsTraceEnabled()) {
       _logger.trace('📦 Processing @Import annotations for ${configClass.type.getQualifiedName()}');
     }
 
-    final importClasses = <ImportClass>[];
+    final localImportClasses = <ImportClass>[];
     final importConfigurationClasses = <Class>[];
     
     for (final import in imports) {
@@ -494,7 +620,7 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
           _logger.trace('⚠️ Import cycle detected for ${type.getQualifiedName()}, skipping.');
         }
 
-        return; // Import cycle detected
+        return []; // Import cycle detected
       }
 
       if (!_scannedClasses.add(type) || !_scannedClassQualifiedNames.add(type.getQualifiedName())) {
@@ -502,7 +628,7 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
           _logger.trace('⏭️ Already scanned import class ${type.getQualifiedName()}, skipping.');
         }
 
-        return;
+        return [];
       }
       
       _importStack.add(type);
@@ -514,7 +640,7 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
             _logger.trace('🧭 ImportSelector selected ${selector.selects().length} classes.');
           }
 
-          importClasses.addAll(selector.selects());
+          localImportClasses.addAll(selector.selects());
         }
       } else if (await _isConfigurationCandidate(type)) {
         importConfigurationClasses.add(type);
@@ -526,53 +652,50 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
 
       final basePackage = type.getPackage()?.getName();
       if (basePackage != null) {
-        importClasses.add(ImportClass.package(basePackage));
+        localImportClasses.add(ImportClass.package(basePackage));
       }
     }
 
-    if (importConfigurationClasses.isEmpty && importClasses.isEmpty) {
+    if (importConfigurationClasses.isEmpty && localImportClasses.isEmpty) {
       if (_logger.getIsTraceEnabled()) {
         _logger.trace('ℹ️ No import configuration or classes found for ${configClass.type.getQualifiedName()}');
       }
 
-      return;
+      return [];
     }
 
-    List<String> basePackages = <String>[];
-    List<Class> basePackageClasses = List<Class>.from(importConfigurationClasses);
+    List<String> packages = <String>[];
 
-    importClasses.where((i) => i.disable.equals(false)).process((import) {
-      if (!import.isQualifiedName) {
-        basePackages.add(import.name);
+    for (final importClass in localImportClasses.where((i) => i.disable.equals(false))) {
+      if (!importClass.isQualifiedName) {
+        packages.add(importClass.name);
       } else {
-        basePackageClasses.add(Class.fromQualifiedName(import.name));
+        importConfigurationClasses.add(Class.fromQualifiedName(importClass.name));
       }
-    });
+    }
 
-    final scanConfig = ComponentScanConfiguration(
-      basePackages: basePackages.filter((b) => _scannedPackages.add(b)).toList(),
-      basePackageClasses: basePackageClasses.filter((b) => _scannedClasses.add(b)).toList(),
-    );
+    for (final importedConfigClass in importConfigurationClasses.where((i) => !i.hasDirectAnnotation<AutoConfiguration>())) {
+      final packageName = importedConfigClass.getPackage()?.getName();
+
+      if (packageName != null) {
+        packages.add(packageName);
+      }
+    }
+
+    final config = ComponentScanConfiguration(basePackages: packages.filter((b) => _scannedPackages.add(b)).toList());
 
     if (_logger.getIsTraceEnabled()) {
-      _logger.trace('🔬 Parsing imports: ${scanConfig.basePackages.length} packages, ${scanConfig.basePackageClasses.length} classes.');
+      _logger.trace('🔬 Parsing imports: ${config.basePackages.length} packages.');
     }
 
-    definitions.addAll(await _componentScanParser.parse(scanConfig));
-
-    for (final importedConfigClass in importConfigurationClasses) {
-      if (importedConfigClass.hasDirectAnnotation<AutoConfiguration>()) {
-        final definition = _createPodDefinition(importedConfigClass);
-        final cc = ConfigurationClass(definition.name, importedConfigClass, definition);
-        
-        await _processComponentScan(cc, definitions);
-        definitions.add(definition);
-      }
-    }
+    definitions.addAll(await _componentScanParser.parse(config));
+    importClasses.addAll(localImportClasses.where((i) => i.disable.equals(true)));
 
     if (_logger.getIsTraceEnabled()) {
       _logger.trace('✅ Processed @Import for ${configClass.type.getQualifiedName()}');
     }
+
+    return importConfigurationClasses.where((i) => i.hasDirectAnnotation<AutoConfiguration>()).toList();
   }
 
   /// Creates a pod definition for the given class
@@ -614,6 +737,9 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
     if (_logger.getIsTraceEnabled()) {
       _logger.trace('🏷️ Resolved scope "${definition.scope.type}" for ${definition.name}');
     }
+
+    // Process proxying capabilities (@Configuration, @AutoConfiguration)
+    AnnotatedPodDefinitionReader.processProxyingCapabilities(definition);
 
     // Common annotations
     AnnotatedPodDefinitionReader.processCommonDefinitionAnnotations(definition);
@@ -778,6 +904,84 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
 
     if (_logger.getIsTraceEnabled()) {
       _logger.trace('✅ Completed pod method scan for ${configClass.type.getQualifiedName()}. Found ${podMethods.length} methods.');
+    }
+  }
+
+  /// Builds pod definitions from the provided pod methods and updates the registry maps.
+  ///
+  /// This method iterates over each [PodMethod] in [podMethods] and converts them
+  /// into corresponding [PodDefinition] instances using [_createPodDefinitionFromMethod].
+  /// It handles naming conflicts, skips disabled imports, and updates the
+  /// [definitions] set and [mappedPodMethods] map accordingly.
+  ///
+  /// ### Processing Steps
+  ///
+  /// 1. **Filter Disabled Imports**
+  ///    - Each pod method's configuration class is checked against [disabledImports].
+  ///    - If the class is disabled, it is skipped and a trace log is recorded.
+  ///
+  /// 2. **Create Pod Definition**
+  ///    - For each valid pod method, a [PodDefinition] is created via
+  ///      [_createPodDefinitionFromMethod].
+  ///
+  /// 3. **Resolve Name Conflicts**
+  ///    - If a pod with the same name already exists in the [_podFactory]:
+  ///      - Generate a unique name using [SimplePodNameGenerator].
+  ///      - If the generated name still conflicts, fall back to the method's own name.
+  ///
+  /// 4. **Update Registries**
+  ///    - The final pod definition name is assigned to [definition.name].
+  ///    - The definition is added to the [definitions] set.
+  ///    - The [mappedPodMethods] map is updated with the pod name and corresponding [PodMethod].
+  ///
+  /// 5. **Logging**
+  ///    - Trace logs are emitted for skipped imports and successfully created pod definitions.
+  ///
+  /// ### Parameters
+  /// - [definitions]: A set to collect all created pod definitions.
+  /// - [disabledImports]: List of imports that should be ignored during processing.
+  /// - [mappedPodMethods]: Map linking pod names to their originating pod methods.
+  /// - [podMethods]: List of [PodMethod] instances to process.
+  ///
+  /// ### Example
+  /// ```dart
+  /// final definitions = <PodDefinition>{};
+  /// final podMethods = await scanConfigurationMethods();
+  /// final mappedPodMethods = <String, PodMethod>{};
+  /// final disabledImports = <ImportClass>[];
+  ///
+  /// await _buildPodMethods(definitions, disabledImports, mappedPodMethods, podMethods);
+  /// ```
+  Future<void> _buildPodMethods(Set<PodDefinition> definitions, List<ImportClass> disabledImports, Map<String, PodMethod> mappedPodMethods, List<PodMethod> podMethods) async {
+    for (final podMethod in podMethods) {
+      final decl = podMethod.configurationClass.type;
+      if (disabledImports.any((i) => i.isQualifiedName ? decl.getQualifiedName().equals(i.name) : (decl.getPackage()?.getName().equals(i.name) ?? false))) {
+        if (_logger.getIsTraceEnabled()) {
+          _logger.trace('🧱 Skipping disabled import of ${decl}');
+        }
+
+        continue;
+      }
+
+      final definition = await _createPodDefinitionFromMethod(podMethod);
+    
+      // Check if pod name is already in use
+      String finalPodName = definition.name;
+      if (_podFactory.containsDefinition(finalPodName)) {
+        finalPodName = SimplePodNameGenerator().generate(definition, _podFactory);
+      }
+
+      if (_podFactory.containsDefinition(finalPodName)) {
+        finalPodName = podMethod.method.getName();
+      }
+
+      definition.name = finalPodName;
+      definitions.add(definition);
+      mappedPodMethods[finalPodName] = podMethod;
+
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('🔧 Created pod definition from method: ${definition.name} (${definition.type.getQualifiedName()})');
+      }
     }
   }
 
@@ -952,7 +1156,15 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
     }
     
     if (dependsOn != null) {
-      definition.dependsOn = dependsOn.value.map((dep) => DependencyDesign(name: dep)).toList();
+      definition.dependsOn = dependsOn.names.map((dep) {
+        if (dep is String) {
+          return DependencyDesign(name: dep);
+        } else if (dep is ClassType) {
+          return DependencyDesign(type: dep.toClass());
+        } else {
+          throw IllegalArgumentException("DependsOn annotation received an object of [${dep.runtimeType}] which is unsupported. Supported types are [String] or [ClassType]");
+        }
+      }).toList();
 
       if (_logger.getIsTraceEnabled()) {
         _logger.trace('🧩 DependsOn: ${definition.dependsOn.map((d) => d.name).join(", ")}');
@@ -963,6 +1175,8 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
       if (_logger.getIsTraceEnabled()) {
         _logger.trace('🧬 ProxyPodMethods enabled — enhancing definition for ${definition.name}');
       }
+
+      definition.canProxy = configClass.proxyPodMethods;
 
       await _enhancePodDefinition(definition, configClass);
     }
@@ -1028,6 +1242,103 @@ class ConfigurationClassPostProcessor implements PodFactoryPostProcessor, EntryA
       if (_logger.getIsTraceEnabled()) {
         _logger.trace('   Updated scope: ${definition.scope.type}');
         _logger.trace('✅ Enhancement complete for "${definition.name}"');
+      }
+    }
+  }
+
+  /// Completes the registration of pod definitions in the pod factory.
+  ///
+  /// This method processes a list of [PodDefinition] instances, filters them
+  /// according to disabled imports and conditional inclusion rules, and then
+  /// registers the eligible definitions with the pod factory.
+  ///
+  /// ### Processing Steps
+  /// 1. **Sorting Definitions**
+  ///    - Definitions are sorted using [PackageOrderComparator] to ensure a
+  ///      consistent registration order based on package and type priority.
+  ///
+  /// 2. **Filtering Disabled Imports**
+  ///    - Any definition whose type matches a [disabledImports] entry is skipped.
+  ///    - A type may be matched either by its fully qualified name or its package name.
+  ///    - If trace logging is enabled, skipped definitions are logged.
+  ///
+  /// 3. **Conditional Registration**
+  ///    - For definitions that correspond to a mapped pod method in [mappedPodMethods]:
+  ///      - The method is evaluated by [_conditionEvaluator.shouldInclude].
+  ///      - If the condition passes, the definition is registered; otherwise, it is skipped.
+  ///    - For definitions not associated with a mapped pod method:
+  ///      - The type itself is evaluated by [_conditionEvaluator.shouldInclude].
+  ///      - Eligible definitions are registered; failing ones are skipped.
+  ///
+  /// 4. **Registration**
+  ///    - Successful registrations call [_podFactory.registerDefinition] with
+  ///      the pod name and definition.
+  ///    - Trace logs are generated for each registration or skipped pod.
+  ///
+  /// ### Parameters
+  /// - [definitions]: The list of pod definitions to consider for registration.
+  /// - [disabledImports]: A list of imports that are explicitly disabled and should
+  ///   be skipped during registration.
+  /// - [mappedPodMethods]: A map of pod names to [PodMethod]s used for conditional
+  ///   evaluation before registration.
+  ///
+  /// ### Notes
+  /// - This method performs asynchronous registration of pods in the pod factory.
+  /// - Trace-level logging provides detailed insight into which pods were registered
+  ///   or skipped and why.
+  /// - Definitions are evaluated in deterministic order to ensure consistent
+  ///   registration behavior across application runs.
+  ///
+  /// ### Example
+  /// ```dart
+  /// await _completeRegistration(definitions, disabledImports, mappedPodMethods);
+  /// ```
+  Future<void> _completeRegistration(Iterable<PodDefinition> definitions, List<ImportClass> disabledImports, Map<String, PodMethod> mappedPodMethods) async {
+    final definitionToRegister = List<PodDefinition>.from(definitions);
+    definitionToRegister.sort((def1, def2) => PackageOrderComparator().compare(def1.type, def2.type));
+
+    for (final def in definitionToRegister) {
+      final decl = def.type;
+      if (disabledImports.any((i) => i.isQualifiedName ? decl.getQualifiedName().equals(i.name) : (decl.getPackage()?.getName().equals(i.name) ?? false))) {
+        if (_logger.getIsTraceEnabled()) {
+          _logger.trace('🧱 Skipping disabled import of ${decl}');
+        }
+
+        continue;
+      }
+
+      if (mappedPodMethods.containsKey(def.name)) {
+        final source = mappedPodMethods[def.name]!;
+
+        if (await _conditionEvaluator.shouldInclude(source.method)) {
+          if (_logger.getIsTraceEnabled()) {
+            _logger.trace('✅ Registered pod from method: ${def.name}');
+          }
+
+          await _podFactory.registerDefinition(def.name, def);
+        } else {
+          if (_logger.getIsTraceEnabled()) {
+            _logger.trace('🚫 Skipped pod (condition failed): ${def.name}');
+          }
+        }
+      } else if (await _conditionEvaluator.shouldInclude(def.type)) {
+        if (_logger.getIsTraceEnabled()) {
+          _logger.trace('✅ Registered pod definition: ${def.name}');
+        }
+
+        await _podFactory.registerDefinition(def.name, def);
+
+        final registrarClass = Class<PodRegistrar>(null, PackageNames.CORE);
+        if (registrarClass.isAssignableFrom(def.type)) {
+          final instance = def.type.getNoArgConstructor()?.newInstance();
+          if (instance is PodRegistrar) {
+            instance.register(this, _environment);
+          }
+        }
+      } else {
+        if (_logger.getIsTraceEnabled()) {
+          _logger.trace('🚫 Skipped pod (condition failed): ${def.name}');
+        }
       }
     }
   }

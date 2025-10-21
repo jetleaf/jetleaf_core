@@ -16,8 +16,8 @@ import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
 import '../../annotations/configuration.dart';
-import '../../annotations/stereotype.dart';
 import '../../scope/scope_metadata_resolver.dart';
+import '../type_filters/type_filter.dart';
 
 /// {@template configuration_class}
 /// Represents a parsed configuration class within Jetleaf's dependency injection system.
@@ -137,12 +137,12 @@ class PodMethod with EqualsAndHashCode {
 ///
 /// ```dart
 /// final scanConfig = ComponentScanConfiguration(
-///   basePackages: ['com.example.services'],
+///   basePackages: ['package:example/test.dart.services'],
 ///   includeFilters: [AnnotationTypeFilter(Class.forName('Service'))],
 /// );
 ///
 /// print(scanConfig.basePackages);
-/// // Output: [com.example.services]
+/// // Output: [package:example/test.dart.services]
 /// ```
 ///
 /// {@endtemplate}
@@ -189,80 +189,4 @@ class ComponentScanConfiguration with EqualsAndHashCode {
     scopeResolver,
     nameGenerator,
   ];
-}
-
-/// {@template annotation_type_filter}
-/// A type filter that matches classes annotated with a given annotation.
-///
-/// - If [considerMetaAnnotations] is true, Jetleaf will also inspect meta-annotations.
-/// - Otherwise, only direct annotations are checked.
-///
-/// ### Usage
-/// ```dart
-/// final filter = AnnotationTypeFilter(Class.forName('Service'));
-/// final matches = filter.matches(Class.forName('MyService'));
-/// ```
-/// {@endtemplate}
-class AnnotationTypeFilter extends TypeFilter {
-  /// The annotation type to match against.
-  final Class annotationType;
-
-  /// Whether to consider meta-annotations when matching.
-  final bool considerMetaAnnotations;
-
-  /// {@macro annotation_type_filter}
-  AnnotationTypeFilter(this.annotationType, {this.considerMetaAnnotations = true});
-
-  @override
-  bool matches(Class cls) {
-    if (considerMetaAnnotations) {
-      return cls.getAllAnnotations().any((a) => a.getClass() == annotationType);
-    } else {
-      return cls.getAllDirectAnnotations().any((a) => a.getClass() == annotationType);
-    }
-  }
-}
-
-/// {@template assignable_type_filter}
-/// A type filter that matches classes assignable to a given target type.
-///
-/// This is useful when scanning for subclasses or interface implementations.
-///
-/// ### Usage
-/// ```dart
-/// final filter = AssignableTypeFilter(Class.forName('BaseService'));
-/// final matches = filter.matches(Class.forName('MyService'));
-/// ```
-/// {@endtemplate}
-class AssignableTypeFilter extends TypeFilter {
-  /// The target type to check assignability against.
-  final Class targetType;
-
-  /// {@macro assignable_type_filter}
-  AssignableTypeFilter(this.targetType);
-
-  @override
-  bool matches(Class cls) => targetType.isAssignableFrom(cls);
-}
-
-/// {@template regex_pattern_type_filter}
-/// A type filter that matches class names against a regular expression.
-///
-/// This filter is applied on the fully qualified class name.
-///
-/// ### Usage
-/// ```dart
-/// final filter = RegexPatternTypeFilter(RegExp(r'Service\$'));
-/// final matches = filter.matches(Class.forName('MyService'));
-/// ```
-/// {@endtemplate}
-class RegexPatternTypeFilter extends TypeFilter {
-  /// The regular expression pattern to match against class names.
-  final RegExp pattern;
-
-  /// {@macro regex_pattern_type_filter}
-  const RegexPatternTypeFilter(this.pattern);
-
-  @override
-  bool matches(Class cls) => pattern.hasMatch(cls.getQualifiedName());
 }

@@ -20,3 +20,4 @@ export 'src/context/lifecycle/lifecycle.dart';
 export 'src/aware.dart';
 export 'src/exceptions.dart';
 export 'src/annotation_aware_order_comparator.dart';
+export 'src/package_order_comparator.dart';

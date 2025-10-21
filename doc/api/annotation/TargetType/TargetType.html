@@ -64,7 +64,7 @@
 type, optionally constrained by a package name.</p>
 <h1 id="purpose">Purpose</h1>
 <ul>
-<li>Acts as a metadata marker on beans, fields, or parameters to indicate
+<li>Acts as a metadata marker on pods, fields, or parameters to indicate
 a specific type target.</li>
 <li>Useful for frameworks that need to resolve generic or inferred types
 at runtime (e.g., injection points).</li>
@@ -81,11 +81,11 @@ package.</li>
 </li>
 </ul>
 <h1 id="example">Example</h1>
-<pre class="language-dart"><code class="language-dart">@TargetType("com.example.services")
+<pre class="language-dart"><code class="language-dart">@TargetType("package:example/test.dart.services")
 final TargetType&lt;Service&gt; serviceType = TargetType();
 
 final clazz = serviceType.get();
-print(clazz.getQualifiedName()); // com.example.services.Service
+print(clazz.getQualifiedName()); // package:example/test.dart.services.Service
 </code></pre>
 <h1 id="notes">Notes</h1>
 <ul>

@@ -165,7 +165,7 @@ void main() {
   });
 }
 
-class _TestLifecycleProcessor extends LifecycleProcessor {
+class _TestLifecycleProcessor implements LifecycleProcessor {
   @override
   Future<void> onClose() async {}
   

@@ -55,9 +55,6 @@ import 'conditions.dart';
 /// ```
 /// {@endtemplate}
 final class ConditionEvaluator extends ConditionalContext {
-  List<Class> types = [];
-  List<String> names = [];
-
   final Log _logger = LogFactory.getLog(ConditionEvaluator);
 
   /// {@macro conditionEvaluator}
@@ -81,113 +78,122 @@ final class ConditionEvaluator extends ConditionalContext {
       _logger.trace('Evaluating conditional inclusion for source: ${source.getName()}');
     }
 
-    // Process @Profile
+    final conditions = <AnnotatedCondition>[];
+
     if (source.hasDirectAnnotation<Profile>()) {
-      final activeProfiles = environment.getActiveProfiles();
-      final annotation = source.getDirectAnnotation<Profile>();
-
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('Found @Profile annotation on ${source.getName()} with profiles: ${annotation?.profiles}');
-      }
-
+      final annotation = source.getAllDirectAnnotations().find((ann) => ann.matches<Profile>());
+      
       if (annotation != null) {
-        for (final profile in annotation.profiles) {
-          if (annotation.negate) {
-            if (!activeProfiles.contains(profile)) {
-              if (_logger.getIsTraceEnabled()) {
-                _logger.trace('Profile condition matched (negated): $profile');
-              }
+        conditions.add(MapEntry(annotation, OnProfileCondition()));
+      }
+    }
 
-              return true;
-            }
-          } else {
-            if (activeProfiles.contains(profile)) {
-              if (_logger.getIsTraceEnabled()) {
-                _logger.trace('Profile condition matched: $profile');
-              }
+    final matches = findAllConditionals(source);
+    if (matches.isNotEmpty) {
+      for (final match in matches) {
+        final annotation = match.key;
+        final value = match.value;
 
-              return true;
+        if (value is List) {
+          for (final item in value) {
+            if (item is Condition) {
+              conditions.add(MapEntry(annotation, item));
             }
           }
         }
-
-        if (_logger.getIsTraceEnabled()) {
-          _logger.trace('Profile condition failed for ${source.getName()}');
-        }
-
-        return false; // explicit mismatch
       }
     }
 
-    final conditional = source.getDirectAnnotation<Conditional>();
-    if (conditional == null) {
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('No @Conditional annotation found on ${source.getName()}, defaulting to include.');
-      }
-
-      return true;
+    if (conditions.isNotEmpty) {
+      return await allConditionsMatch(conditions, source);
     }
 
     if (_logger.getIsTraceEnabled()) {
-      _logger.trace('Found @Conditional annotation with conditions: ${conditional.conditions.map((c) => c.getType()).toList()}');
-    }
-
-    List<Condition> conditions = [];
-    for (final condition in conditional.conditions) {
-      final conditionClass = condition.toClass();
-      final conditionName = conditionClass.getQualifiedName();
-
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('Instantiating condition: $conditionName');
-      }
-
-      if (conditionName.equals(Class<OnPropertyCondition>(null, PackageNames.CORE).getQualifiedName())) {
-        conditions.add(OnPropertyCondition());
-      } else if (conditionName.equals(Class<OnClassCondition>(null, PackageNames.CORE).getQualifiedName())) {
-        conditions.add(OnClassCondition());
-      } else if (conditionName.equals(Class<OnPodCondition>(null, PackageNames.CORE).getQualifiedName())) {
-        conditions.add(OnPodCondition(types: types, names: names));
-      } else if (conditionName.equals(Class<OnProfileCondition>(null, PackageNames.CORE).getQualifiedName())) {
-        conditions.add(OnProfileCondition());
-      } else if (conditionName.equals(Class<OnDartCondition>(null, PackageNames.CORE).getQualifiedName())) {
-        conditions.add(OnDartCondition());
-      } else if (conditionName.equals(Class<OnAssetCondition>(null, PackageNames.CORE).getQualifiedName())) {
-        conditions.add(OnAssetCondition());
-      } else if (conditionName.equals(Class<OnExpressionCondition>(null, PackageNames.CORE).getQualifiedName())) {
-        conditions.add(OnExpressionCondition());
-      } else {
-        try {
-          conditions.add(conditionClass.newInstance());
-        } catch (e) {
-          _logger.trace('❌ Failed to instantiate condition: $conditionName — $e');
-          throw IllegalArgumentException("Failed to instantiate condition $conditionName. Make sure it has a no-arg constructor.");
-        }
-      }
-    }
-
-    for (final condition in conditions) {
-      final conditionName = condition.runtimeType.toString();
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('Evaluating condition: $conditionName for source: ${source.getName()}');
-      }
-
-      final result = await condition.matches(this, source);
-      if (!result) {
-        if (_logger.getIsTraceEnabled()) {
-          _logger.trace('Condition failed: $conditionName — Source ${source.getName()} will be excluded.');
-        }
-        return false;
-      }
-
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('Condition passed: $conditionName');
-      }
-    }
-
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('✅ All conditions passed for ${source.getName()}. Including in context.');
+      _logger.trace('No @Conditional or @Profile annotation found on ${source.getName()}, defaulting to include.');
     }
 
     return true;
   }
+
+  /// Recursively finds all @Conditional annotations associated with a source.
+  ///
+  /// - [source] can be a Class or Method (anything that implements getAllDirectAnnotations()).
+  /// - Walks through annotations that extend [WhenConditional] and finds
+  ///   any @Conditional annotations on them, recursively.
+  ///
+  /// Returns a list of [ConditionalMatch] entries.
+  List<ConditionalMatch> findAllConditionals(Source source) {
+    final matches = <ConditionalMatch>[];
+
+    /// Recursively process a single annotation
+    void processAnnotation(Annotation annotation) {
+      final annotationClass = annotation.getClass();
+
+      // Check all annotations on this annotation class
+      for (final inner in annotationClass.getAllAnnotations()) {
+        try {
+          // If the inner annotation is assignable to Conditional, record it
+          if (Class<Conditional>(null, PackageNames.CORE).isAssignableFrom(inner.getClass())) {
+            matches.add(MapEntry(annotation, inner.getFieldValue(Conditional.FIELD_KEY)));
+          }
+
+          // If the inner annotation itself extends WhenConditional, recurse
+          if (Class<WhenConditional>(null, PackageNames.CORE).isAssignableFrom(inner.getClass())) {
+            processAnnotation(inner);
+          }
+        } catch (_) {
+          // Ignore errors from reflection issues
+        }
+      }
+    }
+
+    // Start with all direct annotations on the source
+    for (final ann in source.getAllDirectAnnotations()) {
+      try {
+        if (Class<WhenConditional>(null, PackageNames.CORE).isAssignableFrom(ann.getClass())) {
+          processAnnotation(ann);
+        }
+
+        // Also check if the annotation itself is a Conditional
+        if (Class<Conditional>(null, PackageNames.CORE).isAssignableFrom(ann.getClass())) {
+          matches.add(MapEntry(ann, ann.getFieldValue(Conditional.FIELD_KEY)));
+        }
+      } catch (_) {}
+    }
+
+    return matches;
+  }
+
+  /// Checks whether **all given conditions** match the specified [source] asynchronously.
+  ///
+  /// Each [AnnotatedCondition] contains an annotation and its associated [Condition].
+  /// This method evaluates all conditions in parallel and returns `true` only if
+  /// every condition’s `matches` method returns `true`.
+  ///
+  /// Example:
+  /// ```dart
+  /// final allMatch = await allConditionsMatch(conditions, source);
+  /// if (allMatch) {
+  ///   // All conditions passed
+  /// }
+  /// ```
+  Future<bool> allConditionsMatch(Iterable<AnnotatedCondition> conditions, Source source) async {
+    final results = await Future.wait(conditions.map((condition) => condition.value.matches(this, condition.key, source)));
+
+    // Check if all results are true
+    return results.all((match) => match);
+  }
 }
+
+/// Represents a pair of an annotation and its corresponding resolved
+/// `@Conditional` annotation (or related metadata).
+///
+/// The key is the **main annotation** being processed, and the value is
+/// the associated conditional metadata or resolved annotation.
+typedef ConditionalMatch = MapEntry<Annotation, dynamic>;
+
+/// Represents a pair of an annotation and its associated `Condition`.
+///
+/// The key is the **annotation** being evaluated, and the value is the
+/// `Condition` that determines whether the annotation is active or applicable.
+typedef AnnotatedCondition = MapEntry<Annotation, Condition>;

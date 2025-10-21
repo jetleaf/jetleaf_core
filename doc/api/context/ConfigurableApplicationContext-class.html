@@ -109,9 +109,9 @@ void main() async {
 <ol>
 <li><strong>Configuration</strong>: Add listeners, initializers, processors</li>
 <li><strong>Refresh</strong>: Load configuration, instantiate pods, publish events</li>
-<li><strong>Start</strong>: Transition to running state, start lifecycle beans</li>
+<li><strong>Start</strong>: Transition to running state, start lifecycle pods</li>
 <li><strong>Running</strong>: Normal operation, event processing</li>
-<li><strong>Stop</strong>: Transition to stopped state, stop lifecycle beans</li>
+<li><strong>Stop</strong>: Transition to stopped state, stop lifecycle pods</li>
 <li><strong>Close</strong>: Release resources, destroy pods, close context</li>
 </ol>
 <p>See also:</p>
@@ -220,8 +220,8 @@ void main() async {
 
 </dd>
 
-        <dt id="addPodAwareProcessor" class="callable inherited">
-  <span class="name"><a href="../context/ConfigurableApplicationContext/addPodAwareProcessor.html">addPodAwareProcessor</a></span><span class="signature">(<wbr><span class="parameter" id="addPodAwareProcessor-param-processor"><span class="type-annotation">PodAwareProcessor</span> <span class="parameter-name">processor</span></span>)
+        <dt id="addPodProcessor" class="callable inherited">
+  <span class="name"><a href="../context/ConfigurableApplicationContext/addPodProcessor.html">addPodProcessor</a></span><span class="signature">(<wbr><span class="parameter" id="addPodProcessor-param-processor"><span class="type-annotation">PodProcessor</span> <span class="parameter-name">processor</span></span>)
     <span class="returntype parameter">&#8594; void</span>
   </span>
   
@@ -783,8 +783,8 @@ such as lifecycle management.
 
 </dd>
 
-        <dt id="getPodAwareProcessorCount" class="callable inherited">
-  <span class="name"><a href="../context/ConfigurableApplicationContext/getPodAwareProcessorCount.html">getPodAwareProcessorCount</a></span><span class="signature">(<wbr>)
+        <dt id="getPodProcessorCount" class="callable inherited">
+  <span class="name"><a href="../context/ConfigurableApplicationContext/getPodProcessorCount.html">getPodProcessorCount</a></span><span class="signature">(<wbr>)
     <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>
   </span>
   
@@ -796,9 +796,9 @@ such as lifecycle management.
 
 </dd>
 
-        <dt id="getPodAwareProcessors" class="callable inherited">
-  <span class="name"><a href="../context/ConfigurableApplicationContext/getPodAwareProcessors.html">getPodAwareProcessors</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">PodAwareProcessor</span>&gt;</span></span>
+        <dt id="getPodProcessors" class="callable inherited">
+  <span class="name"><a href="../context/ConfigurableApplicationContext/getPodProcessors.html">getPodProcessors</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">PodProcessor</span>&gt;</span></span>
   </span>
   
 

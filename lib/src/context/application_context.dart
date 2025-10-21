@@ -24,13 +24,14 @@ import '../message/message_source.dart';
 import 'application_type.dart';
 import 'event/event_listener.dart';
 import 'event/application_event.dart';
+import 'lifecycle/lifecycle_processor.dart';
 import 'pod_registrar.dart';
 
 /// {@template application_context}
 /// The central interface for a JetLeaf application context.
 ///
 /// An [ApplicationContext] is the core container that provides:
-/// - **Dependency Injection**: Access to managed pods (beans) via [ListablePodFactory] and [HierarchicalPodFactory]
+/// - **Dependency Injection**: Access to managed pods via [ListablePodFactory] and [HierarchicalPodFactory]
 /// - **Environment Management**: Configuration and profile handling via [EnvironmentCapable]
 /// - **Internationalization**: Message resolution and localization via [MessageSource]
 /// - **Event System**: Application-wide event publication through [publishEvent]
@@ -89,7 +90,7 @@ import 'pod_registrar.dart';
 /// - [MessageSource] for internationalization support
 /// - [ApplicationEvent] for event system integration
 /// {@endtemplate}
-abstract class ApplicationContext implements EnvironmentAware, MessageSource, PodRegistry, ListablePodFactory {
+abstract class ApplicationContext implements EnvironmentAware, MessageSource, PodRegistry, ConfigurableListablePodFactory {
   /// {@template application_context_get_id}
   /// Returns a unique identifier for this application context.
   ///
@@ -101,7 +102,7 @@ abstract class ApplicationContext implements EnvironmentAware, MessageSource, Po
   ///
   /// ### Identifier Characteristics:
   /// - Typically assigned during context creation
-  /// - Should be unique within the same JVM/process
+  /// - Should be unique within the same DVM/process
   /// - Usually includes context type and sequence information
   /// - Can be used in parent-child context relationships
   ///
@@ -381,8 +382,8 @@ abstract class ApplicationContext implements EnvironmentAware, MessageSource, Po
   /// print('Package: ${mainClass.getPackage()?.getName()}');
   /// 
   /// // Check for specific annotations
-  /// if (mainClass.hasAnnotation<SpringBootApplication>()) {
-  ///   print('This is a Spring Boot application');
+  /// if (mainClass.hasAnnotation<JetLeafApplication>()) {
+  ///   print('This is a JetLeaf application');
   /// }
   /// ```
   /// {@endtemplate}
@@ -474,6 +475,30 @@ abstract class ApplicationContext implements EnvironmentAware, MessageSource, Po
   /// - Factory modifications may require context refresh to take effect
   /// {@endtemplate}
   ConfigurableListablePodFactory getPodFactory();
+
+  /// {@template application_context_get_lifecycle_processor}
+  /// 🆕 Returns the [LifecycleProcessor] associated with the current context.
+  ///
+  /// The [LifecycleProcessor] is responsible for coordinating the lifecycle
+  /// of pods and other components within the context, including:
+  /// - Pod initialization and destruction
+  /// - Dependency injection and resolution
+  /// - Circular dependency detection and handling
+  /// - Lifecycle callbacks for pods
+  ///
+  /// ### Usage:
+  /// ```dart
+  /// final processor = context.getLifecycleProcessor();
+  /// 
+  /// // Register a pod with lifecycle callbacks
+  /// processor.registerPod('myPod', MyPod());
+  /// 
+  /// // Perform lifecycle operations
+  /// processor.onRefresh();
+  /// processor.onClose();
+  /// ```
+  /// {@endtemplate}
+  LifecycleProcessor getLifecycleProcessor();
 }
 
 // =================================== CONFIGURABLE APPLICATION CONTEXT =======================================
@@ -535,9 +560,9 @@ abstract class ApplicationContext implements EnvironmentAware, MessageSource, Po
 /// ### Lifecycle Phases:
 /// 1. **Configuration**: Add listeners, initializers, processors
 /// 2. **Refresh**: Load configuration, instantiate pods, publish events
-/// 3. **Start**: Transition to running state, start lifecycle beans
+/// 3. **Start**: Transition to running state, start lifecycle pods
 /// 4. **Running**: Normal operation, event processing
-/// 5. **Stop**: Transition to stopped state, stop lifecycle beans
+/// 5. **Stop**: Transition to stopped state, stop lifecycle pods
 /// 6. **Close**: Release resources, destroy pods, close context
 ///
 /// See also:
