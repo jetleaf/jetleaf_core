@@ -337,3 +337,6 @@ export 'src/context/application_context.dart';
 export 'src/context/application_type.dart';
 export 'src/context/application_module.dart';
 export 'src/context/pod_registrar.dart';
+export 'src/context/application_conversion_service.dart';
+export 'src/context/application_environment.dart';
+export 'src/context/pod_factory_customizer.dart';

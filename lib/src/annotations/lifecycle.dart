@@ -115,7 +115,7 @@ final class EventType<T extends ApplicationEvent> {
   Class<T> getType() {
     String? packageName = _packageName;
     if (packageName == null) {
-      if (T is ContextClosedEvent || T is ContextRefreshedEvent || T is ContextStartedEvent || T is ContextStoppedEvent || T is ContextRestartedEvent || T is ContextFailedEvent || T is ContextReadyEvent) {
+      if (T is ContextClosedEvent || T is ContextSetupEvent || T is ContextStartedEvent || T is ContextStoppedEvent || T is ContextRestartedEvent || T is ContextFailedEvent || T is ContextReadyEvent) {
         packageName = PackageNames.CORE;
       }
     }

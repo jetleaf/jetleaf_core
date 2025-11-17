@@ -96,10 +96,11 @@ final class EventListenerMethodProcessor implements PodFactoryPostProcessor, App
 
   @override
   Future<void> postProcessFactory(ConfigurableListablePodFactory podFactory) async {
-    final podNames = await podFactory.getPodNames(Class<Object>(null, PackageNames.DART));
+    final podNames = podFactory.getDefinitionNames();
     
     for (final podName in podNames) {
-      final cls = await podFactory.getPodClass(podName);
+      final def = podFactory.getDefinition(podName);
+      final cls = def.type;
       final methods = cls.getMethods().where((m) => m.hasDirectAnnotation<EventListener>());
 
       for (final method in methods) {

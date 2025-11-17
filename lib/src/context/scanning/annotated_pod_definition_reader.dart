@@ -134,7 +134,7 @@ final class AnnotatedPodDefinitionReader implements EnvironmentAware, PodFactory
     definition.scope = scopeMetadata;
 
     // Generate pod name if none provided
-    String podName = (name != null ? name : AnnotatedPodNameGenerator().generate(definition, _podFactory));
+    String podName = name ?? AnnotatedPodNameGenerator().generate(definition, _podFactory);
     definition.name = podName;
 
     // Process proxying capabilities (@Configuration, @AutoConfiguration)

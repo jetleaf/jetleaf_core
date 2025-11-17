@@ -54,7 +54,7 @@ class ConfigurableMessageSource extends AbstractMessageSource {
   final Map<Locale, Map<String, String>> _messages = {};
 
   /// {@macro configurable_message_source}
-  ConfigurableMessageSource({Locale? defaultLocale}) : super(defaultLocale: defaultLocale);
+  ConfigurableMessageSource({super.defaultLocale});
 
   /// {@template configurable_message_source_load_messages}
   /// Load messages for a specific locale from a resource.

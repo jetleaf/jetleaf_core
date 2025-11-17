@@ -171,7 +171,7 @@ class ExitCodeGenerators extends Iterable<ExitCodeGenerator> {
   /// {@endtemplate}
   void addGenerator(ExitCodeGenerator generator) {
     _generators.add(generator);
-    AnnotationAwareOrderComparator.sort(this._generators);
+    AnnotationAwareOrderComparator.sort(_generators);
   }
 
   @override

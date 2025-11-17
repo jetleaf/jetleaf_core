@@ -29,7 +29,7 @@ import 'configuration_class.dart';
 /// circular dependencies or self-references during parsing.
 final Set<Class> _processingClasses = {};
 
-/// {@template configurationClassParser}
+/// {@template configurationClassBuilder}
 /// Parser for configuration classes that processes pod definitions and converts them
 /// into [ConfigurationClass] instances with proper annotation handling and validation.
 ///
@@ -41,7 +41,7 @@ final Set<Class> _processingClasses = {};
 /// **Example:**
 /// ```dart
 /// final factory = DefaultPodFactory();
-/// final parser = ConfigurationClassParser(factory);
+/// final parser = ConfigurationClassBuilder(factory);
 ///
 /// // Parse a configuration class definition
 /// final configClass = await parser.parse(PodDefinition(
@@ -54,14 +54,14 @@ final Set<Class> _processingClasses = {};
 /// }
 /// ```
 /// {@endtemplate}
-final class ConfigurationClassParser {
-  final Log _logger = LogFactory.getLog(ConfigurationClassParser);
+final class ConfigurationClassBuilder {
+  final Log _logger = LogFactory.getLog(ConfigurationClassBuilder);
 
   /// The pod factory to use for configuration parsing and pod name generation.
   final ConfigurableListablePodFactory podFactory;
 
-  /// {@macro configurationClassParser}
-  ConfigurationClassParser(this.podFactory);
+  /// {@macro configurationClassBuilder}
+  ConfigurationClassBuilder(this.podFactory);
 
   /// {@template parse_configuration_class}
   /// Parses a pod definition into a [ConfigurationClass] if it represents a configuration.
@@ -79,7 +79,7 @@ final class ConfigurationClassParser {
   /// **Example:**
   /// ```dart
   /// final factory = DefaultPodFactory();
-  /// final parser = ConfigurationClassParser(factory);
+  /// final parser = ConfigurationClassBuilder(factory);
   ///
   /// // Parse configuration with custom proxy behavior
   /// final configClass = await parser.parse(PodDefinition(
@@ -100,7 +100,7 @@ final class ConfigurationClassParser {
   /// ));
   /// ```
   /// {@endtemplate}
-  Future<ConfigurationClass?> parse(PodDefinition definition) async {
+  Future<ConfigurationClass?> build(PodDefinition definition) async {
     final type = definition.type;
     final qualifiedName = type.getQualifiedName();
 

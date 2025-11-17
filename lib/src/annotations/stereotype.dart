@@ -499,6 +499,7 @@ final class ComponentScan extends ReflectableAnnotation with EqualsAndHashCode {
   /// Provides a mechanism to assign unique names to discovered components.
   final PodNameGenerator? nameGenerator;
 
+  /// {@macro jetleaf_component_scan}
   const ComponentScan({
     this.basePackages = const [],
     this.basePackageClasses = const [],
@@ -563,12 +564,8 @@ class ComponentScanFilter with EqualsAndHashCode {
   /// Custom filter implementation when `FilterType.CUSTOM` is used.
   final TypeFilter? typeFilter;
   
-  const ComponentScanFilter({
-    required this.type,
-    this.classes = const [],
-    this.pattern,
-    this.typeFilter
-  });
+  /// {@macro jetleaf_component_scan_filter}
+  const ComponentScanFilter(this.type, {this.classes = const [], this.pattern, this.typeFilter});
 
   @override
   List<Object?> equalizedProperties() => [
@@ -589,90 +586,15 @@ class ComponentScanFilter with EqualsAndHashCode {
 /// - `CUSTOM`: Uses a custom `TypeFilter` implementation.
 /// {@endtemplate}
 enum FilterType {
+  /// Matches classes annotated with given annotations.
   ANNOTATION,
+
+  /// Matches classes assignable to given types.
   ASSIGNABLE,
+
+  /// Matches classes whose names match a regex pattern.
   REGEX,
+
+  /// Uses a custom `TypeFilter` implementation.
   CUSTOM;
-}
-
-/// {@template repository}
-/// Repository annotation for generic Jet repositories
-/// 
-/// Example Usage:
-/// ```dart
-/// @Repository()
-/// class UserRepository {
-///   final Database database;
-///   
-///   UserRepository(this.database);
-///   
-///   Future<User> findById(int id) async {
-///     return database.query('SELECT * FROM users WHERE id = $id');
-///   }
-/// }
-/// ```
-/// 
-/// {@endtemplate}
-@Target({TargetKind.classType})
-class Repository extends ReflectableAnnotation {
-  const Repository();
-
-  @override
-  Type get annotationType => Repository;
-}
-
-/// {@template controller}
-/// Controller annotation for Jet View controllers
-/// 
-/// This annotation marks a class as a Jet View controller.
-/// Unlike @RestController, methods return view names by default.
-/// 
-/// Example Usage:
-/// ```dart
-/// @Controller('/web')
-/// class WebController {
-///   final UserService userService;
-///   
-///   WebController(this.userService);
-///   
-///   @GetMapping('/users')
-///   String listUsers(Model model) {
-///     model.addAttribute('users', userService.findAll());
-///     return 'users/list';
-///   }
-///   
-///   @GetMapping('/users/{id}')
-///   String viewUser(@PathVariable('id') String id, Model model) {
-///     model.addAttribute('user', userService.findById(id));
-///     return 'users/view';
-///   }
-///   
-///   @ResponseBody
-///   @GetMapping('/api/users')
-///   Future<List<User>> getUsersApi() async {
-///     return userService.findAll();
-///   }
-/// }
-/// ```
-/// 
-/// {@endtemplate}
-@Target({TargetKind.classType})
-class Controller extends ReflectableAnnotation with EqualsAndHashCode {
-  /// Base path for all endpoints in this controller
-  final String? value;
-  
-  /// {@macro controller}
-  const Controller([this.value]);
-  
-  /// Gets the effective base path
-  String? get effectivePath => value;
-  
-  @override
-  String toString() => 'Controller(path: $effectivePath)';
-
-  @override
-  Type get annotationType => Controller;
-
-  @override
-  List<Object?> equalizedProperties() => [value];
 }

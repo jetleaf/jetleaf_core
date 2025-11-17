@@ -170,7 +170,7 @@ class _TestLifecycleProcessor implements LifecycleProcessor {
   Future<void> onClose() async {}
   
   @override
-  void onRefresh() {}
+  Future<void> onRefresh() async {}
 }
 
 class SimpleRunnable implements Runnable {

@@ -1,12 +1,26 @@
-# jetleaf_core
+# 🍃 JetLeaf Core — Application Lifecycle & Pod Management
 
-🍃 The **core module** of the JetLeaf framework that provides the application context, dependency injection annotations, lifecycle management, event system, and internationalization support.
+[![pub package](https://img.shields.io/badge/version-1.0.0-blue)](https://pub.dev/packages/jetleaf_core)
+[![License](https://img.shields.io/badge/license-JetLeaf-green)](#license)
+[![Dart SDK](https://img.shields.io/badge/sdk-%3E%3D3.9.0-blue)](https://dart.dev)
 
-`jetleaf_core` is the foundation for building JetLeaf applications, integrating pod management, configuration, conditional processing, and application startup orchestration.
+The core runtime that powers **JetLeaf's pod discovery, context management, and application lifecycle**.
 
-- Homepage: https://jetleaf.hapnium.com
-- Repository: https://github.com/jetleaf/jetleaf_core
-- License: See `LICENSE`
+## 📋 Overview
+
+`jetleaf_core` is the heart of the JetLeaf framework, providing:
+
+- **Inversion of Control (IoC)** — Automatic pod discovery and registration
+- **Pod Lifecycle Management** — From initialization through graceful shutdown
+- **Application Context** — Central registry for all framework components
+- **Annotation-Driven Configuration** — Declarative pod and lifecycle definitions
+- **Aware Interfaces** — Lifecycle callbacks for framework integration
+- **Event Publishing** — Application-level event system
+- **Ordering Mechanisms** — Deterministic pod initialization sequences
+
+- **Homepage**: https://jetleaf.hapnium.com
+- **Repository**: https://github.com/jetleaf/jetleaf_core
+- **License**: See `LICENSE`
 
 ## Contents
 - **[Features](#features)**

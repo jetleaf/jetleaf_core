@@ -106,6 +106,7 @@ class AutowiredAnnotationPodProcessor extends PodSmartInstantiationProcessor imp
 
     for (final param in parameters) {
       final paramClass = param.getClass();
+      final classContent = _getClassContent(paramClass);
 
       if (param.hasDirectAnnotation<Qualifier>()) {
         final qualifier = param.getDirectAnnotation<Qualifier>();
@@ -117,13 +118,14 @@ class AutowiredAnnotationPodProcessor extends PodSmartInstantiationProcessor imp
             propertyName: param.getName(),
             type: paramClass,
             args: null,
-            component: paramClass.componentType(),
-            key: paramClass.keyType(),
+            component: classContent.component ?? paramClass.componentType(),
+            key: classContent.key ?? paramClass.keyType(),
             isEager: true,
             isRequired: param.isRequired(),
             lookup: qualifier?.value,
           ),
         );
+        
         args.add(
           ArgumentValue(
             dep,

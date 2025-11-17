@@ -337,3 +337,56 @@ class Import extends ReflectableAnnotation with EqualsAndHashCode {
   @override
   List<Object?> equalizedProperties() => [classes];
 }
+
+/// {@template jetleaf_annotation_ConfigurationProperty}
+/// Annotation used to bind externalized configuration properties
+/// from the [Environment] into a Dart object.
+///
+/// Supports **nested property binding**, where nested classes are
+/// automatically populated from environment values.
+///
+/// ### Example
+/// ```dart
+/// @ConfigurationProperty(prefix: 'server')
+/// class ServerConfig {
+///   late String host;
+///   late int port;
+///
+///   late DatabaseConfig database;
+/// }
+///
+/// class DatabaseConfig {
+///   late String url;
+///   late String username;
+///   late String password;
+/// }
+///
+/// // application.yaml
+/// // server:
+/// //   host: localhost
+/// //   port: 8080
+/// //   database:
+/// //     url: jdbc:postgresql://localhost:5432/app
+/// //     username: admin
+/// //     password: secret
+/// ```
+///
+/// JetLeaf automatically constructs and populates both `ServerConfig`
+/// and its nested `DatabaseConfig`.
+/// {@endtemplate}
+final class ConfigurationProperty extends Configuration {
+  /// The prefix used to map environment properties to this object’s fields.
+  final String prefix;
+
+  /// Whether to ignore unknown fields that are not present in the environment.
+  final bool ignoreUnknownFields;
+
+  /// Whether to validate all fields have matching environment values.
+  final bool validate;
+
+  /// {@macro jetleaf_annotation_ConfigurationProperty}
+  const ConfigurationProperty({this.prefix = '', this.ignoreUnknownFields = true, this.validate = false});
+
+  @override
+  List<Object?> equalizedProperties() => [ConfigurationProperty];
+}

@@ -25,7 +25,7 @@ import 'event/application_event.dart';
 /// that would otherwise terminate after context initialization.
 ///
 /// The keep-alive mechanism listens to [ApplicationContextEvent]s and
-/// starts an internal blocking thread on [ContextRefreshedEvent], and
+/// starts an internal blocking thread on [ContextSetupEvent], and
 /// releases it on [ContextClosedEvent].
 ///
 /// ---
@@ -51,7 +51,7 @@ final class KeepAlive implements ApplicationEventListener<ApplicationContextEven
 
   @override
   Future<void> onApplicationEvent(ApplicationContextEvent event) async {
-    if (event is ContextRefreshedEvent) {
+    if (event is ContextSetupEvent) {
       startKeepAliveThread();
     } else if (event is ContextClosedEvent) {
       stopKeepAliveThread();

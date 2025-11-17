@@ -16,6 +16,7 @@ import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
 import '../../annotations/configuration.dart';
+import '../../annotations/others.dart';
 import '../../annotations/stereotype.dart';
 
 /// {@template annotatedPodNameGenerator}
@@ -99,6 +100,11 @@ final class AnnotatedPodNameGenerator implements PodNameGenerator {
 
     if (apd.type.hasDirectAnnotation<Configuration>()) {
       name ??= apd.type.getDirectAnnotation<Configuration>()?.value;
+    }
+
+    final named = apd.type.getDirectAnnotation<Named>();
+    if (named != null) {
+      name = named.name;
     }
 
     return name;

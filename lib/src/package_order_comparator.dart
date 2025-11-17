@@ -144,12 +144,12 @@ final class PackageOrderComparator extends OrderComparator {
       }
 
       // 2 = jetleaf subpackages
-      if (name.startsWith('${PackageNames.MAIN}')) {
+      if (name.startsWith(PackageNames.MAIN)) {
         return 2;
       }
 
       // 3 = dart packages
-      if (name == Constant.DART_PACKAGE_NAME || name.startsWith('${Constant.DART_PACKAGE_NAME}')) {
+      if (name == Constant.DART_PACKAGE_NAME || name.startsWith(Constant.DART_PACKAGE_NAME)) {
         return 3;
       }
 

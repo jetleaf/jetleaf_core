@@ -1,3 +1,17 @@
+// ---------------------------------------------------------------------------
+// 🍃 JetLeaf Framework - https://jetleaf.hapnium.com
+//
+// Copyright © 2025 Hapnium & JetLeaf Contributors. All rights reserved.
+//
+// This source file is part of the JetLeaf Framework and is protected
+// under copyright law. You may not copy, modify, or distribute this file
+// except in compliance with the JetLeaf license.
+//
+// For licensing terms, see the LICENSE file in the root of this project.
+// ---------------------------------------------------------------------------
+// 
+// 🔧 Powered by Hapnium — the Dart backend engine 🍃
+
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
@@ -71,11 +85,11 @@ final class ApplicationAnnotatedLifecycleProcessor implements SmartInitializingS
 
   /// {@macro applicationStoppingMethods}
   /// Registry of methods annotated with [@OnApplicationStopping] and their instances.
-  Map<Object, Method> _onApplicationStoppingMethods = {};
+  final Map<Object, Method> _onApplicationStoppingMethods = {};
 
   /// {@macro applicationStoppedMethods}
   /// Registry of methods annotated with [@OnApplicationStopped] and their instances.
-  Map<Object, Method> _onApplicationStoppedMethods = {};
+  final Map<Object, Method> _onApplicationStoppedMethods = {};
 
   PodFactory? _podFactory;
 

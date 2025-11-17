@@ -15,8 +15,6 @@
 import 'dart:io';
 
 import 'package:jetleaf_lang/lang.dart';
-import 'package:jetleaf_lang/mock.dart';
-import 'package:jetleaf_lang/reflection.dart';
 
 Future<void> setupRuntime({List<String> packagesToExclude = const [], List<String> filesToLoad = const []}) async {
   final scan = await MockRuntimeScanner(
@@ -33,7 +31,7 @@ Future<void> setupRuntime({List<String> packagesToExclude = const [], List<Strin
       configuration: params.configuration,
       packages: params.packages
     )
-  ).scan('output', RuntimeScannerConfiguration(
+  ).scan(RuntimeScannerConfiguration(
     skipTests: true,
     packagesToExclude: [
       "test",

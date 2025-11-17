@@ -248,8 +248,6 @@ final class ComponentScanAnnotationParser {
     // @Component and its meta-annotations
     scanner.addIncludeFilter(AnnotationTypeFilter(Class<Component>(null, PackageNames.CORE)));
     scanner.addIncludeFilter(AnnotationTypeFilter(Class<Service>(null, PackageNames.CORE)));
-    scanner.addIncludeFilter(AnnotationTypeFilter(Class<Repository>(null, PackageNames.CORE)));
-    scanner.addIncludeFilter(AnnotationTypeFilter(Class<Controller>(null, PackageNames.CORE)));
     scanner.addIncludeFilter(AnnotationTypeFilter(Class<Configuration>(null, PackageNames.CORE)));
   }
 }

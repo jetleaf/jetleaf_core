@@ -869,3 +869,113 @@ class Description extends ReflectableAnnotation with EqualsAndHashCode {
   @override
   List<Object?> equalizedProperties() => [value];
 }
+
+/// {@template jetleaf_named_annotation}
+/// Explicitly specifies a name for a Pod (Dependency Injection component) that overrides
+/// all other naming mechanisms in the Jetleaf framework.
+///
+/// This annotation provides the highest precedence for Pod naming and can be
+/// applied to both classes and methods to explicitly define how they should
+/// be registered and referenced in the application context.
+///
+/// ### Naming Precedence Hierarchy
+/// When multiple naming mechanisms are available, `@Named` takes precedence in this order:
+/// 1. **@Named** (highest precedence - explicit override)
+/// 2. **@Component.name** and related stereotype annotations
+/// 3. **@Pod.name** for configuration methods
+///
+/// ### Usage Scenarios
+/// - **Explicit Pod Identification**: When you need specific, predictable Pod names
+/// - **Disambiguation**: When multiple Pods of the same type exist and need distinct names
+/// - **Configuration Override**: When you want to override default naming conventions
+/// - **Integration**: When integrating with systems that require specific Pod identifiers
+///
+/// ### Target Support
+/// This annotation can be applied to:
+/// - **Classes**: To name the Pod created from the class instance
+/// - **Methods**: To name the Pod returned by a configuration method
+///
+/// ### Example
+/// ```dart
+/// // Class-level usage - names the UserService Pod as 'userService'
+/// @Named('userService')
+/// @Service()
+/// class UserService {
+///   // Implementation...
+/// }
+///
+/// // Method-level usage - names the DataSource Pod as 'primaryDataSource'
+/// @Configuration()
+/// class DataSourceConfig {
+///   @Named('primaryDataSource')
+///   @Pod()
+///   DataSource createDataSource() {
+///     return DataSource();
+///   }
+/// }
+/// ```
+///
+/// ### Framework Behavior
+/// - **Registration**: Pods annotated with `@Named` are registered with the specified name
+/// - **Lookup**: Dependency injection uses the explicit name for resolution
+/// - **Validation**: Duplicate Pod names will cause application startup failures
+/// - **Reflection**: The name is available via reflection for framework components
+///
+/// ### Best Practices
+/// - Use descriptive, meaningful names that indicate the Pod's purpose
+/// - Follow consistent naming conventions across your application
+/// - Consider using constants for Pod names to avoid typos
+/// - Document why explicit naming is needed when used
+///
+/// ### Related Annotations
+/// - [@Pod] - Declares a method as producing a Pod
+/// - [@Service] - Stereotype annotation for service layer Pods
+/// - [@Repository] - Stereotype annotation for data access layer Pods
+/// - [@Component] - Generic stereotype annotation for any Pod
+/// {@endtemplate}
+@Target({TargetKind.classType, TargetKind.method})
+class Named extends ReflectableAnnotation with EqualsAndHashCode {
+  /// The explicit name to use for this Pod in the application context.
+  ///
+  /// This name must be unique within the application context and will be used
+  /// for all Pod registration, lookup, and dependency resolution operations.
+  ///
+  /// ### Naming Guidelines
+  /// - Use camelCase convention (e.g., 'userService', 'dataSource')
+  /// - Be descriptive but concise
+  /// - Avoid special characters and spaces
+  /// - Consider the Pod's role and responsibility
+  ///
+  /// ### Example
+  /// ```dart
+  /// @Named('userRepository')  // Good - clear and descriptive
+  /// @Named('usrRepo')         // Less ideal - abbreviated and unclear
+  /// @Named('user-repository') // Invalid - contains hyphen
+  /// ```
+  final String name;
+
+  /// Creates a `@Named` annotation with the specified Pod name.
+  ///
+  /// ### Parameters
+  /// - [name]: The unique name to assign to this Pod in the application context
+  ///
+  /// ### Example
+  /// ```dart
+  /// @Named('emailService')
+  /// class EmailService {
+  ///   // This Pod will be registered as 'emailService'
+  /// }
+  /// ```
+  /// 
+  /// {@macro jetleaf_named_annotation}
+  const Named(this.name);
+
+  @override
+  Type get annotationType => Named;
+
+  @override
+  List<Object?> equalizedProperties() => [name];
+
+  @override
+  String toString() => "Named($name)";
+}

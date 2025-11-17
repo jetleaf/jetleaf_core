@@ -50,7 +50,7 @@ import 'pod_spec.dart';
 /// 5. **Destruction**: Context closed and resources cleaned up
 ///
 /// ### Important Note:
-/// The [refresh] method **must be called exactly once** after all pod
+/// The [setup] method **must be called exactly once** after all pod
 /// definitions are registered and before any pod access attempts.
 ///
 /// ### Usage Example:
@@ -132,7 +132,7 @@ abstract class GenericApplicationContext extends AbstractApplicationContext {
   /// Creates a new [GenericApplicationContext] with default settings.
   ///
   /// The context is created with a new [DefaultListablePodFactory] and
-  /// no parent context. You must call [refresh] after registering all
+  /// no parent context. You must call [setup] after registering all
   /// pod definitions to initialize the context.
   ///
   /// ### Example:
@@ -237,7 +237,7 @@ abstract class GenericApplicationContext extends AbstractApplicationContext {
 
   @override
   Future<void> refreshPodFactory() async {
-    if (getIsRefreshed()) {
+    if (getIsSetupReady()) {
       return;
     }
     

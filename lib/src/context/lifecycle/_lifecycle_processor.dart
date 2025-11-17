@@ -64,7 +64,7 @@ class DefaultLifecycleProcessor implements LifecycleProcessor {
   /// that implement lifecycle interfaces.
   /// 
   /// List of discovered lifecycle-managed pods.
-  List<Lifecycle> _lifecycles = [];
+  final List<Lifecycle> _lifecycles = [];
 
   /// Lifecycle processor running state flag.
   ///
@@ -91,15 +91,11 @@ class DefaultLifecycleProcessor implements LifecycleProcessor {
   /// await processor.discover(); // Internal discovery
   /// await processor.onRefresh(); // Starts discovered lifecycles
   /// ```
-  Future<void> discover() async {
+  Future<void> _discover() async {
     if (_podFactory != null) {
       final lc = Class<Lifecycle>(null, PackageNames.CORE);
-      final lcNames = await _podFactory.getPodNames(lc, includeNonSingletons: true, allowEagerInit: true);
-      
-      for (final name in lcNames) {
-        final pod = await _podFactory.getPod(name, null, lc);
-        _lifecycles.add(pod);
-      }
+      final pods = await _podFactory.getPodsOf(lc);
+      _lifecycles.addAll(pods.values);
     }
 
     AnnotationAwareOrderComparator.sort(_lifecycles);
@@ -107,6 +103,10 @@ class DefaultLifecycleProcessor implements LifecycleProcessor {
   
   @override
   Future<void> onClose() async {
+    if (_lifecycles.isEmpty) {
+      await _discover();
+    }
+
     if (!_running) return;
 
     // Stop in reverse order
@@ -124,7 +124,11 @@ class DefaultLifecycleProcessor implements LifecycleProcessor {
   }
 
   @override
-  void onRefresh() async {
+  Future<void> onRefresh() async {
+    if (_lifecycles.isEmpty) {
+      await _discover();
+    }
+
     final smart = <SmartLifecycle>[];
     final nsmart = <Lifecycle>[];
     

@@ -19,8 +19,7 @@ import 'package:jetleaf_lang/lang.dart';
 class TestMessageSource extends AbstractMessageSource {
   final Map<Locale, Map<String, String>> messages;
 
-  TestMessageSource({Locale? defaultLocale, required this.messages})
-      : super(defaultLocale: defaultLocale);
+  TestMessageSource({super.defaultLocale, required this.messages});
 
   @override
   String? resolveMessage(String code, Locale locale) {

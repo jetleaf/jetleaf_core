@@ -33,6 +33,7 @@ import '../event/event_listener.dart';
 import '../event/simple_application_event_bus.dart';
 import '../lifecycle/application_annotated_lifecycle_processor.dart';
 import '../lifecycle/lifecycle_processor.dart';
+import '../pod_factory_customizer.dart';
 import '../processors/default_aware_processor.dart';
 import 'pod_post_processor_manager.dart';
 
@@ -44,7 +45,7 @@ import 'pod_post_processor_manager.dart';
 /// that all Jetleaf application contexts build upon.
 ///
 /// ### Key Features:
-/// - **Lifecycle Management**: Standardized `refresh()`, `start()`, `stop()`, and `close()` lifecycle
+/// - **Lifecycle Management**: Standardized `setup()`, `start()`, `stop()`, and `close()` lifecycle
 /// - **Event System**: Integrated event publishing for context lifecycle events
 /// - **Environment Integration**: Property source management and profile handling
 /// - **Pod Factory Orchestration**: Complete pod lifecycle from registration to destruction
@@ -52,7 +53,7 @@ import 'pod_post_processor_manager.dart';
 /// - **Resource Management**: Proper cleanup and resource disposal
 ///
 /// ### Core Lifecycle Events:
-/// - `ContextRefreshedEvent`: Published when context is successfully refreshed
+/// - `ContextSetupEvent`: Published when context is successfully setup
 /// - `ContextStartedEvent`: Published when context transitions to running state
 /// - `ContextStoppedEvent`: Published when context is stopped
 /// - `ContextClosedEvent`: Published when context is fully closed
@@ -77,7 +78,7 @@ import 'pod_post_processor_manager.dart';
 ///
 ///   @override
 ///   Future<void> preparePodFactory(ConfigurableListablePodFactory podFactory) async {
-///     // Register core application pods before refresh
+///     // Register core application pods before setup
 ///     podFactory.registerSingleton('myService', object: ObjectHolder(MyService()));
 ///     podFactory.registerDefinition('myRepository', MyRepositoryDefinition());
 ///   }
@@ -94,7 +95,7 @@ import 'pod_post_processor_manager.dart';
 ///   final context = MyCustomApplicationContext();
 ///
 ///   // Standard lifecycle sequence
-///   await context.refresh(); // Prepares, initializes, and publishes refresh event
+///   await context.setup(); // Prepares, initializes, and publishes setup event
 ///   await context.start();   // Marks context as running and publishes start event
 ///
 ///   // Application logic here...
@@ -107,12 +108,12 @@ import 'pod_post_processor_manager.dart';
 /// ### Template Methods for Subclasses:
 /// Subclasses must implement these protected template methods:
 /// - `doGetFreshPodFactory()`: Provide a fresh pod factory instance
-/// - `preparePodFactory()`: Register pods and configure factory before refresh
+/// - `preparePodFactory()`: Register pods and configure factory before setup
 /// - `postProcessPodFactory()`: Apply custom processing after factory setup
 ///
 /// ### Auto-Startup Behavior:
 /// By default, `isAutoStartup()` returns `true`, meaning the context will
-/// automatically start after refresh unless overridden by subclasses.
+/// automatically start after setup unless overridden by subclasses.
 ///
 /// ### Important Notes:
 /// - **Direct instantiation** of `AbstractApplicationContext` is not recommended
@@ -225,7 +226,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// events without tight coupling.
   ///
   /// ### Event Types:
-  /// - **Context Events**: Lifecycle events like refresh, start, stop
+  /// - **Context Events**: Lifecycle events like setup, start, stop
   /// - **Application Events**: Custom domain events specific to application
   /// - **Framework Events**: Internal framework operation events
   ///
@@ -330,6 +331,25 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// {@endtemplate}
   static final String JETLEAF_ARGUMENT_POD_NAME = "jetleaf.internal.jetleafApplicationArgument";
 
+  /// The internal JetLeaf pod name for the global conversion service.
+  ///
+  /// This constant identifies the registered [ConversionService] instance
+  /// within the JetLeaf dependency container. It is primarily used for
+  /// resolving type converters and format adapters at runtime.
+  ///
+  /// Framework components (e.g. validation, data binding, configuration)
+  /// rely on this pod name to retrieve the default conversion layer.
+  ///
+  /// Example:
+  /// ```dart
+  /// final conversionService = context.getPodByName(JETLEAF_CONVERSION_SERVICE_POD_NAME);
+  /// ```
+  ///
+  /// See also:
+  /// - [ConversionService] — the interface defining type conversion behavior.
+  /// - [Environment] — for dependency lookups within JetLeaf pods.
+  static final String JETLEAF_CONVERSION_SERVICE_POD_NAME = "jetleaf.internal.conversionService";
+
   /// {@template abstract_application_context.logger_field}
   /// The logger associated with this application context.
   ///
@@ -339,32 +359,32 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// ### Logging Levels:
   /// - `TRACE`: Detailed internal operations
   /// - `DEBUG`: Configuration steps and lifecycle transitions
-  /// - `INFO`: Major lifecycle events (refresh, start, stop)
+  /// - `INFO`: Major lifecycle events (setup, start, stop)
   /// - `WARN`: Non-critical issues and deprecations
   /// - `ERROR`: Critical failures and exceptions
   ///
   /// ### Example:
   /// ```dart
   /// @override
-  /// Future<void> refresh() async {
-  ///   logger.debug('Starting context refresh...');
+  /// Future<void> setup() async {
+  ///   logger.debug('Starting context setup...');
   ///   try {
-  ///     await super.refresh();
-  ///     logger.info('Context refreshed successfully');
+  ///     await super.setup();
+  ///     logger.info('Context setup successfully');
   ///   } catch (e) {
-  ///     logger.error('Context refresh failed', error: e);
+  ///     logger.error('Context setup failed', error: e);
   ///     rethrow;
   ///   }
   /// }
   /// ```
   /// {@endtemplate}
   @protected
-  final Log logger = LogFactory.getLog(AbstractApplicationContext);
+  Log get logger => LogFactory.getLog(runtimeType);
 
   /// {@template abstract_application_context.pod_factory_post_processors_field}
   /// The list of [PodFactoryPostProcessor]s to be applied to the pod factory.
   ///
-  /// These processors are invoked during the refresh process after the
+  /// These processors are invoked during the setup process after the
   /// pod factory is created but before any pods are instantiated. They
   /// can modify pod definitions, change configuration, or apply custom
   /// transformations to the factory.
@@ -383,7 +403,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// {@template abstract_application_context.application_event_listeners_field}
   /// The list of [ApplicationEventListener]s to be notified of application events.
   ///
-  /// These listeners are invoked during the refresh process after the
+  /// These listeners are invoked during the setup process after the
   /// pod factory is created but before any pods are instantiated. They
   /// can modify pod definitions, change configuration, or apply custom
   /// transformations to the factory.
@@ -402,12 +422,12 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// {@template abstract_application_context.is_active_field}
   /// Whether the application context is active.
   ///
-  /// A context is considered active after successful refresh and
+  /// A context is considered active after successful setup and
   /// remains active until it is closed. Active contexts can serve
   /// pods and handle requests.
   ///
   /// ### State Transitions:
-  /// - `false` → `true`: When refresh() completes successfully
+  /// - `false` → `true`: When setup() completes successfully
   /// - `true` → `false`: When close() is called
   /// - This state is irreversible once set to `false`
   /// {@endtemplate}
@@ -421,7 +441,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// will result in [IllegalStateException].
   ///
   /// ### State Behavior:
-  /// - Once closed, a context cannot be refreshed or restarted
+  /// - Once closed, a context cannot be setup or restarted
   /// - All managed pods are destroyed during closure
   /// - Event listeners are unregistered
   /// - Resources like database connections are released
@@ -436,33 +456,33 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// that the context is ready to handle requests or process work.
   ///
   /// ### Lifecycle Relationship:
-  /// - `refresh()`: Sets up context but doesn't start it
+  /// - `setup()`: Sets up context but doesn't start it
   /// - `start()`: Transitions to running state
   /// - `stop()`: Transitions back to non-running state
   /// - `close()`: Always sets running to false
   /// {@endtemplate}
   bool _isRunning = false;
 
-  /// {@template abstract_application_context.is_refreshed_field}
-  /// Whether the application context has been refreshed.
+  /// {@template abstract_application_context.is_setup_field}
+  /// Whether the application context has been setup.
   ///
   /// This flag indicates that the context has successfully completed
-  /// the refresh process, which includes pod factory initialization,
+  /// the setup process, which includes pod factory initialization,
   /// pod registration, and post-processing.
   ///
-  /// ### Refresh Process:
+  /// ### Setup Process:
   /// 1. Create fresh pod factory
   /// 2. Register pod definitions
   /// 3. Apply post-processors
   /// 4. Instantiate singleton pods
-  /// 5. Publish ContextRefreshedEvent
+  /// 5. Publish ContextSetupEvent
   /// {@endtemplate}
-  bool _isRefreshed = false;
+  bool _isSetupReady = false;
 
   /// {@template abstract_application_context.startup_date_field}
   /// The startup date of the application context.
   ///
-  /// This timestamp marks when the context was successfully refreshed
+  /// This timestamp marks when the context was successfully setup
   /// and became active. It's useful for monitoring, uptime calculation,
   /// and timing-related application logic.
   ///
@@ -690,11 +710,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
 
   @override
   LifecycleProcessor getLifecycleProcessor() {
-    if (_lifecycleProcessor == null) {
-      _lifecycleProcessor = DefaultLifecycleProcessor(getPodFactory());
-    }
-
-    return _lifecycleProcessor!;
+    return _lifecycleProcessor ??= DefaultLifecycleProcessor(this);
   }
 
   @override
@@ -884,11 +900,11 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
       // Publish close event
       await publishEvent(ContextClosedEvent.withClock(this, () => DateTime.now()));
 
-      // Destroy singletons
-      await destroyPods();
-
       // Perform actual cleanup
       await doClose();
+
+      // Destroy singletons
+      await destroyPods();
 
       // Reset common caches
       await resetCommonCaches();
@@ -899,6 +915,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
       _parent = null;
       _podFactoryPostProcessors.clear();
       _applicationEventListeners.clear();
+
       _lifecycleProcessor = null;
       _applicationStartup = null;
       _mainApplicationClass = null;
@@ -915,14 +932,14 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   }
 
   @override
-  Future<void> refresh() async {
-    // Start refresh step
-    StartupStep step = getApplicationStartup().start("context.refresh");
+  Future<void> setup() async {
+    // Start setup step
+    StartupStep step = getApplicationStartup().start("context.setup");
 
-    // Prepare this context for refreshing.
-    await prepareRefresh();
+    // Prepare this context for setup.
+    await prepareSetup();
 
-    // Tell the subclass to refresh the internal pod factory.
+    // Tell the subclass to setup the internal pod factory.
     final podFactory = await doGetFreshPodFactory();
 
     // Prepare the pod factory for use in this context.
@@ -931,6 +948,11 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
     try {
       // Allows post-processing of the pod factory in context subclasses.
       await postProcessPodFactory(podFactory);
+
+      /// Finds all registered [PodFactoryCustomizer] implementations and
+      /// invokes them to customize the provided [PodFactory] instance
+      /// before the container is setup.
+      await findAllPodFactoryCustomizersAndApplicationModulesCustomize(podFactory);
 
       // Start post process step
       StartupStep postProcess = getApplicationStartup().start("context.pods.post-process");
@@ -950,7 +972,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
       await initializeApplicationEventBus();
 
       // Initialize other special pods in specific context subclasses.
-      await doRefresh(podFactory);
+      await doSetup(podFactory);
 
       // Setup the pod expression resolver for this context.
       await findPodExpressionResolver();
@@ -962,17 +984,21 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
       await completePodFactoryInitialization(podFactory);
 
       // Last step: publish corresponding event.
-      await finishRefresh(podFactory);
-    } catch (ex) {
-      if (logger.getIsWarnEnabled()) {
-        logger.warn("Failed to initialize application context '${getDisplayName()}': ${ex.runtimeType}. Aborting refresh operation.");
+      await finishSetup(podFactory);
+    } catch (ex, st) {
+      if (logger.getIsErrorEnabled()) {
+        logger.error(
+          "Failed to initialize application context '${getDisplayName()}': ${ex.runtimeType}. Aborting setup operation.",
+          error: ex,
+          stacktrace: st
+        );
       }
 
       // Destroy already created singletons to avoid dangling resources.
       await destroyPods();
 
       // Reset 'active' flag.
-      await cancelRefresh(ex);
+      await cancelSetup(ex);
 
       // Propagate exception to caller.
       rethrow;
@@ -987,11 +1013,11 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   // PROTECTED METHODS
   // ---------------------------------------------------------------------------------------------------------
 
-  /// {@template abstract_application_context_is_refreshed}
-  /// Returns true if the application context has been refreshed.
+  /// {@template abstract_application_context_is_setup}
+  /// Returns true if the application context has been setup.
   /// {@endtemplate}
   @protected
-  bool getIsRefreshed() => _isRefreshed;
+  bool getIsSetupReady() => _isSetupReady;
 
   /// {@template abstract_application_context_do_start}
   /// Template method invoked during [start] to perform startup logic.
@@ -1046,13 +1072,13 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   Future<void> doClose() async {}
 
   /// {@template prepare_refresh}
-  /// Prepares the application context for a refresh.
+  /// Prepares the application context for a setup.
   ///
   /// This method resets lifecycle flags, records the startup timestamp,
-  /// and logs that the context is being refreshed. It is invoked internally
+  /// and logs that the context is being setup. It is invoked internally
   /// before creating a fresh pod factory.
   ///
-  /// Subclasses may override this to perform custom pre-refresh logic,
+  /// Subclasses may override this to perform custom pre-setup logic,
   /// such as resetting caches or preparing configuration sources.
   ///
   /// Example:
@@ -1060,7 +1086,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// @override
   /// Future<void> prepareRefresh() async {
   /// await super.prepareRefresh();
-  /// logger.info("Preparing additional refresh state");
+  /// logger.info("Preparing additional setup state");
   /// }
   /// ```
   ///
@@ -1068,13 +1094,13 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// {@endtemplate}
   @protected
   @mustCallSuper
-  Future<void> prepareRefresh() async {
+  Future<void> prepareSetup() async {
     _startupDate = DateTime.now();
     _isClosed = false;
     _isActive = true;
 
     if (logger.getIsInfoEnabled()) {
-      logger.info("Starting refresh of ${getDisplayName()} application context...");
+      logger.info("Starting setup of ${getDisplayName()} application context...");
     }
 
     final env = getEnvironment();
@@ -1089,7 +1115,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// Returns a fresh [ConfigurableListablePodFactory] for this context.
   ///
   /// Subclasses must implement this to provide a new factory instance
-  /// whenever the context is refreshed.
+  /// whenever the context is setup.
   ///
   /// Example:
   /// ```dart
@@ -1165,6 +1191,78 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   @mustCallSuper
   Future<void> postProcessPodFactory(ConfigurableListablePodFactory podFactory) async => Future.value();
 
+  /// Finds all registered [PodFactoryCustomizer] and [ApplicationModule] implementations and
+  /// invokes them to customize the provided [PodFactory] instance
+  /// before the container is setup.
+  ///
+  /// This method is typically called during the pre-setup phase of the
+  /// application startup lifecycle, giving each customizer a chance to
+  /// modify the factory — for example, by registering additional pods,
+  /// setting configuration properties, or altering existing definitions.
+  ///
+  /// Implementations of [PodFactoryCustomizer] are usually discovered
+  /// through the application context or dependency-injection container.
+  ///
+  /// Example:
+  /// ```dart
+  /// // During context initialization:
+  /// await findAllPodFactoryCustomizersAndApplicationModulesCustomize(podFactory);
+  /// ```
+  ///
+  /// * [podFactory] — the [PodFactory] instance to customize before setup.
+  /// * Throws [Exception] if any customizer invocation fails.
+  @protected
+  @mustCallSuper
+  Future<void> findAllPodFactoryCustomizersAndApplicationModulesCustomize(ConfigurableListablePodFactory podFactory) async {
+    final type = Class<PodFactoryCustomizer>(null, PackageNames.CORE);
+    final subClasses = type.getSubClasses();
+
+    for (final subClass in subClasses) {
+      // We have to skip proxy classes since they are not necessary in this scope.
+      if (ClassUtils.isProxyClass(subClass)) {
+        continue;
+      }
+
+      final constructor = subClass.getNoArgConstructor();
+      if (constructor != null) {
+        try {
+          final instance = constructor.newInstance();
+          if (instance is PodFactoryCustomizer) {
+            await instance.customize(podFactory);
+          }
+        } catch (_) {
+          if (logger.getIsWarnEnabled()) {
+            logger.warn("Unable to instantiate the class of ${subClass.getQualifiedName()}, no no-arg constructor found");
+          }
+        }
+      }
+    }
+
+    final am = Class<ApplicationModule>(null, PackageNames.CORE);
+    final amSubClasses = am.getSubClasses();
+
+    for (final subClass in amSubClasses) {
+      // We have to skip proxy classes since they are not necessary in this scope.
+      if (ClassUtils.isProxyClass(subClass)) {
+        continue;
+      }
+
+      final constructor = subClass.getNoArgConstructor();
+      if (constructor != null) {
+        try {
+          final instance = constructor.newInstance();
+          if (instance is ApplicationModule) {
+            await instance.configure(this);
+          }
+        } catch (_) {
+          if (logger.getIsWarnEnabled()) {
+            logger.warn("Unable to instantiate the class of ${subClass.getQualifiedName()}, no no-arg constructor found");
+          }
+        }
+      }
+    }
+  }
+
   /// {@template invoke_pod_factory_post_processors}
   /// Invokes all registered pod factory post-processors on the given
   /// [ConfigurableListablePodFactory].
@@ -1196,7 +1294,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
 
   /// Performs any extra processing before the [podFactory] is finalized.
   ///
-  /// This method is called during the refresh phase of the application context,
+  /// This method is called during the setup phase of the application context,
   /// allowing subclasses to perform additional initialization or setup tasks
   /// before the `ConfigurableListablePodFactory` becomes fully available.
   ///
@@ -1218,13 +1316,13 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// ```
   @protected
   @mustCallSuper
-  Future<void> doRefresh(ConfigurableListablePodFactory podFactory) async => Future.value();
+  Future<void> doSetup(ConfigurableListablePodFactory podFactory) async => Future.value();
 
   /// {@template destroy_pods}
   /// Destroys all managed pods in the given
   /// [ConfigurableListablePodFactory].
   ///
-  /// Called during shutdown or refresh cancellation to ensure
+  /// Called during shutdown or setup cancellation to ensure
   /// graceful resource cleanup. This includes invoking
   /// registered destroy methods and releasing references.
   ///
@@ -1234,43 +1332,50 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   @mustCallSuper
   Future<void> destroyPods() async {
     final pf = getPodFactory();
-    return Future.value([pf.destroySingletons()]);
+    pf.destroySingletons();
+
+    return Future.value();
   }
 
   /// {@template cancel_refresh}
-  /// Cancels the refresh process due to the provided [PodException].
+  /// Cancels the setup process due to the provided [PodException].
   ///
   /// This method allows subclasses to roll back partially
   /// initialized state, release resources, and log or propagate
   /// errors consistently.
   ///
   /// Called whenever initialization fails in the middle of a
-  /// refresh cycle.
+  /// setup cycle.
   /// {@endtemplate}
   @protected
   @mustCallSuper
-  Future<void> cancelRefresh(Object exception) async {
+  Future<void> cancelSetup(Object exception) async {
     _isActive = false;
-    return Future.value([await resetCommonCaches()]);
+    return await resetCommonCaches();
   }
 
   /// {@template reset_common_caches}
   /// Resets common internal caches maintained by the container.
   ///
   /// This includes metadata caches, reflection results, and
-  /// pod definition lookups that may persist across refresh cycles.
+  /// pod definition lookups that may persist across setup cycles.
   ///
   /// Subclasses may override this to clear any additional
   /// framework-level caches.
   /// {@endtemplate}
   @protected
   @mustCallSuper
-  Future<void> resetCommonCaches() async => Future.value([clearMetadataCache(), clearSingletonCache()]);
+  Future<void> resetCommonCaches() async {
+    clearMetadataCache();
+    clearSingletonCache();
+
+    return Future.value();
+  }
 
   /// {@template init_message_source}
   /// Initializes the [MessageSource] for this context.
   ///
-  /// This is invoked during refresh to set up i18n message resolution.
+  /// This is invoked during setup to set up i18n message resolution.
   /// By default, it discovers non-abstract subclasses of [MessageSource],
   /// wraps them in a [DelegatingMessageSource], and registers the result
   /// in the pod factory.
@@ -1421,25 +1526,23 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// {@endtemplate}
   @protected
   @mustCallSuper
-  Future<void> initializeLifecycleProcessor() async {
-    final factory = getPodFactory();
-
-    if (await factory.containsLocalPod(LIFECYCLE_PROCESSOR_POD_NAME)) {
-      _lifecycleProcessor = await factory.getPod<LifecycleProcessor>(LIFECYCLE_PROCESSOR_POD_NAME);
+  Future<void> initializeLifecycleProcessor(ConfigurableListablePodFactory podFactory) async {
+    if (await podFactory.containsLocalPod(LIFECYCLE_PROCESSOR_POD_NAME)) {
+      _lifecycleProcessor = await podFactory.getPod<LifecycleProcessor>(LIFECYCLE_PROCESSOR_POD_NAME);
 
       if (logger.getIsTraceEnabled()) {
         logger.trace("Using lifecycle processor ${_lifecycleProcessor!.runtimeType}");
       }
     } else {
       final dlp = Class<DefaultLifecycleProcessor>(null, PackageNames.CORE);
-      final defaultLp = DefaultLifecycleProcessor(factory);
+      final defaultLp = DefaultLifecycleProcessor(podFactory);
       _lifecycleProcessor = defaultLp;
 
-      await factory.registerSingleton(
+      await podFactory.registerSingleton(
         LIFECYCLE_PROCESSOR_POD_NAME,
         Class<DefaultLifecycleProcessor>(),
         object: ObjectHolder<LifecycleProcessor>(
-          _lifecycleProcessor!,
+          defaultLp,
           packageName: PackageNames.CORE,
           qualifiedName: dlp.getQualifiedName(),
         ),
@@ -1448,8 +1551,6 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
       if (logger.getIsTraceEnabled()) {
         logger.trace("No lifecycle processor found, using default lifecycle processor ${_lifecycleProcessor!.runtimeType}");
       }
-
-      await defaultLp.discover();
     }
 
     return Future.value();
@@ -1501,14 +1602,6 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
       podFactory.setConversionService(await podFactory.getPod(CONVERSION_SERVICE_POD_NAME, null, cc));
     }
 
-    // Initialize ApplicationModules
-    final am = Class<ApplicationModule>(null, PackageNames.CORE);
-    final moduleNames = await getPodNames(am, includeNonSingletons: true);
-    for (final moduleName in moduleNames) {
-      final module = await podFactory.getPod(moduleName, null, am);
-      module.configure(this);
-    }
-
     // Freeze configuration
     if (podFactory is DefaultListablePodFactory) {
       podFactory.freezeConfiguration();
@@ -1525,7 +1618,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   }
 
   /// {@template finish_refresh}
-  /// Template method invoked during [refresh] to complete the refresh process.
+  /// Template method invoked during [setup] to complete the setup process.
   ///
   /// Subclasses can override this to perform additional initialization steps
   /// or to publish custom events.
@@ -1534,7 +1627,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// ```dart
   /// @override
   /// Future<void> finishRefresh() async {
-  /// logger.info("Custom finish refresh logic here");
+  /// logger.info("Custom finish setup logic here");
   /// }
   /// ```
   ///
@@ -1542,31 +1635,32 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// {@endtemplate}
   @protected
   @mustCallSuper
-  Future<void> finishRefresh(ConfigurableListablePodFactory podFactory) async {
+  Future<void> finishSetup(ConfigurableListablePodFactory podFactory) async {
     await resetCommonCaches();
 
     // Initialize lifecycle processor
-    await initializeLifecycleProcessor();
+    await initializeLifecycleProcessor(podFactory);
 
     // Start lifecycle processor
-    getLifecycleProcessor().onRefresh();
+    await getLifecycleProcessor().onRefresh();
 
-    // Publish refresh event
-    await publishEvent(ContextRefreshedEvent.withClock(this, () => DateTime.now()));
+    // Publish setup event
+    await publishEvent(ContextSetupEvent.withClock(this, () => DateTime.now()));
 
     if (logger.getIsDebugEnabled()) {
-      logger.debug("${getDisplayName()}: ${runtimeType} application context refreshed successfully.");
+      logger.debug("${getDisplayName()}: $runtimeType application context setup successfully.");
     }
 
-    _isRefreshed = true;
+    _isSetupReady = true;
+    await publishEvent(ContextReadyEvent.withClock(this, () => DateTime.now()));
 
     // Publish ready event
-    return Future.value([await publishEvent(ContextReadyEvent.withClock(this, () => DateTime.now()))]);
+    return Future.value();
   }
 
   /// {@template jet_pod_factory_assert_active}
   /// Ensures that the current JetLeaf Pod Factory is in an active state before
-  /// performing any operation that depends on an initialized or refreshed
+  /// performing any operation that depends on an initialized or setup
   /// application context.
   ///
   /// This safeguard method validates the internal lifecycle state of the
@@ -1578,7 +1672,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   ///    accessed further.
   ///
   /// 2. **Inactive State** — If the factory has not yet been activated or
-  ///    refreshed (i.e., `_isActive` is `false` but `_isClosed` is also
+  ///    setup (i.e., `_isActive` is `false` but `_isClosed` is also
   ///    `false`), it indicates that the Pod container has not completed its
   ///    bootstrap or dependency registration phase. In this case, an
   ///    [IllegalStateException] is thrown to prevent premature access to
@@ -1598,7 +1692,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   /// ```
   ///
   /// In the example above, the `_assertThatPodFactoryIsActive()` call ensures
-  /// that the container has been refreshed before any `Pod` retrieval occurs.
+  /// that the container has been setup before any `Pod` retrieval occurs.
   ///
   /// ### Throws
   /// - [IllegalStateException] — If the factory is closed or not yet active.
@@ -1614,7 +1708,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
         throw IllegalStateException('${getDisplayName()} has been closed');
       }
 
-      throw IllegalStateException('${getDisplayName()} has not been refreshed yet');
+      throw IllegalStateException('${getDisplayName()} has not been setup yet');
     }
   }
 

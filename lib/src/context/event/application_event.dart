@@ -145,7 +145,7 @@ abstract class ApplicationContextEvent extends ApplicationEvent {
   const ApplicationContextEvent(ApplicationContext super.source);
 
   /// {@macro application_context_event}
-  ApplicationContextEvent.withClock(ApplicationContext source, DateTime Function() clock) : super.withClock(source, clock);
+  ApplicationContextEvent.withClock(ApplicationContext super.source, super.clock) : super.withClock();
 
   /// Returns the [ApplicationContext] that published this event.
   ///
@@ -192,7 +192,7 @@ class ContextClosedEvent extends ApplicationContextEvent {
   ContextClosedEvent(super.source);
 
   /// {@macro context_closed_event}
-  ContextClosedEvent.withClock(ApplicationContext source, DateTime Function() clock) : super.withClock(source, clock);
+  ContextClosedEvent.withClock(super.source, super.clock) : super.withClock();
 
   @override
   String getPackageName() => PackageNames.CORE;
@@ -228,7 +228,7 @@ class ContextFailedEvent extends ApplicationContextEvent {
   ContextFailedEvent(super.source);
 
   /// {@macro context_failed_event}
-  ContextFailedEvent.withClock(ApplicationContext source, DateTime Function() clock) : super.withClock(source, clock);
+  ContextFailedEvent.withClock(super.source, super.clock) : super.withClock();
 
   @override
   String getPackageName() => PackageNames.CORE;
@@ -264,7 +264,7 @@ class ContextReadyEvent extends ApplicationContextEvent {
   ContextReadyEvent(super.source);
 
   /// {@macro context_ready_state}
-  ContextReadyEvent.withClock(ApplicationContext source, DateTime Function() clock) : super.withClock(source, clock);
+  ContextReadyEvent.withClock(super.source, super.clock) : super.withClock();
 
   @override
   String getPackageName() => PackageNames.CORE;
@@ -296,12 +296,12 @@ class ContextReadyEvent extends ApplicationContextEvent {
 ///
 /// This is usually the first lifecycle event emitted by the framework during startup.
 /// {@endtemplate}
-class ContextRefreshedEvent extends ApplicationContextEvent {
+class ContextSetupEvent extends ApplicationContextEvent {
   /// {@macro context_refreshed_event}
-  ContextRefreshedEvent(super.source);
+  ContextSetupEvent(super.source);
 
   /// {@macro context_refreshed_event}
-  ContextRefreshedEvent.withClock(ApplicationContext source, DateTime Function() clock) : super.withClock(source, clock);
+  ContextSetupEvent.withClock(super.source, super.clock) : super.withClock();
 
   @override
   String getPackageName() => PackageNames.CORE;
@@ -336,7 +336,7 @@ class ContextRestartedEvent extends ApplicationContextEvent {
   ContextRestartedEvent(super.source);
 
   /// {@macro context_restarted_event}
-  ContextRestartedEvent.withClock(ApplicationContext source, DateTime Function() clock) : super.withClock(source, clock);
+  ContextRestartedEvent.withClock(super.source, super.clock) : super.withClock();
 
   @override
   String getPackageName() => PackageNames.CORE;
@@ -372,7 +372,7 @@ class ContextStartedEvent extends ApplicationContextEvent {
   ContextStartedEvent(super.source);
 
   /// {@macro context_started_event}
-  ContextStartedEvent.withClock(ApplicationContext source, DateTime Function() clock) : super.withClock(source, clock);
+  ContextStartedEvent.withClock(super.source, super.clock) : super.withClock();
 
   @override
   String getPackageName() => PackageNames.CORE;
@@ -409,7 +409,7 @@ class ContextStoppedEvent extends ApplicationContextEvent {
   ContextStoppedEvent(super.source);
 
   /// {@macro context_stopped_event}
-  ContextStoppedEvent.withClock(ApplicationContext source, DateTime Function() clock) : super.withClock(source, clock);
+  ContextStoppedEvent.withClock(super.source, super.clock) : super.withClock();
 
   @override
   String getPackageName() => PackageNames.CORE;
@@ -447,7 +447,7 @@ class CompletedInitializationEvent extends ApplicationContextEvent {
   CompletedInitializationEvent(super.source);
 
   /// {@macro completed_initialization_event}
-  CompletedInitializationEvent.withClock(ApplicationContext source, DateTime Function() clock) : super.withClock(source, clock);
+  CompletedInitializationEvent.withClock(super.source, super.clock) : super.withClock();
 
   @override
   String getPackageName() => PackageNames.CORE;

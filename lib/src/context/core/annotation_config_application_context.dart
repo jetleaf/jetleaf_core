@@ -12,20 +12,25 @@
 // 
 // 🔧 Powered by Hapnium — the Dart backend engine 🍃
 
+import 'package:jetleaf_env/env.dart';
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 import 'package:meta/meta.dart';
 
 import '../../condition/condition_evaluator.dart';
-import '../application_context.dart';
+import '../../intercept/default_method_interceptor.dart';
+import '../application_conversion_service.dart';
+import '../application_environment.dart';
 import '../application_module.dart';
 import '../application_type.dart';
 import '../processors/autowired_annotation_pod_processor.dart';
 import '../processors/common_annotation_pod_processor.dart';
+import '../processors/configuration_property_pod_processor.dart';
 import '../processors/event_listener_method_processor.dart';
 import '../scanning/annotated_pod_definition_reader.dart';
 import '../scanning/class_path_pod_definition_scanner.dart';
 import '../scanning/configuration_class_post_processor.dart';
+import 'abstract_application_context.dart';
 import 'generic_application_context.dart';
 
 /// {@template annotation_config_application_context}
@@ -114,6 +119,20 @@ class AnnotationConfigApplicationContext extends GenericApplicationContext imple
   /// {@endtemplate}
   static final String COMMON_ANNOTATION_PROCESSOR_POD_NAME = "jetleaf.annotation.internalCommonAnnotationProcessor";
 
+  /// {@template annotation_config_application_context.configuration_property_annotation_processor_pod_name}
+  /// Pod name for the internal configuration property annotation processor.
+  ///
+  /// This processor is responsible for handling `@ConfigurationProperty`
+  /// (or similar) annotations on fields, methods, or classes. It performs
+  /// automatic binding of configuration values (from environment variables,
+  /// `.env` files, or the application configuration system) into annotated
+  /// components during the context initialization phase.
+  ///
+  /// Used internally by the framework to support declarative configuration
+  /// binding in Jetleaf applications.
+  /// {@endtemplate}
+  static final String CONFIGURATION_PROPERTY_ANNOTATION_PROCESSOR_POD_NAME = "jetleaf.annotation.internalConfigurationPropertyAnnotationProcessor";
+
   /// {@template annotation_config_application_context.event_listener_method_processor_pod_name}
   /// Pod name for the internal event listener method processor.
   ///
@@ -143,6 +162,30 @@ class AnnotationConfigApplicationContext extends GenericApplicationContext imple
   /// {@endtemplate}
   static final String APPLICATION_CONTEXT_POD_NAME = "jetleaf.application.context";
 
+  /// The internal pod name used to register JetLeaf's AOP (Aspect-Oriented Programming)
+  /// interception support infrastructure.
+  ///
+  /// This constant uniquely identifies the interception subsystem within the
+  /// JetLeaf runtime. It is primarily used for dependency registration,
+  /// service discovery, and lifecycle management of interception-related
+  /// components such as:
+  ///
+  /// - [MethodInterceptorDispatcher]
+  /// - [ConditionalMethodInterceptor]
+  /// - [Interceptable] mixins and proxies
+  ///
+  /// ## Usage
+  /// This identifier is used internally when binding or resolving
+  /// the interception support pod from the JetLeaf application context.
+  ///
+  /// Example:
+  /// ```dart
+  /// final pod = context.getPod(InterceptSupportPods.INTERCEPT_SUPPORT_POD_NAME);
+  /// ```
+  ///
+  /// @internal
+  static final String INTERCEPT_SUPPORT_POD_NAME = "jetleaf.intercept.aop.support";
+
   /// {@template annotation_config_application_context.reader}
   /// Reader instance for processing annotated class definitions.
   ///
@@ -166,7 +209,7 @@ class AnnotationConfigApplicationContext extends GenericApplicationContext imple
   /// Creates a new [AnnotationConfigApplicationContext] with default settings.
   ///
   /// The context is initialized with an [AnnotatedPodDefinitionReader] for
-  /// processing annotated classes but is not refreshed until [refresh] is called.
+  /// processing annotated classes but is not refreshed until [setup] is called.
   ///
   /// Example:
   /// ```dart
@@ -190,22 +233,23 @@ class AnnotationConfigApplicationContext extends GenericApplicationContext imple
   /// final childContext = AnnotationConfigApplicationContext.all(parentContext, null);
   /// ```
   /// {@endtemplate}
-  AnnotationConfigApplicationContext.all(ApplicationContext? parent, DefaultListablePodFactory? podFactory) : super.all(parent, podFactory) {
+  AnnotationConfigApplicationContext.all(super.parent, super.podFactory) : super.all() {
     _reader = AnnotatedPodDefinitionReader();
     _uuid = Uuid.randomUuid();
   }
 
   @override
   String getId() {
-    if(_uuid == null) {
-      _uuid = Uuid.randomUuid();
-    }
+    _uuid ??= Uuid.randomUuid();
     
     return "$runtimeType-$_uuid";
   }
 
   @override
   String getDisplayName() => "AnnotationConfigApplicationContext";
+
+  @override
+  AbstractEnvironment getSupportingEnvironment() => ApplicationEnvironment();
 
   @override
   bool supports(ApplicationType applicationType) => applicationType == ApplicationType.NONE;
@@ -278,18 +322,18 @@ class AnnotationConfigApplicationContext extends GenericApplicationContext imple
   }
 
   @override
-  Future<void> finishRefresh(ConfigurableListablePodFactory podFactory) async {
+  Future<void> finishSetup(ConfigurableListablePodFactory podFactory) async {
     if (!containsSingleton(APPLICATION_CONTEXT_POD_NAME)) {
       final contextClass = getClass();
 
       await podFactory.registerSingleton(
         APPLICATION_CONTEXT_POD_NAME,
         contextClass,
-        object: ObjectHolder(this, packageName: this.getPackageName(), qualifiedName: contextClass.getQualifiedName())
+        object: ObjectHolder(this, packageName: getPackageName(), qualifiedName: contextClass.getQualifiedName())
       );
     }
 
-    return super.finishRefresh(podFactory);
+    return super.finishSetup(podFactory);
   }
   
   // ---------------------------------------------------------------------------------------------------------
@@ -350,11 +394,32 @@ class AnnotationConfigApplicationContext extends GenericApplicationContext imple
       await podFactory.registerDefinition(AUTOWIRED_ANNOTATION_PROCESSOR_POD_NAME, def);
     }
 
+    if (!podFactory.containsDefinition(CONFIGURATION_PROPERTY_ANNOTATION_PROCESSOR_POD_NAME)) {
+      RootPodDefinition def = RootPodDefinition(type: Class<ConfigurationPropertyPodProcessor>(null, PackageNames.CORE));
+      def.instance = source;
+      def.design.role = DesignRole.INFRASTRUCTURE;
+      await podFactory.registerDefinition(CONFIGURATION_PROPERTY_ANNOTATION_PROCESSOR_POD_NAME, def);
+    }
+
     if (!podFactory.containsDefinition(EVENT_LISTENER_METHOD_PROCESSOR_POD_NAME)) {
       RootPodDefinition def = RootPodDefinition(type: Class<EventListenerMethodProcessor>(null, PackageNames.CORE));
       def.instance = source;
       def.design.role = DesignRole.INFRASTRUCTURE;
       await podFactory.registerDefinition(EVENT_LISTENER_METHOD_PROCESSOR_POD_NAME, def);
+    }
+
+    if (!podFactory.containsDefinition(INTERCEPT_SUPPORT_POD_NAME)) {
+      RootPodDefinition def = RootPodDefinition(type: Class<DefaultMethodInterceptor>(null, PackageNames.CORE));
+      def.instance = source;
+      def.design.role = DesignRole.INFRASTRUCTURE;
+      await podFactory.registerDefinition(INTERCEPT_SUPPORT_POD_NAME, def);
+    }
+
+    if (!podFactory.containsDefinition(AbstractApplicationContext.JETLEAF_CONVERSION_SERVICE_POD_NAME)) {
+      RootPodDefinition def = RootPodDefinition(type: Class<ApplicationConversionService>(null, PackageNames.CORE));
+      def.instance = source;
+      def.design.role = DesignRole.INFRASTRUCTURE;
+      await podFactory.registerDefinition(AbstractApplicationContext.JETLEAF_CONVERSION_SERVICE_POD_NAME, def);
     }
 
     return Future.value();

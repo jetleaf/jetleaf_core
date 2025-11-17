@@ -137,8 +137,8 @@ final class PodSpec<T> extends Spec<T> {
   }
 
   @override
-  Spec<T> createdBy(String factoryClass, String methodName) {
-    _root.factoryMethod = FactoryMethodDesign(factoryClass, methodName);
+  Spec<T> createdBy(String factoryClassPodName, String methodName, Class factoryClass) {
+    _root.factoryMethod = FactoryMethodDesign(factoryClassPodName, methodName, factoryClass);
     return this;
   }
 

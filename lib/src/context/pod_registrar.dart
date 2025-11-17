@@ -323,10 +323,10 @@ abstract class Spec<T> extends PodDefinition {
   ///
   /// ### Example
   /// ```dart
-  /// spec.createdBy('ServiceFactory', 'createService');
+  /// spec.createdBy('serviceFactory', 'createService', Class<ServiceFactory>());
   /// ```
   /// {@endtemplate}
-  Spec<T> createdBy(String factoryClass, String methodName);
+  Spec<T> createdBy(String factoryClassPodName, String methodName, Class factoryClass);
 
   /// {@template spec_with_factory}
   /// Defines this pod using a factory [descriptor].

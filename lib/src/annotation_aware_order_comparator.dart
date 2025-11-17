@@ -347,6 +347,56 @@ class AnnotationAwareOrderComparator extends OrderComparator {
   /// {@endtemplate}
   static void sort(List<Object> list) => list.sort(AnnotationAwareOrderComparator().whenCompared);
 
+  /// Sorts a typed [List] in place using [AnnotationAwareOrderComparator.whenCompared].
+  ///
+  /// This provides a type-safe alternative to calling a non-generic `sort(List<Object>)`.
+  ///
+  /// Example:
+  /// ```dart
+  /// final items = [MyOrdered(5), MyOrdered(1)];
+  /// AnnotationAwareOrderComparator.sortTyped(items);
+  /// ```
+  static void sortTyped<T>(List<T> list) => list.sort(AnnotationAwareOrderComparator().whenCompared);
+
+  /// Sorts a collection of [items] by priority and order semantics
+  /// into a deterministic sequence.
+  ///
+  /// Items implementing [PriorityOrdered] are listed first,
+  /// followed by those implementing [Ordered],
+  /// and finally the rest (unordered).
+  ///
+  /// Each subgroup is individually sorted using [sortTyped].
+  ///
+  /// Returns a **new list** containing all items in deterministic order.
+  /// The original iterable is not modified.
+  ///
+  /// Example:
+  /// ```dart
+  /// final sorted = AnnotationAwareOrderComparator.getOrderedItems<MyPod>(pods);
+  /// ```
+  static List<T> getOrderedItems<T>(Iterable<T> items) {
+    final prioritized = <T>[];
+    final ordered = <T>[];
+    final unordered = <T>[];
+
+    for (final item in items) {
+      if (item is PriorityOrdered) {
+        prioritized.add(item);
+      } else if (item is Ordered) {
+        ordered.add(item);
+      } else {
+        unordered.add(item);
+      }
+    }
+
+    // Deterministic order for predictable composition
+    AnnotationAwareOrderComparator.sortTyped(prioritized);
+    AnnotationAwareOrderComparator.sortTyped(ordered);
+    AnnotationAwareOrderComparator.sortTyped(unordered);
+
+    return [...prioritized, ...ordered, ...unordered];
+  }
+
   /// {@template annotation_aware_order_comparator.reverse_sort}
   /// Sorts a list in reverse order according to annotation-aware rules.
   ///

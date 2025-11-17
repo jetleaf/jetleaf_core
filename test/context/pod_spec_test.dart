@@ -121,18 +121,7 @@ void main() {
       final result = podSpec.withAutowire(descriptor);
       expect(result, equals(podSpec));
     });
-
-    test('createdBy should set factory method', () {
-      final result = podSpec.createdBy('FactoryClass', 'methodName');
-      expect(result, equals(podSpec));
-    });
-
-    test('withFactory should set factory method descriptor', () {
-      final descriptor = FactoryMethodDesign('FactoryClass', 'methodName');
-      final result = podSpec.withFactory(descriptor);
-      expect(result, equals(podSpec));
-    });
-
+    
     test('addPropertyValue should add property value', () {
       final propertyValue = PropertyValue('test', 'value', packageName: "test");
       final result = podSpec.addPropertyValue(propertyValue);

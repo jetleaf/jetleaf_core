@@ -328,7 +328,7 @@ abstract interface class MessageSourceAware {
   /// }
   /// ```
   /// {@endtemplate}
-  void setMessageSource(MessageSource? messageSource);
+  void setMessageSource(MessageSource messageSource);
 }
 
 /// {@template application_event_bus_aware}
@@ -413,7 +413,7 @@ abstract interface class ApplicationEventBusAware {
   /// }
   /// ```
   /// {@endtemplate}
-  void setApplicationEventBus(ApplicationEventBus? applicationEventBus);
+  void setApplicationEventBus(ApplicationEventBus applicationEventBus);
 }
 
 /// {@template conversion_service_aware}
@@ -498,7 +498,7 @@ abstract interface class ConversionServiceAware {
   /// }
   /// ```
   /// {@endtemplate}
-  void setConversionService(ConversionService? conversionService);
+  void setConversionService(ConversionService conversionService);
 }
 
 // ==================================== ENVIRONMENT AWARE ====================================

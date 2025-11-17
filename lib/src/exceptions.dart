@@ -61,13 +61,7 @@ class MessageSourceException extends RuntimeException {
   final String? resource;
 
   /// {@macro message_source_exception}
-  MessageSourceException(
-    String message, {
-    this.code,
-    this.locale,
-    this.resource,
-    Object? cause,
-  }) : super(message, cause: cause);
+  MessageSourceException(super.message, {this.code, this.locale, this.resource, super.cause});
 
   @override
   String toString() {
@@ -80,26 +74,68 @@ class MessageSourceException extends RuntimeException {
   }
 }
 
-// ========================================= JSON PARSING EXCEPTION ========================================
-
-/// {@template json_parsing_exception}
-/// An exception that occurs during JSON parsing.
+/// {@template circular_dependency_exception}
+/// Thrown when a **circular dependency** is detected within the framework's
+/// dependency graph, interceptor ordering, or initialization process.
 ///
-/// This exception is thrown when there is an error in parsing a JSON string
-/// into a Dart object, or when a Dart object cannot be serialized into a JSON string.
+/// This exception indicates that two or more components depend on each other
+/// in a way that prevents resolution — for example:
+///
+/// - **Interceptors** that declare conflicting `@RunBefore` / `@RunAfter`
+///   relationships forming a cycle.
+/// - **Dependency-injected services or pods** that recursively depend on
+///   one another through constructors or factory methods.
+///
 ///
 /// ### Example
+///
 /// ```dart
-/// void parseJson(String json) {
-///   try {
-///     final object = jsonDecode(json);
-///   } catch (e) {
-///     throw JsonParsingException("Failed to parse JSON", cause: e);
-///   }
+/// // A depends on B, and B depends on A
+/// class A {
+///   A(B b);
 /// }
+///
+/// class B {
+///   B(A a);
+/// }
+///
+/// // During dependency graph resolution:
+/// throw CircularDependencyException(
+///   'Circular reference detected between A and B',
+/// );
 /// ```
+///
+///
+/// ### Typical Scenarios
+///
+/// - Interceptor or handler chains with circular `RunBefore` / `RunAfter` rules.
+/// - Object graph creation in IoC containers or module initializers.
+/// - Misconfigured plugin registration that references itself indirectly.
+///
+///
+/// ### Debugging Tips
+///
+/// - Review stack traces for the last successfully resolved dependency.
+/// - Check for circular annotation relationships in `@RunBefore` / `@RunAfter`.
+/// - Use dependency graph visualizations or logs to identify cycles.
+///
+///
+/// ### Design Notes
+///
+/// - Extends [RuntimeException], allowing it to represent an unrecoverable
+///   framework-level configuration or initialization error.
+/// - Should not be caught in user-space unless performing custom dependency
+///   graph resolution or interceptor registration logic.
+/// - Typically thrown by `InterceptorOrderingEngine` or dependency resolver
+///   components during application startup.
+///
+///
+/// ### See Also
+/// - [RuntimeException] – Base type for framework runtime errors.
+///
+///
 /// {@endtemplate}
-class JsonParsingException extends RuntimeException {
-  /// {@macro json_parsing_exception}
-  JsonParsingException(String message, {Object? cause}) : super(message, cause: cause);
+class CircularDependencyException extends RuntimeException {
+  /// {@macro circular_dependency_exception}
+  CircularDependencyException(super.message, {super.cause, super.stackTrace});
 }

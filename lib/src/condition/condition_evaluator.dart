@@ -78,7 +78,7 @@ final class ConditionEvaluator extends ConditionalContext {
       _logger.trace('Evaluating conditional inclusion for source: ${source.getName()}');
     }
 
-    final conditions = <AnnotatedCondition>[];
+    final conditions = <_AnnotatedCondition>[];
 
     if (source.hasDirectAnnotation<Profile>()) {
       final annotation = source.getAllDirectAnnotations().find((ann) => ann.matches<Profile>());
@@ -121,9 +121,11 @@ final class ConditionEvaluator extends ConditionalContext {
   /// - Walks through annotations that extend [WhenConditional] and finds
   ///   any @Conditional annotations on them, recursively.
   ///
-  /// Returns a list of [ConditionalMatch] entries.
-  List<ConditionalMatch> findAllConditionals(Source source) {
-    final matches = <ConditionalMatch>[];
+  /// Returns a list of [_ConditionalMatch] entries.
+  List<_ConditionalMatch> findAllConditionals(Source source) {
+    final matches = <_ConditionalMatch>[];
+    final conditional = Class<Conditional>(null, PackageNames.CORE);
+    final whenConditional = Class<WhenConditional>(null, PackageNames.CORE);
 
     /// Recursively process a single annotation
     void processAnnotation(Annotation annotation) {
@@ -133,12 +135,12 @@ final class ConditionEvaluator extends ConditionalContext {
       for (final inner in annotationClass.getAllAnnotations()) {
         try {
           // If the inner annotation is assignable to Conditional, record it
-          if (Class<Conditional>(null, PackageNames.CORE).isAssignableFrom(inner.getClass())) {
+          if (conditional.isAssignableFrom(inner.getClass())) {
             matches.add(MapEntry(annotation, inner.getFieldValue(Conditional.FIELD_KEY)));
           }
 
           // If the inner annotation itself extends WhenConditional, recurse
-          if (Class<WhenConditional>(null, PackageNames.CORE).isAssignableFrom(inner.getClass())) {
+          if (whenConditional.isAssignableFrom(inner.getClass())) {
             processAnnotation(inner);
           }
         } catch (_) {
@@ -150,12 +152,12 @@ final class ConditionEvaluator extends ConditionalContext {
     // Start with all direct annotations on the source
     for (final ann in source.getAllDirectAnnotations()) {
       try {
-        if (Class<WhenConditional>(null, PackageNames.CORE).isAssignableFrom(ann.getClass())) {
+        if (whenConditional.isAssignableFrom(ann.getClass())) {
           processAnnotation(ann);
         }
 
         // Also check if the annotation itself is a Conditional
-        if (Class<Conditional>(null, PackageNames.CORE).isAssignableFrom(ann.getClass())) {
+        if (conditional.isAssignableFrom(ann.getClass())) {
           matches.add(MapEntry(ann, ann.getFieldValue(Conditional.FIELD_KEY)));
         }
       } catch (_) {}
@@ -166,7 +168,7 @@ final class ConditionEvaluator extends ConditionalContext {
 
   /// Checks whether **all given conditions** match the specified [source] asynchronously.
   ///
-  /// Each [AnnotatedCondition] contains an annotation and its associated [Condition].
+  /// Each [_AnnotatedCondition] contains an annotation and its associated [Condition].
   /// This method evaluates all conditions in parallel and returns `true` only if
   /// every condition’s `matches` method returns `true`.
   ///
@@ -177,7 +179,7 @@ final class ConditionEvaluator extends ConditionalContext {
   ///   // All conditions passed
   /// }
   /// ```
-  Future<bool> allConditionsMatch(Iterable<AnnotatedCondition> conditions, Source source) async {
+  Future<bool> allConditionsMatch(Iterable<_AnnotatedCondition> conditions, Source source) async {
     final results = await Future.wait(conditions.map((condition) => condition.value.matches(this, condition.key, source)));
 
     // Check if all results are true
@@ -190,10 +192,10 @@ final class ConditionEvaluator extends ConditionalContext {
 ///
 /// The key is the **main annotation** being processed, and the value is
 /// the associated conditional metadata or resolved annotation.
-typedef ConditionalMatch = MapEntry<Annotation, dynamic>;
+typedef _ConditionalMatch = MapEntry<Annotation, dynamic>;
 
 /// Represents a pair of an annotation and its associated `Condition`.
 ///
 /// The key is the **annotation** being evaluated, and the value is the
 /// `Condition` that determines whether the annotation is active or applicable.
-typedef AnnotatedCondition = MapEntry<Annotation, Condition>;
+typedef _AnnotatedCondition = MapEntry<Annotation, Condition>;

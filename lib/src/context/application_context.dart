@@ -12,7 +12,6 @@
 // 
 // 🔧 Powered by Hapnium — the Dart backend engine 🍃
 
-import 'package:jetleaf_convert/convert.dart';
 import 'package:jetleaf_env/env.dart';
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
@@ -362,6 +361,26 @@ abstract class ApplicationContext implements EnvironmentAware, MessageSource, Po
   /// {@endtemplate}
   bool supports(ApplicationType applicationType);
 
+  /// Returns the [Environment] that supports this component or context.
+  ///
+  /// The supporting environment provides access to property sources,
+  /// active and default profiles, and configuration data that influence
+  /// how the current context or container is initialized.
+  ///
+  /// This environment is typically used to resolve placeholders, load
+  /// environment-specific settings, or determine profile-based activation
+  /// before the container refresh phase.
+  ///
+  /// Example:
+  /// ```dart
+  /// final env = applicationContext.getSupportingEnvironment();
+  /// final port = env.getProperty('server.port');
+  /// ```
+  ///
+  /// Returns the [Environment] instance backing this context.
+  /// Never `null`.
+  AbstractEnvironment getSupportingEnvironment();
+
   /// {@template application_context_get_main_application_class}
   /// Returns the main application class.
   /// 
@@ -678,78 +697,6 @@ abstract class ConfigurableApplicationContext extends SmartLifecycle implements 
   /// {@endtemplate}
   void setMainApplicationClass(Class<Object> mainApplicationClass);
 
-  /// {@template configurable_application_context_set_conversion_service}
-  /// Sets an assigned [ConversionService].
-  ///
-  /// The conversion service handles type conversion operations throughout
-  /// the framework, particularly for configuration properties, data binding,
-  /// and format parsing.
-  ///
-  /// ### Built-in Conversions:
-  /// - String to primitive types (int, double, bool, DateTime, etc.)
-  /// - Collection and array conversions
-  /// - Custom object marshalling/unmarshalling
-  /// - Format-aware parsing (dates, numbers, currencies)
-  ///
-  /// ### Example:
-  /// ```dart
-  /// // Use default conversion service
-  /// context.setConversionService(DefaultConversionService());
-  /// 
-  /// // Or custom implementation
-  /// final customService = MyConversionService();
-  /// customService.addConverter(String, Money.class, MoneyConverter());
-  /// context.setConversionService(customService);
-  /// 
-  /// // Usage in application
-  /// final service = context.getConversionService();
-  /// final result = service.convert<String, double>("3.14");
-  /// print("Parsed double: $result"); // Parsed double: 3.14
-  /// 
-  /// // Custom type conversion
-  /// final money = service.convert<String, Money>("\$123.45");
-  /// print("Parsed money: ${money.amount}"); // Parsed money: 123.45
-  /// ```
-  /// {@endtemplate}
-  void setConversionService(ConversionService conversionService);
-
-  /// {@template configurable_application_context_get_conversion_service}
-  /// Retrieves the currently assigned [ConversionService].
-  ///
-  /// This method provides access to the type conversion infrastructure
-  /// for manual conversion operations when dependency injection is not
-  /// available or suitable.
-  ///
-  /// ### Usage Contexts:
-  /// - Configuration property resolution
-  /// - Data binding in web controllers
-  /// - Custom deserialization logic
-  /// - Format parsing and validation
-  ///
-  /// ### Example:
-  /// ```dart
-  /// class ConfigurationParser {
-  ///   final ConversionService conversionService;
-  ///   
-  ///   ConfigurationParser(this.conversionService);
-  ///   
-  ///   T parseConfiguration<T>(String key, String value) {
-  ///     return conversionService.convert<String, T>(value);
-  ///   }
-  /// }
-  /// 
-  /// // Manual usage
-  /// final service = context.getConversionService();
-  /// final timeout = service.convert<String, int>("30");
-  /// final ratio = service.convert<String, double>("0.85");
-  /// final enabled = service.convert<String, bool>("true");
-  /// final date = service.convert<String, DateTime>("2023-12-25");
-  /// 
-  /// print("Parsed values: $timeout, $ratio, $enabled, $date");
-  /// ```
-  /// {@endtemplate}
-  ConversionService getConversionService();
-
   /// {@template configurable_application_context_set_message_source}
   /// Sets the [MessageSource] used for resolving internationalized messages.
   ///
@@ -990,7 +937,7 @@ abstract class ConfigurableApplicationContext extends SmartLifecycle implements 
   /// ### Important:
   /// This method should be called exactly once during the context lifecycle.
   /// {@endtemplate}
-  Future<void> refresh();
+  Future<void> setup();
 }
 
 // ======================================== APPLICATION CONTEXT INITIALIZER ==============================

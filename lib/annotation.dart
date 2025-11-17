@@ -426,3 +426,6 @@ export 'src/annotations/pod.dart';
 
 /// Component stereotype annotations for architectural roles.
 export 'src/annotations/stereotype.dart';
+
+/// Intercept annotations
+export 'src/annotations/intercept.dart';

@@ -216,41 +216,35 @@ final class ClassPathPodDefinitionScanner {
       return false;
     }
 
-    // Apply exclude filters first
-    for (final excludeFilter in _excludeFilters) {
-      excludeFilter.setEntryApplication(_entryApplication);
-      if (excludeFilter.matches(cls)) {
-        if (_logger.getIsTraceEnabled()) {
-          _logger.trace('🚫 Class [$className] excluded by ${excludeFilter.runtimeType}.');
-        }
+    for (final filter in [..._excludeFilters, ..._includeFilters]) {
+      filter.setEntryApplication(_entryApplication);
+    }
 
-        return false;
+    // Apply exclude filters first
+    final excludeFilter = _excludeFilters.find((filter) => filter.matches(cls));
+    if (_excludeFilters.isNotEmpty && excludeFilter != null) {
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('🚫 Class [$className] excluded by ${excludeFilter.runtimeType}.');
       }
+
+      return false;
     }
 
     // Apply include filters
-    bool matchesInclude = _includeFilters.isEmpty;
-    for (final includeFilter in _includeFilters) {
-      includeFilter.setEntryApplication(_entryApplication);
-      if (includeFilter.matches(cls)) {
-        matchesInclude = true;
-
-        if (_logger.getIsTraceEnabled()) {
-          _logger.trace('✅ Class [$className] matched include filter ${includeFilter.runtimeType}.');
-        }
-        break;
+    final includeFilter = _includeFilters.find((filter) => filter.matches(cls));
+    if (_includeFilters.isEmpty || includeFilter != null) {
+      if (_logger.getIsTraceEnabled()) {
+        _logger.trace('✅ Class [$className] matched include filter ${includeFilter.runtimeType}.');
       }
-    }
 
-    if (!matchesInclude) {
+      return true;
+    } else {
       if (_logger.getIsTraceEnabled()) {
         _logger.trace('🚫 Class [$className] did not match any include filters.');
       }
 
       return false;
     }
-
-    return true;
   }
   
   /// {@macro createPodDefinition}

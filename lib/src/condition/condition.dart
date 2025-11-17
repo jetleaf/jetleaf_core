@@ -107,7 +107,7 @@ class ConditionalContext {
   /// {@macro pod_factory_support.unregistered_definitions}
   ///
   /// Internally stores pod definitions discovered but not yet registered.
-  List<PodDefinition> _unregisteredDefinitions = [];
+  final List<PodDefinition> _unregisteredDefinitions = [];
 
   /// {@macro pod_factory_support.add_definition}
   ///

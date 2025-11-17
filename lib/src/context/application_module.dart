@@ -22,6 +22,9 @@ import 'application_context.dart';
 /// Application modules encapsulate a set of services, listeners, and
 /// processors that can be registered with an [ApplicationContext].
 /// This provides a modular and extensible way to assemble applications.
+/// 
+/// The module does not need any stereotype or configuration annotation, in order to be discovered.
+/// The usage of these annotations on the module, is not considered.
 ///
 /// ### Responsibilities
 /// - Encapsulate related services and components.
@@ -75,7 +78,7 @@ abstract interface class ApplicationModule with EqualsAndHashCode {
   /// }
   /// ```
   /// {@endtemplate}
-  void configure(ApplicationContext context);
+  Future<void> configure(ApplicationContext context);
 }
 
 /// **Annotation-Based Configuration Registry**

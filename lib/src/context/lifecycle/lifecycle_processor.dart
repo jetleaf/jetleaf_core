@@ -56,7 +56,7 @@ abstract interface class LifecycleProcessor {
   /// ```dart
   /// class CacheLifecycleProcessor extends LifecycleProcessor {
   ///   @override
-  ///   void onRefresh() {
+  ///   Future<void> onRefresh() {
   ///     print("Refreshing cache...");
   ///   }
   ///
@@ -65,7 +65,7 @@ abstract interface class LifecycleProcessor {
   /// }
   /// ```
   /// {@endtemplate}
-  void onRefresh();
+  Future<void> onRefresh();
 
   /// {@template lifecycle_processor_on_close}
   /// Called when the application is shutting down.

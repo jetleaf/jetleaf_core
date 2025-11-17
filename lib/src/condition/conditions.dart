@@ -86,15 +86,15 @@ class OnPropertyCondition implements Condition {
 
   @override
   Future<bool> matches(ConditionalContext context, Annotation annotation, Source source) async {
-    final Log _logger = LogFactory.getLog(OnPropertyCondition);
+    final Log logger = LogFactory.getLog(OnPropertyCondition);
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('🧩 Evaluating OnPropertyCondition for ${annotation.getSignature()}');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('🧩 Evaluating OnPropertyCondition for ${annotation.getSignature()}');
     }
 
     if (!annotation.matches<ConditionalOnProperty>()) {
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('No @ConditionalOnProperty found → passing.');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('No @ConditionalOnProperty found → passing.');
       }
 
       return true;
@@ -106,28 +106,28 @@ class OnPropertyCondition implements Condition {
     final havingValue = conditional.havingValue;
     final matchIfMissing = conditional.matchIfMissing;
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('prefix=$prefix, names=$names, havingValue=$havingValue, matchIfMissing=$matchIfMissing');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('prefix=$prefix, names=$names, havingValue=$havingValue, matchIfMissing=$matchIfMissing');
     }
 
     for (final value in names) {
       final key = prefix != null && prefix.isNotEmpty ? '$prefix.$value' : value;
       final val = context.environment.getProperty(key);
 
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('Checking property: $key = $val');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('Checking property: $key = $val');
       }
 
       if (val == null) {
         if (!matchIfMissing) {
-          if (_logger.getIsTraceEnabled()) {
-            _logger.trace('❌ Missing property $key and matchIfMissing=false → failing.');
+          if (logger.getIsTraceEnabled()) {
+            logger.trace('❌ Missing property $key and matchIfMissing=false → failing.');
           }
 
           return false;
         } else {
-          if (_logger.getIsTraceEnabled()) {
-            _logger.trace('⚠️ Missing property $key but matchIfMissing=true → continuing.');
+          if (logger.getIsTraceEnabled()) {
+            logger.trace('⚠️ Missing property $key but matchIfMissing=true → continuing.');
           }
 
           continue;
@@ -136,23 +136,23 @@ class OnPropertyCondition implements Condition {
 
       if (havingValue != null && havingValue.isNotEmpty) {
         if (!havingValue.equalsIgnoreCase(val)) {
-          if (_logger.getIsTraceEnabled()) {
-            _logger.trace('❌ Value mismatch for $key (expected $havingValue, got $val) → failing.');
+          if (logger.getIsTraceEnabled()) {
+            logger.trace('❌ Value mismatch for $key (expected $havingValue, got $val) → failing.');
           }
 
           return false;
         }
       } else if (val.equalsIgnoreCase("false")) {
-        if (_logger.getIsTraceEnabled()) {
-          _logger.trace('❌ Value for $key is "false" → failing.');
+        if (logger.getIsTraceEnabled()) {
+          logger.trace('❌ Value for $key is "false" → failing.');
         }
 
         return false;
       }
     }
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('✅ OnPropertyCondition passed for ${annotation.getSignature()}');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('✅ OnPropertyCondition passed for ${annotation.getSignature()}');
     }
 
     return true;
@@ -225,38 +225,32 @@ class OnClassCondition implements Condition {
 
   @override
   Future<bool> matches(ConditionalContext context, Annotation annotation, Source source) async {
-    final Log _logger = LogFactory.getLog(OnClassCondition);
+    final Log logger = LogFactory.getLog(OnClassCondition);
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('🧩 Evaluating OnClassCondition for ${annotation.getSignature()}');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('🧩 Evaluating OnClassCondition for ${annotation.getSignature()}');
     }
 
     // --- Handle @ConditionalOnClass ---
     if (annotation.matches<ConditionalOnClass>()) {
       final conditional = annotation.getInstance<ConditionalOnClass>();
 
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('Found @ConditionalOnClass with ${conditional.value}');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('Found @ConditionalOnClass with ${conditional.values}');
       }
 
-      for (final requiredType in conditional.value) {
-        try {
-          requiredType.toClass();
-          
-          if (_logger.getIsTraceEnabled()) {
-            _logger.trace('✅ Class ${requiredType.toClass().getQualifiedName()} found.');
-          }
-        } catch (_) {
-          if (_logger.getIsTraceEnabled()) {
-            _logger.trace('❌ Required class ${requiredType.getType()} missing → failing.');
+      for (final requiredType in conditional.values) {
+        if (ClassUtils.loadClass(requiredType) == null) {
+          if (logger.getIsTraceEnabled()) {
+            logger.trace('❌ Required class $requiredType missing → failing.');
           }
 
           return false;
         }
       }
 
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('✅ OnClassCondition passed.');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('✅ OnClassCondition passed.');
       }
     }
 
@@ -264,29 +258,27 @@ class OnClassCondition implements Condition {
     if (annotation.matches<ConditionalOnMissingClass>()) {
       final conditional = annotation.getInstance<ConditionalOnMissingClass>();
 
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('Found @ConditionalOnMissingClass with ${conditional.value}');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('Found @ConditionalOnMissingClass with ${conditional.values}');
       }
 
-      for (final missingType in conditional.value) {
-        try {
-          missingType.toClass();
-          
-          if (_logger.getIsTraceEnabled()) {
-            _logger.trace('❌ Found missingType ${missingType.getType()} → failing.');
+      for (final missingType in conditional.values) {
+        if (ClassUtils.loadClass(missingType) != null) {
+          if (logger.getIsTraceEnabled()) {
+            logger.trace('❌ Required class $missingType found → failing.');
           }
 
           return false;
-        } catch (_) {}
+        }
       }
 
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('✅ OnMissingClassCondition passed.');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('✅ OnMissingClassCondition passed.');
       }
     }
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('No relevant annotation found → passing.');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('No relevant annotation found → passing.');
     }
 
     return true;
@@ -376,10 +368,10 @@ class OnPodCondition implements Condition {
 
   @override
   Future<bool> matches(ConditionalContext context, Annotation annotation, Source source) async {
-    final Log _logger = LogFactory.getLog(OnPodCondition);
+    final Log logger = LogFactory.getLog(OnPodCondition);
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('🧩 Evaluating OnPodCondition for ${annotation.getSignature()}');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('🧩 Evaluating OnPodCondition for ${annotation.getSignature()}');
     }
 
     Future<bool> allClassesExists(Iterable<Class> classes) async {
@@ -397,22 +389,27 @@ class OnPodCondition implements Condition {
     // --- Handle @ConditionalOnPod ---
     if (annotation.matches<ConditionalOnPod>()) {
       final conditional = annotation.getInstance<ConditionalOnPod>();
+      
+      // Safely resolve all valid classes (non-null) from annotation values.
+      final types = conditional.values.map(ClassUtils.loadClass).whereType<Class>().toList();
 
-      if (conditional.types.isNotEmpty && conditional.names.isNotEmpty) {
-        return await allClassesExists(conditional.types.map((type) => type.toClass()))
-          && await allNamesExists(conditional.names.map((name) => name));
+      // Extract only valid pod names (non-class strings).
+      final podNames = conditional.values.whereType<String>().where((value) => !ClassUtils.isClass(value)).toList();
+
+      if (types.isNotEmpty && podNames.isNotEmpty) {
+        return await allClassesExists(types) && await allNamesExists(podNames.map((name) => name));
       }
 
-      if (conditional.types.isNotEmpty) {
-        return await allClassesExists(conditional.types.map((type) => type.toClass()));
+      if (types.isNotEmpty) {
+        return await allClassesExists(types);
       }
 
-      if (conditional.names.isNotEmpty) {
-        return await allNamesExists(conditional.names.map((name) => name));
+      if (podNames.isNotEmpty) {
+        return await allNamesExists(podNames.map((name) => name));
       }
 
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('✅ OnPodCondition passed.');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('✅ OnPodCondition passed.');
       }
     }
 
@@ -421,32 +418,41 @@ class OnPodCondition implements Condition {
       final conditional = annotation.getInstance<ConditionalOnMissingPod>();
 
       for (final ignoredType in conditional.ignoredTypes) {
-        context.podFactory.registerIgnoredDependency(ignoredType.toClass());
-        if (_logger.getIsTraceEnabled()) {
-          _logger.trace('Registered ignored dependency: ${ignoredType.getType()}');
+        final type = ClassUtils.loadClass(ignoredType);
+
+        if (type != null) {
+          context.podFactory.registerIgnoredDependency(type);
+          if (logger.getIsTraceEnabled()) {
+            logger.trace('Registered ignored dependency: ${type.getQualifiedName()}');
+          }
         }
       }
 
-      if (conditional.types.isNotEmpty && conditional.names.isNotEmpty) {
-        return !await allClassesExists(conditional.types.map((type) => type.toClass()))
-          && !await allNamesExists(conditional.names.map((name) => name));
+      // Safely resolve all valid classes (non-null) from annotation values.
+      final types = conditional.values.map(ClassUtils.loadClass).whereType<Class>().toList();
+
+      // Extract only valid pod names (non-class strings).
+      final podNames = conditional.values.whereType<String>().where((value) => !ClassUtils.isClass(value)).toList();
+
+      if (types.isNotEmpty && podNames.isNotEmpty) {
+        return !await allClassesExists(types) && !await allNamesExists(podNames.map((name) => name));
       }
 
-      if (conditional.types.isNotEmpty) {
-        return !await allClassesExists(conditional.types.map((type) => type.toClass()));
+      if (types.isNotEmpty) {
+        return !await allClassesExists(types);
       }
 
-      if (conditional.names.isNotEmpty) {
-        return !await allNamesExists(conditional.names.map((name) => name));
+      if (podNames.isNotEmpty) {
+        return !await allNamesExists(podNames.map((name) => name));
       }
 
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('✅ OnMissingPodCondition passed.');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('✅ OnMissingPodCondition passed.');
       }
     }
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('No relevant annotation found → passing.');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('No relevant annotation found → passing.');
     }
 
     return true;
@@ -532,38 +538,38 @@ class OnProfileCondition implements Condition {
 
   @override
   Future<bool> matches(ConditionalContext context, Annotation annotation, Source source) async {
-    final Log _logger = LogFactory.getLog(OnProfileCondition);
+    final Log logger = LogFactory.getLog(OnProfileCondition);
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('🧩 Evaluating OnProfileCondition for ${annotation.getSignature()}');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('🧩 Evaluating OnProfileCondition for ${annotation.getSignature()}');
     }
 
     final activeProfiles = context.environment.getActiveProfiles();
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('Active profiles: $activeProfiles');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('Active profiles: $activeProfiles');
     }
 
     // --- Handle @Profile annotation ---
     if (annotation.matches<Profile>()) {
       final profile = annotation.getInstance<Profile>();
 
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('Found @Profile annotation on ${annotation.getSignature()} with profiles: ${profile.profiles}');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('Found @Profile annotation on ${annotation.getSignature()} with profiles: ${profile.profiles}');
       }
 
       for (final name in profile.profiles) {
         final isMismatch = profile.negate ? activeProfiles.contains(name) : !activeProfiles.contains(name);
 
         if (isMismatch) {
-          if (_logger.getIsTraceEnabled()) {
-            _logger.trace('❌ Profile condition failed to match ${profile.negate ? '(negated)' : ''}: $name');
+          if (logger.getIsTraceEnabled()) {
+            logger.trace('❌ Profile condition failed to match ${profile.negate ? '(negated)' : ''}: $name');
           }
           return false;
         }
       }
 
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('✅ Profile condition matched for ${annotation.getSignature()}');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('✅ Profile condition matched for ${annotation.getSignature()}');
       }
     }
 
@@ -573,26 +579,26 @@ class OnProfileCondition implements Condition {
       
       final profiles = conditional.value;
 
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('Required profiles: $profiles');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('Required profiles: $profiles');
       }
 
       final isFalse = profiles.isNotEmpty && profiles.none((profile) => activeProfiles.contains(profile));
 
       if (isFalse) {
-        if (_logger.getIsTraceEnabled()) {
-          _logger.trace('❌ No matching profile found → failing.');
+        if (logger.getIsTraceEnabled()) {
+          logger.trace('❌ No matching profile found → failing.');
         }
         return false;
       }
 
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('✅ Matching profile found → passing.');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('✅ Matching profile found → passing.');
       }
     }
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('No @ConditionalOnProfile found → passing.');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('No @ConditionalOnProfile found → passing.');
     }
 
     return true;
@@ -675,15 +681,15 @@ class OnDartCondition implements Condition {
 
   @override
   Future<bool> matches(ConditionalContext context, Annotation annotation, Source source) async {
-    final Log _logger = LogFactory.getLog(OnDartCondition);
+    final Log logger = LogFactory.getLog(OnDartCondition);
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('🧩 Evaluating OnDartCondition for ${annotation.getSignature()}');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('🧩 Evaluating OnDartCondition for ${annotation.getSignature()}');
     }
 
     if (!annotation.matches<ConditionalOnDart>()) {
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('No @ConditionalOnDart found → passing.');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('No @ConditionalOnDart found → passing.');
       }
 
       return true;
@@ -694,28 +700,28 @@ class OnDartCondition implements Condition {
     final range = conditional.range;
     final runningVersion = context.runtimeProvider.getAllPackages().find((p) => p.getName() == PackageNames.DART);
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('Required version=$version, range=$range, runningVersion=${runningVersion?.getVersion()}');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('Required version=$version, range=$range, runningVersion=${runningVersion?.getVersion()}');
     }
 
     if (runningVersion != null) {
       if (version == runningVersion.getVersion()) {
-        if (_logger.getIsTraceEnabled()) {
-          _logger.trace('✅ Exact version match.');
+        if (logger.getIsTraceEnabled()) {
+          logger.trace('✅ Exact version match.');
         }
         return true;
       }
 
       if (range.contains(Version.parse(runningVersion.getVersion()))) {
-        if (_logger.getIsTraceEnabled()) {
-          _logger.trace('✅ Version within allowed range.');
+        if (logger.getIsTraceEnabled()) {
+          logger.trace('✅ Version within allowed range.');
         }
         return true;
       }
     }
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('❌ OnDartCondition failed.');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('❌ OnDartCondition failed.');
     }
 
     return false;
@@ -797,15 +803,15 @@ class OnAssetCondition implements Condition {
 
   @override
   Future<bool> matches(ConditionalContext context, Annotation annotation, Source source) async {
-    final Log _logger = LogFactory.getLog(OnAssetCondition);
+    final Log logger = LogFactory.getLog(OnAssetCondition);
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('🧩 Evaluating OnAssetCondition for ${annotation.getSignature()}');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('🧩 Evaluating OnAssetCondition for ${annotation.getSignature()}');
     }
 
     if (!annotation.matches<ConditionalOnAsset>()) {
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('No @ConditionalOnAsset found → passing.');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('No @ConditionalOnAsset found → passing.');
       }
 
       return true;
@@ -816,15 +822,15 @@ class OnAssetCondition implements Condition {
     final resource = DefaultAssetPathResource(asset);
 
     if (resource.tryGet() != null) {
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('✅ Asset found → passing.');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('✅ Asset found → passing.');
       }
 
       return true;
     }
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('❌ Asset not found → failing.');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('❌ Asset not found → failing.');
     }
 
     return false;
@@ -919,15 +925,15 @@ class OnExpressionCondition implements Condition {
 
   @override
   Future<bool> matches(ConditionalContext context, Annotation annotation, Source source) async {
-    final Log _logger = LogFactory.getLog(OnExpressionCondition);
+    final Log logger = LogFactory.getLog(OnExpressionCondition);
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('🧩 Evaluating OnExpressionCondition for ${annotation.getSignature()}');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('🧩 Evaluating OnExpressionCondition for ${annotation.getSignature()}');
     }
 
     if (!annotation.matches<ConditionalOnExpression>()) {
-      if (_logger.getIsTraceEnabled()) {
-        _logger.trace('No @ConditionalOnExpression found → passing.');
+      if (logger.getIsTraceEnabled()) {
+        logger.trace('No @ConditionalOnExpression found → passing.');
       }
 
       return true;
@@ -948,14 +954,14 @@ class OnExpressionCondition implements Condition {
     final scope = scopeName != null ? podFactory.getRegisteredScope(scopeName) : null;
     final resolver = podFactory.getPodExpressionResolver();
 
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('Evaluating expression "$expression" in scope=$scopeName');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('Evaluating expression "$expression" in scope=$scopeName');
     }
 
     final result = await resolver?.evaluate(expression, PodExpressionContext(podFactory, scope));
     
-    if (_logger.getIsTraceEnabled()) {
-      _logger.trace('Expression was ${result?.getValue() != null ? "✅ successful" : "❌ not successful"}');
+    if (logger.getIsTraceEnabled()) {
+      logger.trace('Expression was ${result?.getValue() != null ? "✅ successful" : "❌ not successful"}');
     }
     
     return result?.getValue() != null;

@@ -18,7 +18,7 @@ import 'package:test/test.dart';
 
 class TestApplicationEvent extends ApplicationEvent {
   TestApplicationEvent(super.source, [super.timestamp]);
-  TestApplicationEvent.withClock(Object source, DateTime Function() clock) : super.withClock(source, clock);
+  TestApplicationEvent.withClock(super.source, super.clock) : super.withClock();
 
   @override
   String getPackageName() => "test";
