@@ -428,7 +428,6 @@ class AnnotationAwareOrderComparator extends OrderComparator {
   /// ```
   /// {@endtemplate}
   static void reverseSort(List<Object> list) {
-    list.sort(AnnotationAwareOrderComparator().whenCompared);
-    list = list.reversed.toList();
+    list.sort((a, b) => AnnotationAwareOrderComparator().whenCompared(b, a));
   }
 }

@@ -12,6 +12,7 @@
 // 
 // 🔧 Powered by Hapnium — the Dart backend engine 🍃
 
+import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
 /// {@template pod_factory_customizer}
@@ -61,6 +62,7 @@ import 'package:jetleaf_pod/pod.dart';
 /// before the main application context begins initialization.
 ///
 /// {@endtemplate}
+@Generic(PodFactoryCustomizer)
 abstract interface class PodFactoryCustomizer<T extends ConfigurablePodFactory> {
   /// Customizes the given [podFactory] before it is initialized.
   ///

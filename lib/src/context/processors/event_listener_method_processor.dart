@@ -18,11 +18,11 @@ import 'package:jetleaf_pod/pod.dart';
 
 import '../../annotations/lifecycle.dart';
 import '../../aware.dart';
-import '../application_context.dart';
+import '../base/application_context.dart';
 import '../core/abstract_application_context.dart';
 import '../event/application_event.dart';
 import '../event/application_event_method_adapter.dart';
-import '../helpers.dart';
+import '../base/helpers.dart';
 
 /// {@template jetleaf_class_EventListenerMethodProcessor}
 /// A **Jetleaf lifecycle processor** that scans pods for methods

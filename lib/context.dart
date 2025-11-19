@@ -318,10 +318,14 @@ library;
 export 'src/context/core/generic_application_context.dart';
 export 'src/context/core/abstract_application_context.dart';
 export 'src/context/core/annotation_config_application_context.dart';
+export 'src/context/core/pod_post_processor_manager.dart';
+export 'src/context/core/pod_spec.dart';
 
 /// Application event publication and listener infrastructure.
 export 'src/context/event/application_event.dart';
 export 'src/context/event/event_listener.dart';
+export 'src/context/event/application_event_method_adapter.dart';
+export 'src/context/event/simple_application_event_bus.dart';
 
 /// Exit code management for graceful application shutdown.
 export 'src/context/exit_code/exit_code.dart';
@@ -329,14 +333,22 @@ export 'src/context/exit_code/exit_code_generator.dart';
 
 /// Type filtering for conditional component registration.
 export 'src/context/type_filters/type_filter.dart';
+export 'src/context/type_filters/annotation_type_filter.dart';
+export 'src/context/type_filters/assignable_type_filter.dart';
+export 'src/context/type_filters/regex_pattern_type_filter.dart';
+
+// Lifecycle
+export 'src/context/lifecycle/lifecycle.dart';
+export 'src/context/lifecycle/application_annotated_lifecycle_processor.dart';
+export 'src/context/lifecycle/lifecycle_processor.dart';
 
 /// Lifecycle management, utilities, and core application interfaces.
-export 'src/context/keep_alive.dart';
-export 'src/context/helpers.dart';
-export 'src/context/application_context.dart';
-export 'src/context/application_type.dart';
-export 'src/context/application_module.dart';
-export 'src/context/pod_registrar.dart';
-export 'src/context/application_conversion_service.dart';
-export 'src/context/application_environment.dart';
-export 'src/context/pod_factory_customizer.dart';
+export 'src/context/base/keep_alive.dart';
+export 'src/context/base/helpers.dart';
+export 'src/context/base/application_context.dart';
+export 'src/context/base/application_type.dart';
+export 'src/context/base/application_module.dart';
+export 'src/context/base/pod_registrar.dart';
+export 'src/context/base/application_conversion_service.dart';
+export 'src/context/base/application_environment.dart';
+export 'src/context/base/pod_factory_customizer.dart';

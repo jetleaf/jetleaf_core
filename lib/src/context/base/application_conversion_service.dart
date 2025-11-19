@@ -16,8 +16,8 @@ import 'package:jetleaf_convert/convert.dart';
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
-import '../annotation_aware_order_comparator.dart';
-import '../aware.dart';
+import '../../annotation_aware_order_comparator.dart';
+import '../../aware.dart';
 import 'application_context.dart';
 
 /// {@template application_conversion_service}

@@ -20,7 +20,7 @@ import 'package:jetleaf_pod/pod.dart';
 import '../../annotations/autowired.dart';
 import '../../annotations/others.dart';
 import '../../aware.dart';
-import '../application_context.dart';
+import '../base/application_context.dart';
 
 /// {@template jetleaf_class_AutowiredAnnotationPodProcessor}
 /// A Pod processor in Jetleaf that handles dependency injection

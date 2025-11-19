@@ -18,6 +18,8 @@ import 'package:jetleaf_core/src/context/exit_code/exit_code_generator.dart';
 import 'package:test/test.dart';
 import 'package:jetleaf_lang/lang.dart';
 
+import '../../_dependencies.dart';
+
 class TestException extends RuntimeException {
   TestException(super.message);
 
@@ -63,6 +65,11 @@ class OrderedExitCodeGenerator implements ExitCodeGenerator, Ordered {
 }
 
 void main() {
+  setUpAll(() async {
+    await setupRuntime();
+    return Future<void>.value();
+  });
+  
   group('ExitCodeGenerators', () {
     late ExitCodeGenerators generators;
 

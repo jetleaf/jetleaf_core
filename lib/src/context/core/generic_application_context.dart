@@ -19,8 +19,8 @@ import 'package:jetleaf_pod/pod.dart';
 import 'package:meta/meta.dart';
 
 import '../../annotation_aware_order_comparator.dart';
-import '../application_context.dart';
-import '../pod_registrar.dart';
+import '../base/application_context.dart';
+import '../base/pod_registrar.dart';
 import '../scanning/annotated_pod_name_generator.dart';
 import 'abstract_application_context.dart';
 import 'pod_spec.dart';
@@ -350,13 +350,13 @@ abstract class GenericApplicationContext extends AbstractApplicationContext {
   }
 
   @override
-  void register(PodRegistrar registrar) {
+  Future<void> register(PodRegistrar registrar) async {
     registrar.register(this, getEnvironment());
     final definition = RootPodDefinition(type: registrar.getClass());
     final name = AnnotatedPodNameGenerator().generate(definition, podFactory);
     definition.name = name;
 
-    registerDefinition(name, definition);
+    await registerDefinition(name, definition);
   }
 
   @override

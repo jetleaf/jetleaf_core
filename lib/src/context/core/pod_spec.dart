@@ -15,7 +15,7 @@
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
-import '../pod_registrar.dart';
+import '../base/pod_registrar.dart';
 
 /// {@template jetleaf_pod_spec}
 /// A concrete implementation of the [`Spec`] API in **Jetleaf**.

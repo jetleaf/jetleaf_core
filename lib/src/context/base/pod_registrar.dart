@@ -143,14 +143,14 @@ abstract interface class PodRegistrar {
 /// {@endtemplate}
 abstract interface class PodRegistry {
   /// Registers a [registrar] that declares pods into this registry.
-  void register(PodRegistrar registrar);
+  Future<void> register(PodRegistrar registrar);
 
   /// Registers a pod of type [T] in the registry.
   ///
   /// - [podClass] defines the class type for the pod.
   /// - [customizer] allows refining the [Spec] of the pod.
   /// - [name] can be provided to identify the pod uniquely.
-  void registerPod<T>(Class<T> podClass, {Consumer<Spec<T>>? customizer, String? name});
+  Future<void> registerPod<T>(Class<T> podClass, {Consumer<Spec<T>>? customizer, String? name});
 }
 
 /// {@template jetleaf_spec}

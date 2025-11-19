@@ -698,24 +698,32 @@ class OnDartCondition implements Condition {
     final conditional = annotation.getInstance<ConditionalOnDart>();
     final version = conditional.version;
     final range = conditional.range;
-    final runningVersion = context.runtimeProvider.getAllPackages().find((p) => p.getName() == PackageNames.DART);
-
+    final packages = context.runtimeProvider.getAllPackages();
+    final runningVersion = packages.find((p) => p.getName() == PackageNames.DART);
+    
     if (logger.getIsTraceEnabled()) {
       logger.trace('Required version=$version, range=$range, runningVersion=${runningVersion?.getVersion()}');
     }
 
     if (runningVersion != null) {
-      if (version == runningVersion.getVersion()) {
+      final dartVersion = runningVersion.getLanguageVersion() ?? runningVersion.getVersion();
+
+      if (version == dartVersion) {
         if (logger.getIsTraceEnabled()) {
           logger.trace('✅ Exact version match.');
         }
+
         return true;
       }
 
-      if (range.contains(Version.parse(runningVersion.getVersion()))) {
+      final parsed = VersionRange.parse(version);
+      final parsedDart = VersionRange.parse(dartVersion);
+
+      if (parsed.matches(parsedDart) || range.contains(Version.parse(dartVersion))) {
         if (logger.getIsTraceEnabled()) {
           logger.trace('✅ Version within allowed range.');
         }
+
         return true;
       }
     }

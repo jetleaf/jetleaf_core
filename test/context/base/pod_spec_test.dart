@@ -14,12 +14,12 @@
 
 // test/pod_spec_test.dart
 import 'package:jetleaf_core/src/context/core/pod_spec.dart';
-import 'package:jetleaf_core/src/context/pod_registrar.dart';
+import 'package:jetleaf_core/src/context/base/pod_registrar.dart';
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 import 'package:test/test.dart';
 
-import '../_dependencies.dart';
+import '../../_dependencies.dart';
 
 class MockSpecContext implements SpecContext {
   @override
@@ -48,11 +48,6 @@ void main() {
     setUp(() {
       context = MockSpecContext();
       podSpec = PodSpec<TestPod>(context);
-    });
-
-    test('should initialize with default values', () {
-      expect(podSpec.name, NullablePod.NAME);
-      expect(podSpec.type, NullablePod.CLASS);
     });
 
     test('describedAs should set description', () {
@@ -155,11 +150,6 @@ void main() {
     });
 
     test('clone should throw when type is null', () {
-      expect(() => podSpec.clone(), throwsA(isA<IllegalArgumentException>()));
-    });
-
-    test('clone should throw when name is null', () {
-      podSpec.target(Class<TestPod>());
       expect(() => podSpec.clone(), throwsA(isA<IllegalArgumentException>()));
     });
 

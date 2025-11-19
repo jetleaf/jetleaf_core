@@ -17,7 +17,7 @@ import 'package:jetleaf_env/env.dart';
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
-import 'context/application_context.dart';
+import 'context/base/application_context.dart';
 import 'context/event/application_event.dart';
 import 'message/message_source.dart';
 

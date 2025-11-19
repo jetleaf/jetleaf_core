@@ -16,14 +16,14 @@ import 'package:jetleaf_env/env.dart';
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
-import '../aware.dart';
+import '../../aware.dart';
 import 'helpers.dart';
-import 'lifecycle/lifecycle.dart';
-import '../message/message_source.dart';
+import '../lifecycle/lifecycle.dart';
+import '../../message/message_source.dart';
 import 'application_type.dart';
-import 'event/event_listener.dart';
-import 'event/application_event.dart';
-import 'lifecycle/lifecycle_processor.dart';
+import '../event/event_listener.dart';
+import '../event/application_event.dart';
+import '../lifecycle/lifecycle_processor.dart';
 import 'pod_registrar.dart';
 
 /// {@template application_context}

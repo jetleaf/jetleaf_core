@@ -106,6 +106,46 @@ class ConfigurationPropertyPodProcessor extends PodSmartInstantiationProcessor i
   int getOrder() => Ordered.LOWEST_PRECEDENCE - 20;
 
   @override
+  Future<Object?> processBeforeInstantiation(Class podClass, String name) async {
+    // Only process classes annotated with @ConfigurationProperty
+    if (podClass.hasDirectAnnotation<ConfigurationProperty>()) {
+      final annotation = podClass.getDirectAnnotation<ConfigurationProperty>()!;
+      final prefix = annotation.prefix;
+      final ignoreUnknown = annotation.ignoreUnknownFields;
+      final validate = annotation.validate;
+
+      // 1. Resolve all property values (recursively)
+      // This gathers values for both final (constructor) and late (setter) fields.
+      final resolvedValues = await _resolvePropertyValues(podClass, prefix, ignoreUnknown, validate);
+
+      // 2. Try to find a constructor to use
+      // We prefer a parameterized constructor if available, especially for final fields.
+      final ctor = podClass.getConstructors().find((c) => c.getParameters().isNotEmpty);
+
+      if (ctor != null) {
+        // 3. Build arguments from the resolved values
+        final args = _buildConstructorArgs(ctor, resolvedValues);
+
+        // 4. Instantiate the pod with the resolved constructor arguments
+        final instance = ctor.newInstance(args.named, args.positional);
+        
+        if (instance != null) {
+          // 5. Populate any remaining writable fields (that might not have been in the constructor)
+          try {
+            _populateFields(instance, podClass, resolvedValues);
+          } catch (_) { 
+            // Ignore - fields are already set by constructor (final fields)
+          }
+
+          return _podFactory.getConversionService().convert(instance, Class.fromQualifiedName(podClass.getQualifiedName()));
+        }
+      }
+    }
+
+    return super.processBeforeInstantiation(podClass, name);
+  }
+
+  @override
   Future<void> populateValues(Object pod, Class podClass, String name) async {
     if (!podClass.hasDirectAnnotation<ConfigurationProperty>()) return;
 
@@ -114,166 +154,178 @@ class ConfigurationPropertyPodProcessor extends PodSmartInstantiationProcessor i
     final ignoreUnknown = annotation.ignoreUnknownFields;
     final validate = annotation.validate;
 
-    await _bindProperties(pod, podClass, prefix, ignoreUnknown, validate);
+    // Resolve properties and populate fields
+    // This handles cases where processBeforeInstantiation didn't create the instance
+    // (e.g. default constructor was used by the container).
+    final resolvedValues = await _resolvePropertyValues(podClass, prefix, ignoreUnknown, validate);
+    _populateFields(pod, podClass, resolvedValues);
   }
 
-  /// {@template configuration_property_binder.bind_properties}
-  /// Recursively binds environment properties to the fields of a target object.
+  /// Resolves all fields of the [targetClass] into a map of values.
   ///
-  /// This method performs **property-to-field mapping** based on the given [prefix],
-  /// using metadata from the provided [targetClass].
-  ///
-  /// ### Binding process
-  ///
-  /// For each writable field in [targetClass]:
-  ///
-  /// 1. **Determine property key**  
-  ///    Builds a property key by concatenating the [prefix] and the field name,
-  ///    e.g. `server.port` for a field named `port` within a `server`-prefixed pod.
-  ///
-  /// 2. **Resolve property value**  
-  ///    Attempts to fetch a raw value from the environment using
-  ///    `_environment.getProperty(propertyKey)`.
-  ///
-  /// 3. **Nested binding**  
-  ///    If no direct value is found and the field’s type is complex (i.e. not a
-  ///    primitive or enum), a new instance is created (via
-  ///    [_instantiateNested]) and recursively bound by calling
-  ///    `_bindProperties` again with the nested [fieldType] and updated prefix.
-  ///
-  /// 4. **Type conversion**  
-  ///    When a raw value is found, the method delegates to the conversion service
-  ///    (`_podFactory.getConversionService()`) to convert it to the field’s target type.
-  ///    If conversion succeeds, the value is assigned via reflection.
-  ///
-  /// 5. **Validation and error handling**
-  ///    - If conversion fails and [validate] is `true`, an [IllegalStateException] is thrown.
-  ///    - If no property is found and [validate] is `true`, an [IllegalStateException] is thrown.
-  ///    - If [ignoreUnknown] is `false`, a warning is logged for missing properties.
-  ///
-  /// ### Parameters
-  ///
-  /// - **[target]** — The instance whose fields should be populated with configuration values.  
-  /// - **[targetClass]** — Reflection metadata representing the class of [target]; used to access fields and types.  
-  /// - **[prefix]** — The current configuration key prefix (e.g. `"server"` or `"datasource.primary"`).  
-  /// - **[ignoreUnknown]** — If `true`, unknown or missing properties are silently skipped.  
-  /// - **[validate]** — If `true`, missing or invalid values result in thrown exceptions.
-  ///
-  /// ### Notes
-  ///
-  /// - Uses reflection to inspect fields and determine writability.
-  /// - Invokes conversion through the framework’s configured [ConversionService].
-  /// - Supports recursive binding of nested configuration objects.
-  /// - Logs missing or invalid keys using the framework’s logger.
-  ///
-  /// This method is **internal** and typically invoked by the
-  /// `ConfigurationPropertyAnnotationProcessor` during the application
-  /// context’s refresh or bootstrap phase.
-  /// {@endtemplate}
-  Future<void> _bindProperties(Object target, Class targetClass, String prefix, bool ignoreUnknown, bool validate) async {
+  /// This method handles:
+  /// - Direct property resolution from the environment.
+  /// - Recursive resolution and instantiation of nested configuration objects.
+  /// - Type conversion.
+  Future<Map<String, Object?>> _resolvePropertyValues(Class targetClass, String prefix, bool ignoreUnknown, bool validate) async {
+    final values = <String, Object?>{};
+
     for (final field in targetClass.getFields()) {
-      if (!field.isWritable()) continue;
-
+      final fieldName = field.getName();
+      final propertyKey = prefix.isEmpty ? fieldName : '$prefix.$fieldName';
       final fieldType = field.getReturnClass();
-      final propertyKey =
-          prefix.isEmpty ? field.getName() : '$prefix.${field.getName()}';
 
-      // Try direct property match
-      final rawValue = _environment.getProperty(propertyKey);
+      // 1. Try direct property match
+      Object? rawValue = _environment.getProperty(propertyKey);
 
-      // If not found, and the field type is a complex (non-primitive) class,
-      // recursively bind nested properties.
+      // 2. Nested configuration
+      // If not found and complex type, try to instantiate nested object
       if (rawValue == null && !_isPrimitiveOrEnum(fieldType)) {
-        final nestedInstance = field.getValue(target) ?? await _instantiateNested(fieldType, propertyKey);
-
-        if (nestedInstance != null) {
-          await _bindProperties(nestedInstance, fieldType, propertyKey, ignoreUnknown, validate);
-          field.setValue(target, nestedInstance);
-        }
-
-        continue;
+        rawValue = await _createNestedInstance(fieldType, propertyKey);
       }
 
-      // Handle primitive or directly resolvable types
+      // 3. Convert and Store
       if (rawValue != null) {
-        final converted = _podFactory.getConversionService().convert(rawValue, fieldType);
-
-        if (converted != null && fieldType.isInstance(converted)) {
-          field.setValue(target, converted);
-        } else if (validate) {
-          throw IllegalStateException(
-            'Failed to convert property "$propertyKey" value "$rawValue" '
-            'to type ${fieldType.getSimpleName()} for '
+        // If it's a primitive/simple from env, convert it.
+        // If it's an object from _createNestedInstance, it's already the right type.
+        if (_isPrimitiveOrEnum(fieldType) || rawValue is String) {
+          final converted = _podFactory.getConversionService().convert(rawValue, fieldType);
+          if (converted != null) {
+            values[fieldName] = converted;
+          } else if (validate) {
+            throw IllegalStateException(
+              'Failed to convert environment property "$propertyKey" to type '
+              '${fieldType.getSimpleName()} for field $fieldName of ${targetClass.getName()}',
+            );
+          }
+        } else {
+          // Already an object (nested instance)
+          values[fieldName] = rawValue;
+        }
+      } else {
+        // Handle missing
+        if (validate) {
+          throw IllegalStateException('Missing required configuration property: "$propertyKey"');
+        } else if (!ignoreUnknown) {
+          _logger.warn(
+            'No environment property found for "$propertyKey" while binding '
             '${targetClass.getName()}.${field.getName()}',
           );
         }
-      } else if (validate) {
-        throw IllegalStateException('Missing required configuration property: "$propertyKey"');
-      } else if (!ignoreUnknown) {
-        _logger.warn(
-          'No environment property found for "$propertyKey" while binding '
-          '${targetClass.getName()}.${field.getName()}',
-        );
       }
     }
+
+    return values;
+  }
+
+  /// Creates and binds a nested configuration object.
+  Future<Object?> _createNestedInstance(Class clazz, String prefix) async {
+    // Check if the nested class has its own annotation overrides, otherwise default to loose binding
+    bool validate = false;
+    bool ignoreUnknown = true;
+    if (clazz.hasDirectAnnotation<ConfigurationProperty>()) {
+      final ann = clazz.getDirectAnnotation<ConfigurationProperty>()!;
+      validate = ann.validate;
+      ignoreUnknown = ann.ignoreUnknownFields;
+    }
+
+    // 1. Resolve values for the nested class (recursively handles deeper nesting)
+    final values = await _resolvePropertyValues(clazz, prefix, ignoreUnknown, validate);
+
+    // 2. Determine instantiation strategy
+    // Try parameterized constructor first (for final fields), then default
+    Constructor? ctor = clazz.getConstructors().find((c) => c.getParameters().isNotEmpty);
+    final hasParameterizedConstructor = ctor != null;
+    
+    ctor ??= clazz.getNoArgConstructor() ?? clazz.getDefaultConstructor();
+
+    if (ctor == null) {
+      _logger.error('No suitable constructor found for nested configuration class ${clazz.getName()}');
+      return null;
+    }
+
+    // 3. Instantiate based on constructor type
+    Object? instance;
+    
+    if (hasParameterizedConstructor) {
+      final args = _buildConstructorArgs(ctor, values);
+      final result = ctor.newInstance(args.named, args.positional);
+      
+      // Wrapped in try/catch to gracefully handle final fields
+      if (result != null) {
+        try {
+          _populateFields(result, clazz, values);
+        } catch (_) {
+          // Ignore - final fields are already set by constructor
+        }
+
+        instance = _podFactory.getConversionService().convert(result, Class.fromQualifiedName(clazz.getQualifiedName()));
+      }
+    } else {
+      final result = ctor.newInstance({}, []);
+      
+      if (result != null) {
+        _populateFields(result, clazz, values);
+      }
+
+      instance = _podFactory.getConversionService().convert(result, Class.fromQualifiedName(clazz.getQualifiedName()));
+    }
+
+    return instance;
+  }
+
+  /// Populates writable fields on an [instance] using the [resolvedValues].
+  void _populateFields(Object instance, Class clazz, Map<String, Object?> resolvedValues) {
+    for (final field in clazz.getFields()) {
+      if (!field.isWritable()) continue;
+
+      final name = field.getName();
+      if (resolvedValues.containsKey(name)) {
+        final value = resolvedValues[name];
+        // Ensure type safety before setting
+        if (value != null && field.getReturnClass().isInstance(value)) {
+          field.setValue(instance, value);
+        }
+      }
+    }
+  }
+
+  /// Builds constructor arguments from the resolved values map.
+  _ConstructorArguments _buildConstructorArgs(Constructor ctor, Map<String, Object?> values) {
+    final args = _ConstructorArguments();
+
+    for (final param in ctor.getParameters()) {
+      final name = param.getName();
+
+      // We assume parameter names match field names (standard Dart 'this.field' pattern)
+      if (values.containsKey(name)) {
+        final val = values[name];
+        if (param.isNamed()) {
+          args.named[name] = val;
+        } else {
+          args.positional.insert(param.getIndex(), val);
+        }
+      } else {
+        // If missing, add null for positional to maintain order/count
+        if (!param.isNamed()) {
+          args.positional.insert(param.getIndex(), null);
+        }
+      }
+    }
+    return args;
   }
 
   /// {@template configuration_property_binder.is_primitive_or_enum}
   /// Determines whether a given class should be treated as a "primitive-like" type
   /// for configuration binding purposes.
-  ///
-  /// Returns `true` if:
-  /// - [clazz] is a primitive type (int, double, bool, etc.)
-  /// - [clazz] is an enum type
-  /// - [clazz] is a core Dart type (its fully-qualified name starts with `dart.`)
-  ///
-  /// This method is used by `_bindProperties` to decide whether to recursively
-  /// bind nested properties or handle the field as a simple value.
   /// {@endtemplate}
   bool _isPrimitiveOrEnum(Class clazz) {
     return clazz.isPrimitive() || clazz.isEnum() || clazz.getName().startsWith('dart.');
   }
+}
 
-  /// {@template configuration_property_binder.instantiate_nested}
-  /// Attempts to create a new instance of a nested configuration class for
-  /// recursive property binding.
-  ///
-  /// The method tries, in order:
-  /// 1. A no-argument constructor via `getNoArgConstructor()`.
-  /// 2. A default constructor via `getDefaultConstructor()`.
-  /// 3. Any constructor with zero parameters.
-  ///
-  /// If no suitable constructor is found, throws [IllegalStateException] with
-  /// the fully-qualified class name and property key for easier debugging.
-  ///
-  /// If instantiation fails for any reason, logs an error via `_logger` and
-  /// returns `null`.
-  ///
-  /// ### Parameters
-  /// - **[clazz]** — The class type to instantiate.
-  /// - **[propertyKey]** — The full property key associated with this nested object
-  ///   (used for error messages and logging).
-  ///
-  /// ### Returns
-  /// A new instance of the class if instantiation succeeds, otherwise `null`.
-  /// {@endtemplate}
-  Future<Object?> _instantiateNested(Class clazz, String propertyKey) async {
-    try {
-      final ctor = clazz.getNoArgConstructor() ?? clazz.getDefaultConstructor() ?? clazz.getConstructors().firstWhere(
-        (c) => c.getParameters().isEmpty,
-        orElse: () => throw IllegalStateException(
-          'No default constructor found for nested configuration class '
-          '${clazz.getName()} (property: $propertyKey)',
-        ),
-      );
-
-      return ctor.newInstance();
-    } catch (e) {
-      _logger.error(
-        'Failed to instantiate nested configuration class: ${clazz.getName()}',
-        error: e,
-      );
-      return null;
-    }
-  }
+/// Helper class to hold resolved constructor arguments.
+class _ConstructorArguments {
+  final Map<String, Object?> named = {};
+  final List<Object?> positional = [];
 }

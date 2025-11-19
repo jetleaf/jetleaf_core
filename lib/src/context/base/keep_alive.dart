@@ -12,10 +12,13 @@
 // 
 // 🔧 Powered by Hapnium — the Dart backend engine 🍃
 
-import 'dart:async' show Completer;
+import 'dart:async' show Completer, FutureOr;
 
-import 'event/event_listener.dart';
-import 'event/application_event.dart';
+import 'package:jetleaf_lang/lang.dart';
+
+import '../event/event_listener.dart';
+import '../event/application_event.dart';
+import '../lifecycle/lifecycle.dart';
 
 /// {@template keep_alive}
 /// A lifecycle-aware component that keeps the Dart VM alive as long as
@@ -39,7 +42,10 @@ import 'event/application_event.dart';
 /// ```
 ///
 /// {@endtemplate}
-final class KeepAlive implements ApplicationEventListener<ApplicationContextEvent> {
+final class KeepAlive implements Lifecycle, ApplicationEventListener<ApplicationContextEvent> {
+  /// Tells if the keep alive is running
+  bool _isRunning = false;
+
   /// Internal completer used to block the thread until shutdown.
   Completer<void> completer = Completer<void>();
 
@@ -52,31 +58,41 @@ final class KeepAlive implements ApplicationEventListener<ApplicationContextEven
   @override
   Future<void> onApplicationEvent(ApplicationContextEvent event) async {
     if (event is ContextSetupEvent) {
-      startKeepAliveThread();
+      return await start();
     } else if (event is ContextClosedEvent) {
-      stopKeepAliveThread();
+      return await stop();
     }
   }
 
   /// Starts the keep-alive thread by awaiting an uncompleted [Completer].
   ///
   /// This method will block the current execution thread until
-  /// [stopKeepAliveThread] is called, making it suitable for use
+  /// [stop] is called, making it suitable for use
   /// at the end of a `main()` method to prevent premature VM exit.
-  void startKeepAliveThread() async {
+  @override
+  FutureOr<void> start() async {
     if (completer.isCompleted) {
       completer = Completer<void>();
     }
 
-    await completer.future;
+    _isRunning = true;
+    return await completer.future;
   }
 
   /// Stops the keep-alive thread, allowing the application to shut down.
   ///
   /// This completes the internal [Completer], releasing the await in
-  /// [startKeepAliveThread] and allowing the process to exit gracefully.
-  void stopKeepAliveThread() {
+  /// [start] and allowing the process to exit gracefully.
+  @override
+  Future<void> stop([Runnable? runnable]) async {
     if (completer.isCompleted) return;
-    completer.complete();
+    completer.complete(runnable?.run());
+
+    _isRunning = false;
+
+    return Future.value();
   }
+
+  @override
+  bool isRunning() => _isRunning;
 }

@@ -16,7 +16,7 @@ import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
 import '../../aware.dart';
-import '../application_context.dart';
+import '../base/application_context.dart';
 import '../core/abstract_application_context.dart';
 
 /// {@template jetleaf_class_DefaultAwareProcessor}

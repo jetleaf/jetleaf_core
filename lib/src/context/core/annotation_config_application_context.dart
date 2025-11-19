@@ -19,10 +19,10 @@ import 'package:meta/meta.dart';
 
 import '../../condition/condition_evaluator.dart';
 import '../../intercept/default_method_interceptor.dart';
-import '../application_conversion_service.dart';
-import '../application_environment.dart';
-import '../application_module.dart';
-import '../application_type.dart';
+import '../base/application_conversion_service.dart';
+import '../base/application_environment.dart';
+import '../base/application_module.dart';
+import '../base/application_type.dart';
 import '../processors/autowired_annotation_pod_processor.dart';
 import '../processors/common_annotation_pod_processor.dart';
 import '../processors/configuration_property_pod_processor.dart';

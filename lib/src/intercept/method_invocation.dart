@@ -47,6 +47,7 @@ import 'method_argument.dart';
 /// @see [MethodArgument]
 /// @see [AsyncMethodInvocator]
 /// {@endtemplate}
+@Generic(MethodInvocation)
 abstract interface class MethodInvocation<T> implements Flushable {
   /// {@template MethodInvocation_getTarget}
   /// Retrieves the target object on which the method is being invoked.
@@ -233,6 +234,7 @@ abstract interface class MethodInvocation<T> implements Flushable {
 ///
 /// @typeParam T The return type of the method being invoked.
 /// {@endtemplate}
+@Generic(SimpleMethodInvocation)
 final class SimpleMethodInvocation<T> implements MethodInvocation<T> {
   /// The target object instance on which the method is being invoked.
   /// 

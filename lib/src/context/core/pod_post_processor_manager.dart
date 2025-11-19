@@ -15,7 +15,7 @@
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
-import '../helpers.dart';
+import '../base/helpers.dart';
 
 /// {@template podPostProcessorManager}
 /// Manager for coordinating pod factory post-processors and pod-aware processors

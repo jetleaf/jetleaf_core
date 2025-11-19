@@ -17,7 +17,7 @@ import 'package:jetleaf_pod/pod.dart';
 
 import '../../annotations/lifecycle.dart';
 import '../../aware.dart';
-import '../application_context.dart';
+import '../base/application_context.dart';
 
 /// {@template applicationAnnotatedLifecycleProcessor}
 /// Processor for application lifecycle annotations that discovers and invokes

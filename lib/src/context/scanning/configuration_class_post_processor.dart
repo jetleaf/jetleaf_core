@@ -27,8 +27,8 @@ import '../../condition/condition_evaluator.dart';
 import '../../package_order_comparator.dart';
 import '../../scope/annotated_scope_metadata_resolver.dart';
 import '../core/pod_spec.dart';
-import '../helpers.dart';
-import '../pod_registrar.dart';
+import '../base/helpers.dart';
+import '../base/pod_registrar.dart';
 import '../type_filters/annotation_type_filter.dart';
 import '../type_filters/assignable_type_filter.dart';
 import '../type_filters/regex_pattern_type_filter.dart';
@@ -184,7 +184,7 @@ class ConfigurationClassPostProcessor extends AnnotatedPodMethodBuilder implemen
   }
 
   @override
-  void register(PodRegistrar registrar) {
+  Future<void> register(PodRegistrar registrar) async {
     registrar.register(this, _environment);
 
     final definition = RootPodDefinition(type: registrar.getClass());

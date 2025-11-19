@@ -15,7 +15,12 @@
 library;
 
 export 'src/condition/helpers.dart';
-export 'src/context/lifecycle/lifecycle.dart';
+export 'src/condition/condition.dart';
+export 'src/condition/conditions.dart';
+export 'src/condition/condition_evaluator.dart';
+
+export 'src/scope/annotated_scope_metadata_resolver.dart';
+export 'src/scope/scope_metadata_resolver.dart';
 
 export 'src/aware.dart';
 export 'src/exceptions.dart';
