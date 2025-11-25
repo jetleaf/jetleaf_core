@@ -12,36 +12,19 @@
 // 
 // 🔧 Powered by Hapnium — the Dart backend engine 🍃
 
-/// JetLeaf Interception Core Library
+/// 🔄 **JetLeaf Core Interception**
 ///
-/// This library provides the foundational components for JetLeaf’s
-/// **Aspect-Oriented Programming (AOP)** and **method interception** system.
-/// It enables dynamic interception of method calls, allowing developers to
-/// apply cross-cutting concerns such as caching, transactions, validation,
-/// or logging declaratively.
-///
-/// ## Overview
-/// The interception mechanism in JetLeaf allows developers to wrap method
-/// executions with custom logic using interceptor chains. This is particularly
-/// useful for:
-/// - Transparent caching or persistence
-/// - Declarative validation and security
-/// - Method-level profiling and logging
-///
-/// ## Key Exports
-/// - **[AbstractMethodInterceptorDispatcher]** – Base class for orchestrating
-///   method-level interception logic and interceptor chaining.
-/// - **[ChainedMethodInterceptor]** – Utility for combining multiple
-///   interceptors in a unified, ordered sequence.
-/// - **[DefaultMethodInterceptor]** – Simple default implementation of a
-///   method interceptor.
-/// - **[Interceptable]** – Mixin that enables interception capabilities on
-///   any class.
-/// - **[SimpleMethodInvocation]** – Represents contextual data for a single
-///   intercepted method invocation.
+/// This library provides support for method-level interception and
+/// cross-cutting concerns in JetLeaf applications. It enables
+/// behaviors such as logging, metrics collection, transaction
+/// management, and custom method interception to be applied
+/// declaratively to objects.
 ///
 /// ## Example
+///
 /// ```dart
+/// import 'package:jetleaf_core/intercept.dart';
+///
 /// class UserService with Interceptable {
 ///   @LogExecution()
 ///   Future<String> greet(String name) async => when(() async {
@@ -50,8 +33,51 @@
 /// }
 /// ```
 ///
-/// This example shows how `Interceptable` allows JetLeaf to apply
-/// method-level cross-cutting behaviors automatically.
+/// In this example, the `Interceptable` mixin allows JetLeaf to
+/// automatically apply cross-cutting behaviors to the `greet`
+/// method using the `@LogExecution` annotation.
+///
+///
+/// ## 🔑 Core Components
+///
+/// ### Method Dispatching
+/// - `abstract_method_dispatcher.dart` — base abstraction for
+///   dispatching method invocations through interceptors
+///
+/// ### Interceptors
+/// - `method_interceptor.dart` — defines the interceptor interface
+/// - `default_method_interceptor.dart` — default method interceptor
+///   implementation
+///
+/// ### Interceptable Objects
+/// - `interceptable.dart` — mixin that makes classes interceptable
+///   and supports method interception hooks
+/// - `method_invocation.dart` — encapsulates method invocation
+///   details for interception
+/// - `method_argument.dart` — represents method arguments for
+///   intercepted calls
+///
+/// ### Interceptor Management
+/// - `intercept_registry.dart` — manages and registers method
+///   interceptors for various classes and methods
+///
+///
+/// ## 🎯 Intended Usage
+///
+/// Import this library to add cross-cutting behaviors to your
+/// services or components. Use the `Interceptable` mixin along with
+/// method annotations to declaratively apply interceptors:
+///
+/// ```dart
+/// class LoggingService with Interceptable {
+///   @LogExecution()
+///   void performAction() {
+///     // Logging occurs automatically before and after execution
+///   }
+/// }
+/// ```
+///
+/// Provides a foundation for AOP-style programming in JetLeaf.
 ///
 /// {@category Interception}
 library;

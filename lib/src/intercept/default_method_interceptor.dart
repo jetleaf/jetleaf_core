@@ -221,9 +221,11 @@ final class DefaultMethodInterceptor extends AbstractMethodDispatcher implements
     final proxyClass = podClass.getSubClasses().find((cls) => cls.getName().startsWith(Constant.PROXY_IDENTIFIER));
     if (proxyClass != null) {
       final newInstance = proxyClass.getDefaultConstructor()?.newInstance({}, [pod]);
-      (newInstance as Interceptable).support = getMethodInterceptorDispatcher() ?? this;
+      if (newInstance != null && newInstance is Interceptable) {
+        newInstance.support = getMethodInterceptorDispatcher() ?? this;
 
-      return newInstance;
+        return newInstance;
+      }
     }
 
     if (pod is Interceptable) {
