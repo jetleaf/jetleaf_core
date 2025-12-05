@@ -414,30 +414,9 @@ class AutowiredAnnotationPodProcessor extends PodSmartInstantiationProcessor imp
     final cls = source is Field ? source.getReturnClass() : (source as Parameter).getClass();
 
     Object? resolved;
+    final env = _applicationContext.getEnvironment();
 
-    if (value is String && value.startsWith('#{') && value.endsWith('}')) {
-      // Handle environment values
-      final result = _applicationContext.getEnvironment().resolvePlaceholders(value);
-
-      if (result.equals(value)) {
-        throw IllegalArgumentException('''
-Failed to resolve environment placeholder: "$value".
-
-JetLeaf attempted to resolve this value from:
-• active profiles: ${_applicationContext.getEnvironment().getActiveProfiles()}
-• suggestions: ${_applicationContext.getEnvironment().suggestions(value).join(", ")}
-
-But no matching property or environment variable was found.
-
-👉 To fix this:
-- Ensure "$value" is defined in your configuration files (e.g., application.yaml, application.properties).
-- Or export it as an environment variable before running your application.
-- If this placeholder is optional, consider using a default: #{value:defaultValue}.
-''');
-      }
-
-      resolved = _podFactory.getConversionService().convert(result, cls);
-    } else if (value is String && value.startsWith('@{') && value.endsWith('}')) {
+    if (value is String && value.startsWith('@{') && value.endsWith('}')) {
       // Handle pod values
       final podName = value.substring(2, value.length - 1);
       resolved = await _podFactory.resolveDependency(
@@ -468,6 +447,32 @@ But no matching property or environment variable was found.
       if (result != null) {
         resolved = _podFactory.getConversionService().convert(result.getValue(), cls);
       }
+    } else {
+      // Handle environment values
+      String result = env.resolvePlaceholders(value);
+
+      if (result.equals(value)) {
+        result = env.resolvePlaceholders(value.replaceAll("#{", "\${"));
+      }
+
+      if (result.equals(value)) {
+        throw IllegalArgumentException('''
+Failed to resolve environment placeholder: "$value".
+
+JetLeaf attempted to resolve this value from:
+• active profiles: ${env.getActiveProfiles()}
+• suggestions: ${env.suggestions(value).join(", ")}
+
+But no matching property or environment variable was found.
+
+👉 To fix this:
+- Ensure "$value" is defined in your configuration files (e.g., application.yaml, application.properties).
+- Or export it as an environment variable before running your application.
+- If this placeholder is optional, consider using a default: #{value:defaultValue}.
+''');
+      }
+
+      resolved = _podFactory.getConversionService().convert(result, cls);
     }
 
     return resolved;

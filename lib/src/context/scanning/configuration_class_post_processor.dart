@@ -24,7 +24,6 @@ import '../../annotations/pod.dart';
 import '../../annotations/stereotype.dart';
 import '../../aware.dart';
 import '../../condition/condition_evaluator.dart';
-import '../../package_order_comparator.dart';
 import '../../scope/annotated_scope_metadata_resolver.dart';
 import '../core/pod_spec.dart';
 import '../base/helpers.dart';

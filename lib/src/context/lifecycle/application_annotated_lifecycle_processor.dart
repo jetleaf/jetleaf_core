@@ -160,16 +160,9 @@ final class ApplicationAnnotatedLifecycleProcessor implements SmartInitializingS
     for (final m in _onApplicationStoppingMethods.entries) {
       final method = m.value;
       final instance = m.key;
+      final arguments = ExecutableArgumentResolver().and(Class<ApplicationContext>(), context).resolve(method);
 
-      final arguments = <String, Object?>{};
-      final parameters = method.getParameters();
-      final contextArgName = parameters.find((p) => _isAssignableFromApplicationContext(p.getClass()))?.getName();
-      
-      if(contextArgName != null) {
-        arguments[contextArgName] = context;
-      }
-
-      method.invoke(instance, arguments);
+      method.invoke(instance, arguments.getNamedArguments(), arguments.getPositionalArguments());
     }
   }
 
@@ -193,20 +186,9 @@ final class ApplicationAnnotatedLifecycleProcessor implements SmartInitializingS
     for (final m in _onApplicationStoppedMethods.entries) {
       final method = m.value;
       final instance = m.key;
+      final arguments = ExecutableArgumentResolver().and(Class<ApplicationContext>(), context).resolve(method);
 
-      final arguments = <String, Object?>{};
-      final parameters = method.getParameters();
-      final contextArgName = parameters.find((p) => _isAssignableFromApplicationContext(p.getClass()))?.getName();
-      
-      if(contextArgName != null) {
-        arguments[contextArgName] = context;
-      }
-
-      method.invoke(instance, arguments);
+      method.invoke(instance, arguments.getNamedArguments(), arguments.getPositionalArguments());
     }
   }
-
-  /// {@macro isAssignableFromApplicationContext}
-  /// Checks if the given class is assignable to [ApplicationContext].
-  bool _isAssignableFromApplicationContext(Class clazz) => Class<ApplicationContext>().isAssignableFrom(clazz);
 }

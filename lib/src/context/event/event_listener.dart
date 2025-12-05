@@ -58,28 +58,6 @@ import 'application_event.dart';
 /// }
 /// ```
 ///
-/// ### Multiple Event Types:
-/// To listen for multiple event types, implement multiple interfaces:
-/// ```dart
-/// class MultiEventListener implements 
-///     ApplicationEventListener<ApplicationStartedEvent>,
-///     ApplicationEventListener<ApplicationStoppedEvent> {
-///   
-///   @override
-///   void onApplicationEvent(ApplicationStartedEvent event) {
-///     print('Application started');
-///   }
-///   
-///   @override
-///   void onApplicationEvent(ApplicationStoppedEvent event) {
-///     print('Application stopped');
-///   }
-///   
-///   // Note: Dart doesn't support method overloading by return type,
-///   // so you'll need to use different method names or type checking
-/// }
-/// ```
-///
 /// ### Ordering and Priority:
 /// Listeners can implement [Ordered] or [PriorityOrdered] to control
 /// the order in which they receive events:
@@ -114,7 +92,10 @@ import 'application_event.dart';
 /// - [SmartApplicationListener] for conditional event handling
 /// {@endtemplate}
 @Generic(ApplicationEventListener)
-abstract interface class ApplicationEventListener<E extends ApplicationEvent> {
+abstract class ApplicationEventListener<E extends ApplicationEvent> {
+  /// {@macro application_event_listener}
+  const ApplicationEventListener();
+
   /// {@template application_event_listener.on_application_event}
   /// Handle an application event of type [E].
   ///

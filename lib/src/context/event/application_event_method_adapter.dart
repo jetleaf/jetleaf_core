@@ -143,7 +143,6 @@ class ApplicationEventMethodAdapter implements ApplicationEventListener<Applicat
 
       // 3) Non-primitive -> try resolving from PodFactory by type
       try {
-        // Here we assume your PodFactory.get(Class) resolves by type.
         final resolved = await _podFactory.get(paramClass);
         if (param.isPositional()) {
           positionalArgs[i] = resolved;

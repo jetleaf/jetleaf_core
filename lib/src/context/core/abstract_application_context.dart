@@ -709,9 +709,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   }
 
   @override
-  LifecycleProcessor getLifecycleProcessor() {
-    return _lifecycleProcessor ??= DefaultLifecycleProcessor(this);
-  }
+  LifecycleProcessor getLifecycleProcessor() => _lifecycleProcessor ??= DefaultLifecycleProcessor(this);
 
   @override
   void addPodFactoryPostProcessor(PodFactoryPostProcessor processor) {
@@ -949,11 +947,6 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
       // Allows post-processing of the pod factory in context subclasses.
       await postProcessPodFactory(podFactory);
 
-      /// Finds all registered [PodFactoryCustomizer] implementations and
-      /// invokes them to customize the provided [PodFactory] instance
-      /// before the container is setup.
-      await findAllPodFactoryCustomizersAndApplicationModulesCustomize(podFactory);
-
       // Start post process step
       StartupStep postProcess = getApplicationStartup().start("context.pods.post-process");
 
@@ -979,6 +972,11 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
 
       // Check for listener pods and register them.
       await registerListeners();
+
+      /// Finds all registered [PodFactoryCustomizer] implementations and
+      /// invokes them to customize the provided [PodFactory] instance
+      /// before the container is setup.
+      await findAllPodFactoryCustomizersAndApplicationModulesCustomize(podFactory);
 
       // Instantiate all remaining (non-lazy-init) singletons.
       await completePodFactoryInitialization(podFactory);
@@ -1223,17 +1221,14 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
         continue;
       }
 
-      final constructor = subClass.getNoArgConstructor();
-      if (constructor != null) {
-        try {
-          final instance = constructor.newInstance();
-          if (instance is PodFactoryCustomizer) {
-            await instance.customize(podFactory);
-          }
-        } catch (_) {
-          if (logger.getIsWarnEnabled()) {
-            logger.warn("Unable to instantiate the class of ${subClass.getQualifiedName()}, no no-arg constructor found");
-          }
+      try {
+        final instance = ExecutableInstantiator.of(subClass).newInstance();
+        if (instance is PodFactoryCustomizer) {
+          await instance.customize(podFactory, getEnvironment());
+        }
+      } catch (_) {
+        if (logger.getIsWarnEnabled()) {
+          logger.warn("Unable to instantiate the class of ${subClass.getQualifiedName()}, no no-arg constructor found");
         }
       }
     }
@@ -1247,17 +1242,14 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
         continue;
       }
 
-      final constructor = subClass.getNoArgConstructor();
-      if (constructor != null) {
-        try {
-          final instance = constructor.newInstance();
-          if (instance is ApplicationModule) {
-            await instance.configure(this);
-          }
-        } catch (_) {
-          if (logger.getIsWarnEnabled()) {
-            logger.warn("Unable to instantiate the class of ${subClass.getQualifiedName()}, no no-arg constructor found");
-          }
+      try {
+        final instance = ExecutableInstantiator.of(subClass).newInstance();
+        if (instance is ApplicationModule) {
+          await instance.configure(this);
+        }
+      } catch (_) {
+        if (logger.getIsWarnEnabled()) {
+          logger.warn("Unable to instantiate the class of ${subClass.getQualifiedName()}, no no-arg constructor found");
         }
       }
     }
