@@ -44,35 +44,7 @@ import 'package:jetleaf_lang/lang.dart';
 /// - [ConditionalMethodInterceptor]
 ///
 /// {@endtemplate}
-abstract interface class MethodArgument with EqualsAndHashCode {
-  /// {@template MethodArgument_getPositionalArguments}
-  /// Retrieves the positional arguments for the method invocation.
-  ///
-  /// Returns an ordered list of positional arguments that will be passed
-  /// to the target method. The order matches the parameter declaration
-  /// order in the method signature.
-  ///
-  /// This enables reflective inspection or modification of argument values
-  /// prior to invocation, often used in advice logic.
-  ///
-  /// @return List of positional arguments in declaration order
-  /// {@endtemplate}
-  List<Object?> getPositionalArguments();
-
-  /// {@template MethodArgument_getNamedArguments}
-  /// Retrieves the named arguments for the method invocation.
-  ///
-  /// Returns a map of named arguments where keys are parameter names
-  /// and values are the argument values. This enables access to
-  /// optional named parameters in Dart method invocations.
-  ///
-  /// Useful for interceptors that need to log or adjust named parameters
-  /// before the target method executes.
-  ///
-  /// @return Map of named arguments keyed by parameter name
-  /// {@endtemplate}
-  Map<String, Object?> getNamedArguments();
-}
+abstract interface class MethodArgument with EqualsAndHashCode implements ExecutableArgument {}
 
 /// {@template method_arguments}
 /// Immutable container for method invocation arguments.
@@ -109,13 +81,13 @@ final class MethodArguments implements MethodArgument {
   ///
   /// Represents arguments that are passed in order according to the
   /// method's parameter declaration sequence.
-  final List<Object?> positionalArgs;
+  final List<Object?> _positionalArgs;
 
   /// The named arguments for the method invocation.
   ///
   /// Represents arguments passed by name. Keys correspond to parameter names,
   /// and values represent the actual argument values.
-  final Map<String, Object?> namedArgs;
+  final Map<String, Object?> _namedArgs;
 
   /// {@macro method_arguments}
   ///
@@ -123,14 +95,14 @@ final class MethodArguments implements MethodArgument {
   /// [positionalArgs] and [namedArgs].
   ///
   /// Both arguments default to empty collections when not provided.
-  const MethodArguments({this.positionalArgs = const [], this.namedArgs = const {}});
+  const MethodArguments({List<Object?> positionalArgs = const [], Map<String, Object?> namedArgs = const {}}) : _namedArgs = namedArgs, _positionalArgs = positionalArgs;
 
   @override
-  Map<String, Object?> getNamedArguments() => namedArgs;
+  Map<String, Object?> getNamedArguments() => _namedArgs;
 
   @override
-  List<Object?> getPositionalArguments() => positionalArgs;
+  List<Object?> getPositionalArguments() => _positionalArgs;
 
   @override
-  List<Object?> equalizedProperties() => [namedArgs, positionalArgs];
+  List<Object?> equalizedProperties() => [_namedArgs, _positionalArgs];
 }

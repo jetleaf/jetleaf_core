@@ -325,7 +325,7 @@ abstract class GenericApplicationContext extends AbstractApplicationContext {
     if(name != null) {
       podDef.name = name;
       podDef.scope = ScopeDesign.type(ScopeType.SINGLETON.name);
-      registerDefinition(name, podDef);
+      await registerDefinition(name, podDef);
 
       podName = name;
     } else if(customizer != null) {
@@ -335,15 +335,15 @@ abstract class GenericApplicationContext extends AbstractApplicationContext {
       podDef = customizerImpl.clone();
       
       if (podDef.name.isNotEmpty) {
-        registerDefinition(podDef.name, podDef);
+        await registerDefinition(podDef.name, podDef);
       } else {
         podName = AnnotatedPodNameGenerator().generate(podDef, podFactory);
-        registerDefinition(podName, podDef);
+        await registerDefinition(podName, podDef);
       }
     } else {
       podDef.scope = ScopeDesign.type(ScopeType.SINGLETON.name);
       podName = AnnotatedPodNameGenerator().generate(podDef, podFactory);
-      registerDefinition(podName, podDef);
+      await registerDefinition(podName, podDef);
     }
 
     return Future.value();
@@ -361,14 +361,14 @@ abstract class GenericApplicationContext extends AbstractApplicationContext {
 
   @override
   Future<void> destroyPods() async {
-    super.destroyPods();
+    await super.destroyPods();
 
     return Future.value();
   }
 
   @override
   Future<void> resetCommonCaches() async {
-    super.resetCommonCaches();
+    await super.resetCommonCaches();
 
     return Future.value();
   }

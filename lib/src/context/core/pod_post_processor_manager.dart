@@ -190,9 +190,11 @@ final class PodPostProcessorManager {
 
     for (final name in names) {
       if (await pf.isTypeMatch(name, Class<PriorityOrdered>(null, PackageNames.LANG))) {
-        final processor = await pf.getPod<PodProcessor>(name);
-        if (processor is PriorityOrdered) {
-          prioritizedProcessors.add(processor);
+        final processor = await pf.getPod(name);
+        if (processor is PodProcessor) {
+          if (processor is PriorityOrdered) {
+            prioritizedProcessors.add(processor);
+          }
         }
       } else if (await pf.isTypeMatch(name, Class<Ordered>(null, PackageNames.LANG))) {
         orderedNames.add(name);
@@ -211,7 +213,7 @@ final class PodPostProcessorManager {
     if (orderedNames.isNotEmpty) {
       final orderedProcessors = <PodProcessor>[];
       for (final name in orderedNames) {
-        final processor = await pf.getPod<PodProcessor>(name, null, cls);
+        final processor = await pf.getPod(name, null, cls);
         orderedProcessors.add(processor);
       }
 
@@ -223,7 +225,7 @@ final class PodPostProcessorManager {
     if (simpleNames.isNotEmpty) {
       final simpleProcessors = <PodProcessor>[];
       for (final name in simpleNames) {
-        final processor = await pf.getPod<PodProcessor>(name, null, cls);
+        final processor = await pf.getPod(name, null, cls);
         simpleProcessors.add(processor);
       }
 

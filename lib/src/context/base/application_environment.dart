@@ -39,5 +39,7 @@ import 'package:jetleaf_env/env.dart';
 /// {@endtemplate}
 class ApplicationEnvironment extends GlobalEnvironment {
   /// {@macro application_environment}
-  ApplicationEnvironment() : super();
+  ApplicationEnvironment() : super() {
+    setPlaceholderPrefix("\${");
+  }
 }

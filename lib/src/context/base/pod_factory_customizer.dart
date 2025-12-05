@@ -12,6 +12,7 @@
 // 
 // 🔧 Powered by Hapnium — the Dart backend engine 🍃
 
+import 'package:jetleaf_env/env.dart';
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
@@ -72,5 +73,5 @@ abstract interface class PodFactoryCustomizer<T extends ConfigurablePodFactory> 
   ///
   /// Implementers should not perform any pod lookups here, as the factory’s
   /// dependency graph has not yet been established.
-  Future<void> customize(T podFactory);
+  Future<void> customize(T podFactory, Environment environment);
 }

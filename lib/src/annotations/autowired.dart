@@ -174,12 +174,6 @@ class AutowiredIgnore extends ReflectableAnnotation {
 ///   @Value('#{database.timeout:30}') // Default value 30
 ///   late final int timeout;
 /// 
-///   @Value('#{database}')
-///   late final String database;
-///   
-///   @Value('#{database.enabled:true}')
-///   late final bool enabled;
-/// 
 ///   @Value('@{lifecycleProcessor}') // Reference to a pod
 ///   late final LifecycleProcessor lifecycleProcessor;
 ///   
