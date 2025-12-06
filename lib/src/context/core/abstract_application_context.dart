@@ -700,8 +700,7 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
   Future<void> publishEvent(ApplicationEvent event) async {
     await _applicationEventBus?.onEvent(event);
 
-    final parent = getParent();
-    if (parent != null) {
+    if (getParent() case final parent?) {
       return await parent.publishEvent(event);
     }
 
@@ -717,8 +716,8 @@ abstract class AbstractApplicationContext implements ConfigurableApplicationCont
 
     try {
       Comparator<Object>? comparator;
-      if (getPodFactory() is DefaultListablePodFactory) {
-        final comp = (getPodFactory() as DefaultListablePodFactory).getDependencyComparator();
+      if (getPodFactory() case DefaultListablePodFactory factory) {
+        final comp = factory.getDependencyComparator();
         if (comp != null) {
           comparator = comp;
         }
