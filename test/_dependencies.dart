@@ -15,19 +15,17 @@
 import 'dart:io';
 
 import 'package:jetleaf_lang/lang.dart';
+import 'package:jetleaf_lang/jetleaf_lang.dart' show MockRuntimeScanner, InternalMockLibraryGenerator, RuntimeScannerConfiguration;
 
 Future<void> setupRuntime({List<String> packagesToExclude = const [], List<String> filesToLoad = const []}) async {
   final scan = await MockRuntimeScanner(
-    onInfo: (msg) => print('[MOCK INFO] $msg'),
-    onWarning: (msg) => print('[MOCK WARNING] $msg'),
-    onError: (msg) => print('[MOCK ERROR] $msg'),
+    onInfo: (msg, overwrite) => print('[MOCK INFO] $msg'),
+    onWarning: (msg, overwrite) => print('[MOCK WARNING] $msg'),
+    onError: (msg, overwrite) => print('[MOCK ERROR] $msg'),
     forceLoadFiles: filesToLoad.map((file) => File(file).absolute).toList(),
     libraryGeneratorFactory: (params) => InternalMockLibraryGenerator(
       mirrorSystem: params.mirrorSystem,
       forceLoadedMirrors: params.forceLoadedMirrors,
-      onInfo: (msg) => print('[MOCK INFO] $msg'),
-      onWarning: (msg) => print('[MOCK WARNING] $msg'),
-      onError: (msg) => print('[MOCK ERROR] $msg'),
       configuration: params.configuration,
       packages: params.packages
     )
@@ -52,6 +50,6 @@ Future<void> setupRuntime({List<String> packagesToExclude = const [], List<Strin
     ],
     // enableTreeShaking: true,
     // writeDeclarationsToFiles: true
-  ));
+  ), []);
   Runtime.register(scan.getContext());
 }

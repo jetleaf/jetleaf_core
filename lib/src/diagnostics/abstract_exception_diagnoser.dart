@@ -29,6 +29,7 @@ import 'exception_diagnoser.dart';
 /// }
 /// ```
 /// {@endtemplate}
+@Generic(AbstractExceptionDiagnoser)
 abstract class AbstractExceptionDiagnoser<E extends Exception> implements ExceptionDiagnoser, ClassGettable {
   @override
   ExceptionDiagnosis? diagnose(Exception exception) {

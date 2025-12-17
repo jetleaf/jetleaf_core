@@ -15,7 +15,6 @@
 import 'package:jetleaf_lang/lang.dart';
 
 import 'interceptable.dart';
-import 'method_argument.dart';
 
 /// {@template method_invocation}
 /// Represents a reflective method invocation within the interception pipeline.
@@ -44,7 +43,7 @@ import 'method_argument.dart';
 /// }
 /// ```
 ///
-/// @see [MethodArgument]
+/// @see [ExecutableArgument]
 /// @see [AsyncMethodInvocator]
 /// {@endtemplate}
 @Generic(MethodInvocation)
@@ -85,13 +84,13 @@ abstract interface class MethodInvocation<T> implements Flushable {
   /// {@template MethodInvocation_getArgument}
   /// Retrieves the structured arguments for the method invocation.
   ///
-  /// Returns a [MethodArgument] instance containing both positional
+  /// Returns a [ExecutableArgument] instance containing both positional
   /// and named arguments. Interceptors can read or modify these
   /// arguments before invoking the original method.
   ///
-  /// @return The [MethodArgument] instance or null if none are present
+  /// @return The [ExecutableArgument] instance or null if none are present
   /// {@endtemplate}
-  MethodArgument? getArgument();
+  ExecutableArgument? getArgument();
 
   /// Indicates whether the target method has already been invoked
   /// within the current operation context.
@@ -263,7 +262,7 @@ final class SimpleMethodInvocation<T> implements MethodInvocation<T> {
   /// Contains both positional and named arguments that will be passed to
   /// the target method. Interceptors can inspect and modify these arguments
   /// before the original method is executed.
-  final MethodArgument? _arguments;
+  final ExecutableArgument? _arguments;
 
   /// The original invocable request representing the method call.
   /// 
@@ -328,7 +327,7 @@ final class SimpleMethodInvocation<T> implements MethodInvocation<T> {
   SimpleMethodInvocation(this._target, this._targetClass, this._method, this._arguments, this._request);
 
   @override
-  MethodArgument? getArgument() => _arguments;
+  ExecutableArgument? getArgument() => _arguments;
 
   @override
   Method getMethod() => _method;

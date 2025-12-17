@@ -16,7 +16,7 @@ import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_logging/logging.dart';
 import 'package:jetleaf_pod/pod.dart';
 
-import '../../condition/condition_evaluator.dart';
+import '../condition/condition_evaluator.dart';
 import '../../scope/annotated_scope_metadata_resolver.dart';
 import '../../scope/scope_metadata_resolver.dart';
 import '../type_filters/type_filter.dart';

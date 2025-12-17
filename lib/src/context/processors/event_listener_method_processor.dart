@@ -109,8 +109,8 @@ final class EventListenerMethodProcessor implements PodFactoryPostProcessor, App
         }
 
         final listener = method.getDirectAnnotation<EventListener>();
-        final parameter = method.getParameters().find((p) => p.getClass().isAssignableTo(Class<ApplicationEvent>(null, PackageNames.CORE)));
-        final eventClass = _determineFromAnnotation(listener) ?? parameter?.getClass();
+        final parameter = method.getParameters().find((p) => p.getReturnClass().isAssignableTo(Class<ApplicationEvent>(null, PackageNames.CORE)));
+        final eventClass = _determineFromAnnotation(listener) ?? parameter?.getReturnClass();
         
         if (_logger.getIsTraceEnabled()) {
           _logger.trace("Adding event listener method '${method.getName()}' of class ${method.getDeclaringClass().getName()} - ${method.getDeclaringClass().getQualifiedName()}");

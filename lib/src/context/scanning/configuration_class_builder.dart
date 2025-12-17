@@ -109,8 +109,7 @@ final class ConfigurationClassBuilder {
     }
 
     // Detect recursive parsing
-    if (_processingClasses.contains(type) ||
-        _processingClasses.any((e) => e.getQualifiedName().equals(qualifiedName))) {
+    if (_processingClasses.contains(type) || _processingClasses.any((e) => e.getQualifiedName().equals(qualifiedName))) {
       if (_logger.getIsWarnEnabled()) {
         _logger.warn('⚠️ Cycle detected while parsing $qualifiedName — skipping to prevent recursion.');
       }

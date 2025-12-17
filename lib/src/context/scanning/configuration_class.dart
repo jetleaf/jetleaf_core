@@ -15,6 +15,7 @@
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 
+import '../../annotations/conditional.dart';
 import '../../annotations/configuration.dart';
 import '../../scope/scope_metadata_resolver.dart';
 import '../type_filters/type_filter.dart';
@@ -77,6 +78,37 @@ class ConfigurationClass extends CommonConfiguration with EqualsAndHashCode {
 
   @override
   List<Object?> equalizedProperties() => [type, proxyPodMethods, definition];
+
+  /// Checks whether this configuration class has any **conditional annotations**.
+  ///
+  /// Conditional annotations are those extending or implementing [WhenConditional],
+  /// such as [Conditional], [ConditionalOnClass], [ConditionalOnProperty], etc.
+  ///
+  /// ### Behavior
+  /// - Inspects all **direct annotations** declared on [type].
+  /// - Returns `true` if at least one annotation is assignable from [WhenConditional.CLASS].
+  /// - Returns `false` if no such annotations are present.
+  ///
+  /// ### Example
+  /// ```dart
+  /// final config = ConfigurationClass(
+  ///   'myPod',
+  ///   someClass,
+  ///   somePodDefinition,
+  /// );
+  ///
+  /// if (config.hasConditional()) {
+  ///   print('This configuration is conditionally activated.');
+  /// } else {
+  ///   print('This configuration is always active.');
+  /// }
+  /// ```
+  ///
+  /// ### Notes
+  /// - This method is used by JetLeaf’s **conditional evaluation system** to
+  ///   determine whether the configuration should be activated based on runtime or build-time conditions.
+  /// - Only **direct annotations** on the class type are considered; inherited annotations are ignored.
+  bool hasConditional() => type.hasDirectAnnotation<WhenConditional>();
 }
 
 /// {@template pod_method}
@@ -121,6 +153,36 @@ class PodMethod with EqualsAndHashCode {
 
   @override
   List<Object?> equalizedProperties() => [method, configurationClass];
+
+  /// Determines whether this pod method has any **conditional annotations**.
+  ///
+  /// Conditional annotations are those that extend or implement [WhenConditional],
+  /// such as [Conditional], [ConditionalOnClass], [ConditionalOnProperty], etc.
+  ///
+  /// ### Behavior
+  /// - Iterates through all **direct annotations** declared on [method].
+  /// - Returns `true` if at least one annotation is a subclass of [WhenConditional].
+  /// - Returns `false` if no such annotation is present.
+  ///
+  /// ### Example
+  /// ```dart
+  /// final podMethod = PodMethod(
+  ///   method: someMethod,
+  ///   configurationClass: someConfigClass,
+  /// );
+  ///
+  /// if (podMethod.hasConditional()) {
+  ///   print('This method has conditional activation rules.');
+  /// } else {
+  ///   print('This method is always active.');
+  /// }
+  /// ```
+  ///
+  /// ### Notes
+  /// - This method is used internally by JetLeaf’s **pod resolution pipeline** to
+  ///   determine if conditional logic should be evaluated before invoking the pod.
+  /// - Only **direct annotations** are considered; inherited annotations are ignored.
+  bool hasConditional() => method.hasDirectAnnotation<WhenConditional>();
 }
 
 /// {@template component_scan_configuration}

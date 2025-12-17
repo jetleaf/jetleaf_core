@@ -131,9 +131,9 @@ class AnnotationTypeFilter extends TypeFilter {
   @override
   bool matches(Class cls) {
     if (considerMetaAnnotations) {
-      return cls.getAllAnnotations().any((a) => a.getClass() == annotationType);
+      return cls.getAllAnnotations().any((a) => a.getDeclaringClass() == annotationType);
     } else {
-      return cls.getAllDirectAnnotations().any((a) => a.getClass() == annotationType);
+      return cls.getAllDirectAnnotations().any((a) => a.getDeclaringClass() == annotationType);
     }
   }
 }

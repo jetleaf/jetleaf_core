@@ -19,7 +19,7 @@ import 'package:jetleaf_pod/pod.dart';
 import '../../annotations/configuration.dart';
 import '../../annotations/others.dart';
 import '../../aware.dart';
-import '../../condition/condition_evaluator.dart';
+import '../condition/condition_evaluator.dart';
 import '../../scope/annotated_scope_metadata_resolver.dart';
 import 'annotated_pod_name_generator.dart';
 
@@ -119,7 +119,7 @@ final class AnnotatedPodDefinitionReader implements EnvironmentAware, PodFactory
   /// await reader.doRegister(MyService, 'customPodName');
   /// ```
   Future<void> doRegister(Class<Object> cls, [String? name]) async {
-    ConditionEvaluator conditionEvaluator = ConditionEvaluator(_environment, _podFactory, Runtime);
+    ConditionEvaluator conditionEvaluator = ConditionEvaluator(_environment, _podFactory);
     RootPodDefinition definition = RootPodDefinition(type: cls);
 
     // Evaluate @Conditional

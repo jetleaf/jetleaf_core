@@ -19,10 +19,9 @@ export 'src/availability/application_availability_auto_configuration.dart';
 export 'src/availability/availability_event.dart';
 export 'src/availability/availability_state.dart';
 
-export 'src/condition/helpers.dart';
-export 'src/condition/condition.dart';
-export 'src/condition/conditions.dart';
-export 'src/condition/condition_evaluator.dart';
+export 'src/context/condition/condition.dart';
+export 'src/context/condition/conditions.dart';
+export 'src/context/condition/condition_evaluator.dart';
 
 export 'src/diagnostics/application_diagnostics.dart' hide ExceptionDiagnosticsManager;
 export 'src/diagnostics/abstract_exception_diagnoser.dart';

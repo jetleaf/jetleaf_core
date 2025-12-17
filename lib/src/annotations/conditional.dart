@@ -15,9 +15,8 @@
 import 'package:jetleaf_lang/lang.dart';
 import 'package:meta/meta_meta.dart';
 
-import '../condition/condition.dart';
-import '../condition/conditions.dart';
-import '../condition/helpers.dart';
+import '../context/condition/condition.dart';
+import '../context/condition/conditions.dart';
 
 // -------------------------------------------------------------------------------------------------------
 // CONDITIONAL
@@ -174,6 +173,39 @@ final class Conditional extends ReflectableAnnotation with EqualsAndHashCode {
 abstract class WhenConditional extends ReflectableAnnotation with EqualsAndHashCode {
   /// {@macro when_conditional}
   const WhenConditional();
+
+  /// The JetLeaf [Class] representation of [WhenConditional].
+  ///
+  /// {@template when_conditional_class_field}
+  /// This static field provides a **runtime [Class] reference** to the
+  /// [WhenConditional] annotation type itself.
+  ///
+  /// ### Purpose
+  /// - Enables reflective operations on [WhenConditional] without requiring
+  ///   an instance.
+  /// - Useful for APIs that need to query metadata, annotations, or type
+  ///   relationships at runtime.
+  /// - Allows JetLeaf internal mechanisms (e.g., [ConditionEvaluator],
+  ///   pod resolvers) to reference the annotation type in a type-safe manner.
+  ///
+  /// ### Example
+  /// ```dart
+  /// // Retrieve all annotations of type WhenConditional on a class
+  /// final annotations = SomeClass.CLASS.getAnnotations<WhenConditional>();
+  ///
+  /// // Use CLASS directly for conditional evaluation
+  /// if (annotation is WhenConditional.CLASS.reflectedType) {
+  ///   print('This annotation participates in conditional logic');
+  /// }
+  /// ```
+  ///
+  /// ### Notes
+  /// - This field is **static and immutable**, representing the type itself.
+  /// - It avoids repeated creation of Class instances for the same annotation.
+  /// - Commonly used in reflective pipelines, dependency injection, and
+  ///   runtime configuration evaluation.
+  /// {@endtemplate}
+  static Class<WhenConditional> CLASS = Class<WhenConditional>();
 }
 
 // -------------------------------------------------------------------------------------------------------

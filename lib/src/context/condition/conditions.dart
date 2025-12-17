@@ -16,10 +16,9 @@ import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_logging/logging.dart';
 import 'package:jetleaf_pod/pod.dart';
 
-import '../annotations/conditional.dart';
-import '../annotations/others.dart';
+import '../../annotations/conditional.dart';
+import '../../annotations/others.dart';
 import 'condition.dart';
-import 'helpers.dart';
 
 /// {@template on_property_condition}
 /// A [Condition] implementation that evaluates whether a component or pod
@@ -698,7 +697,7 @@ class OnDartCondition implements Condition {
     final conditional = annotation.getInstance<ConditionalOnDart>();
     final version = conditional.version;
     final range = conditional.range;
-    final packages = context.runtimeProvider.getAllPackages();
+    final packages = Runtime.getAllPackages();
     final runningVersion = packages.find((p) => p.getName() == PackageNames.DART);
     
     if (logger.getIsTraceEnabled()) {

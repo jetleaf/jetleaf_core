@@ -51,7 +51,7 @@ void main() {
     test('should include source without conditions', () async {
       final env = MockEnvironment();
       final podFactory = DefaultListablePodFactory();
-      final evaluator = ConditionEvaluator(env, podFactory, Runtime);
+      final evaluator = ConditionEvaluator(env, podFactory);
       
       final source = Class<TestService>();
       
@@ -63,7 +63,7 @@ void main() {
     test('should evaluate @Profile annotation', () async {
       final env = MockEnvironment(activeProfiles: ['dev']);
       final podFactory = DefaultListablePodFactory();
-      final evaluator = ConditionEvaluator(env, podFactory, Runtime);
+      final evaluator = ConditionEvaluator(env, podFactory);
       
       final source = Class<DevProfileClass>();
       
@@ -81,7 +81,7 @@ void main() {
       
       podFactory.registerDefinition("dataSource", RootPodDefinition(type: Class<TestDataSource>()));
       
-      final evaluator = ConditionEvaluator(env, podFactory, Runtime);
+      final evaluator = ConditionEvaluator(env, podFactory);
       
       final source = Class<MultipleConditionsClass>();
       
@@ -93,7 +93,7 @@ void main() {
     test('should exclude source when condition fails', () async {
       final env = MockEnvironment(activeProfiles: ['prod']);
       final podFactory = DefaultListablePodFactory();
-      final evaluator = ConditionEvaluator(env, podFactory, Runtime);
+      final evaluator = ConditionEvaluator(env, podFactory);
       
       final source = Class<DevProfileClass>();
       
@@ -105,7 +105,7 @@ void main() {
     test('should handle negated profiles', () async {
       final env = MockEnvironment(activeProfiles: ['prod']);
       final podFactory = DefaultListablePodFactory();
-      final evaluator = ConditionEvaluator(env, podFactory, Runtime);
+      final evaluator = ConditionEvaluator(env, podFactory);
       
       final source = Class<NotDevProfileClass>();
       
@@ -117,7 +117,7 @@ void main() {
     test('should handle conditional on class', () async {
       final env = MockEnvironment();
       final podFactory = DefaultListablePodFactory();
-      final evaluator = ConditionEvaluator(env, podFactory, Runtime);
+      final evaluator = ConditionEvaluator(env, podFactory);
       
       final source = Class<ClassConditionClass>();
       

@@ -85,7 +85,6 @@ library;
 export 'src/intercept/abstract_method_dispatcher.dart';
 export 'src/intercept/default_method_interceptor.dart';
 export 'src/intercept/interceptable.dart';
-export 'src/intercept/method_argument.dart';
 export 'src/intercept/method_invocation.dart';
 export 'src/intercept/method_interceptor.dart';
 export 'src/intercept/intercept_registry.dart';

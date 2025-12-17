@@ -95,14 +95,8 @@ class ConditionalContext {
   /// Developers can programmatically retrieve or configure pods.
   final ConfigurableListablePodFactory podFactory;
 
-  /// {@macro conditional_context_runtimeProvider}
-  ///
-  /// Provides access to runtime-specific information, which can influence
-  /// conditional activation logic.
-  final RuntimeProvider runtimeProvider;
-
   /// {@macro conditional_context}
-  ConditionalContext(this.environment, this.podFactory, this.runtimeProvider);
+  ConditionalContext(this.environment, this.podFactory);
 
   /// {@macro pod_factory_support.unregistered_definitions}
   ///
