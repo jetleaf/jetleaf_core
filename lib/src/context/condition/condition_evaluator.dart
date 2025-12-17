@@ -15,8 +15,8 @@
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_logging/logging.dart';
 
-import '../annotations/conditional.dart';
-import '../annotations/others.dart';
+import '../../annotations/conditional.dart';
+import '../../annotations/others.dart';
 import 'condition.dart';
 import 'conditions.dart';
 
@@ -58,7 +58,7 @@ final class ConditionEvaluator extends ConditionalContext {
   final Log _logger = LogFactory.getLog(ConditionEvaluator);
 
   /// {@macro conditionEvaluator}
-  ConditionEvaluator(super.environment, super.podFactory, super.runtimeProvider);
+  ConditionEvaluator(super.environment, super.podFactory);
 
   /// Evaluates whether the given [source] should be included in the Jetleaf context.
   ///
@@ -129,18 +129,18 @@ final class ConditionEvaluator extends ConditionalContext {
 
     /// Recursively process a single annotation
     void processAnnotation(Annotation annotation) {
-      final annotationClass = annotation.getClass();
+      final annotationClass = annotation.getDeclaringClass();
 
       // Check all annotations on this annotation class
       for (final inner in annotationClass.getAllAnnotations()) {
         try {
           // If the inner annotation is assignable to Conditional, record it
-          if (conditional.isAssignableFrom(inner.getClass())) {
+          if (conditional.isAssignableFrom(inner.getDeclaringClass())) {
             matches.add(MapEntry(annotation, inner.getFieldValue(Conditional.FIELD_KEY)));
           }
 
           // If the inner annotation itself extends WhenConditional, recurse
-          if (whenConditional.isAssignableFrom(inner.getClass())) {
+          if (whenConditional.isAssignableFrom(inner.getDeclaringClass())) {
             processAnnotation(inner);
           }
         } catch (_) {
@@ -152,12 +152,12 @@ final class ConditionEvaluator extends ConditionalContext {
     // Start with all direct annotations on the source
     for (final ann in source.getAllDirectAnnotations()) {
       try {
-        if (whenConditional.isAssignableFrom(ann.getClass())) {
+        if (whenConditional.isAssignableFrom(ann.getDeclaringClass())) {
           processAnnotation(ann);
         }
 
         // Also check if the annotation itself is a Conditional
-        if (conditional.isAssignableFrom(ann.getClass())) {
+        if (conditional.isAssignableFrom(ann.getDeclaringClass())) {
           matches.add(MapEntry(ann, ann.getFieldValue(Conditional.FIELD_KEY)));
         }
       } catch (_) {}

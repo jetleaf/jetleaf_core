@@ -105,7 +105,7 @@ class AutowiredAnnotationPodProcessor extends PodSmartInstantiationProcessor imp
     List<ArgumentValue> args = [];
 
     for (final param in parameters) {
-      final paramClass = param.getClass();
+      final paramClass = param.getReturnClass();
       final classContent = _getClassContent(paramClass);
 
       if (param.hasDirectAnnotation<Qualifier>()) {
@@ -261,7 +261,7 @@ class AutowiredAnnotationPodProcessor extends PodSmartInstantiationProcessor imp
   /// {@endtemplate}
   Future<Object?> _processAutowiredAnnotation(Source source, Object pod, String name, Class podClass) async {
     final classContent = _getClassContent(source);
-    final cls = source is Field ? source.getReturnClass() : (source as Parameter).getClass();
+    final cls = source is Field ? source.getReturnClass() : (source as Parameter).getReturnClass();
 
     Qualifier? qualifier;
     if (source.hasDirectAnnotation<Qualifier>()) {
@@ -367,7 +367,7 @@ class AutowiredAnnotationPodProcessor extends PodSmartInstantiationProcessor imp
   /// {@endtemplate}
   Future<Object?> _processEnvAnnotation(Source source, Object pod, String name, Class podClass) async {
     final value = source.getDirectAnnotation<Env>()?.value();
-    final cls = source is Field ? source.getReturnClass() : (source as Parameter).getClass();
+    final cls = source is Field ? source.getReturnClass() : (source as Parameter).getReturnClass();
     return _podFactory.getConversionService().convert(value, cls);
   }
 
@@ -411,7 +411,7 @@ class AutowiredAnnotationPodProcessor extends PodSmartInstantiationProcessor imp
     final scopeValue = scope?.value ?? definition?.scope.type;
     final ps = scopeValue != null ? _podFactory.getRegisteredScope(scopeValue) : null;
     final value = source.getDirectAnnotation<Value>()?.value;
-    final cls = source is Field ? source.getReturnClass() : (source as Parameter).getClass();
+    final cls = source is Field ? source.getReturnClass() : (source as Parameter).getReturnClass();
 
     Object? resolved;
     final env = _applicationContext.getEnvironment();

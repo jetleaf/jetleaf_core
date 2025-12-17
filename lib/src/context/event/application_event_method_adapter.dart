@@ -118,7 +118,7 @@ class ApplicationEventMethodAdapter implements ApplicationEventListener<Applicat
 
     for (int i = 0; i < params.length; i++) {
       final param = params[i];
-      final paramClass = param.getClass();
+      final paramClass = param.getReturnClass();
 
       // 1) If parameter expects an ApplicationEvent (or subtype) -> pass the actual event instance
       if (paramClass.isAssignableTo(Class<ApplicationEvent>(null, PackageNames.CORE))) {

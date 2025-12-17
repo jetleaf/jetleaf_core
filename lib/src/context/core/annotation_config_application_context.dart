@@ -17,7 +17,7 @@ import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
 import 'package:meta/meta.dart';
 
-import '../../condition/condition_evaluator.dart';
+import '../condition/condition_evaluator.dart';
 import '../../intercept/default_method_interceptor.dart';
 import '../base/application_conversion_service.dart';
 import '../base/application_environment.dart';
@@ -271,7 +271,7 @@ class AnnotationConfigApplicationContext extends GenericApplicationContext imple
   Future<void> scan(List<String> basePackages) async {
     final podFactory = getPodFactory();
     final scanner = ClassPathPodDefinitionScanner(
-      ConditionEvaluator(getEnvironment(), podFactory, Runtime),
+      ConditionEvaluator(getEnvironment(), podFactory),
       podFactory,
       getMainApplicationClass()
     );

@@ -17,7 +17,6 @@ import 'dart:async';
 import 'package:jetleaf_lang/lang.dart';
 import 'package:meta/meta.dart';
 
-import 'method_argument.dart';
 import 'method_interceptor.dart';
 
 /// {@template method_invocator}
@@ -135,7 +134,7 @@ mixin class Interceptable implements MethodInterceptorDispatcher {
   MethodInterceptorDispatcher? support;
 
   @override
-  Future<T> when<T>(AsyncMethodInvocator<T> function, Object target, String methodName, [MethodArgument? arguments, Class? targetClass]) async {
+  Future<T> when<T>(AsyncMethodInvocator<T> function, Object target, String methodName, [ExecutableArgument? arguments, Class? targetClass]) async {
     if (support != null) {
       return support!.when(function, this, methodName, arguments, targetClass);
     }

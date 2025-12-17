@@ -112,7 +112,7 @@ void main() {
   group('OnPropertyCondition', () {
     test('should pass when property exists with correct value', () async {
       final env = MockEnvironment(properties: {'server.ssl.enabled': 'true'});
-      final context = ConditionalContext(env, DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(env, DefaultListablePodFactory());
       final condition = OnPropertyCondition();
       final source = Class<PropertyClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnProperty>()).first;
@@ -124,7 +124,7 @@ void main() {
 
     test('should fail when property is missing and matchIfMissing is false', () async {
       final env = MockEnvironment(properties: {});
-      final context = ConditionalContext(env, DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(env, DefaultListablePodFactory());
       final condition = OnPropertyCondition();
       final source = Class<PropertyClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnProperty>()).first;
@@ -136,7 +136,7 @@ void main() {
 
     test('should pass when property is missing and matchIfMissing is true', () async {
       final env = MockEnvironment(properties: {});
-      final context = ConditionalContext(env, DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(env, DefaultListablePodFactory());
       final condition = OnPropertyCondition();
       final source = Class<PropertyClassMatchIfTrue>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnProperty>()).first;
@@ -148,7 +148,7 @@ void main() {
 
     test('should handle prefix correctly', () async {
       final env = MockEnvironment(properties: {'app.feature.enabled': 'true'});
-      final context = ConditionalContext(env, DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(env, DefaultListablePodFactory());
       final condition = OnPropertyCondition();
       final source = Class<PropertyWithPrefixClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnProperty>()).first;
@@ -163,7 +163,7 @@ void main() {
         'app.feature1.enabled': 'true',
         'app.feature2.enabled': 'true',
       });
-      final context = ConditionalContext(env, DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(env, DefaultListablePodFactory());
       final condition = OnPropertyCondition();
       final source = Class<MultiplePropertiesClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnProperty>()).first;
@@ -176,7 +176,7 @@ void main() {
 
   group('OnClassCondition', () {
     test('should pass when required class exists', () async {
-      final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory());
       final condition = OnClassCondition();
       final source = Class<ClassExistsClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnClass>()).first;
@@ -187,7 +187,7 @@ void main() {
     });
 
     test('should fail when required class is missing', () async {
-      final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory());
       final condition = OnClassCondition();
       final source = Class<ClassMissingClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnClass>()).first;
@@ -198,7 +198,7 @@ void main() {
     });
 
     test('should handle missing classes', () async {
-      final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory());
       final condition = OnClassCondition();
       final source = Class<MissingClassClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnMissingClass>()).first;
@@ -216,7 +216,7 @@ void main() {
       podFactory.registerDefinition("userService", RootPodDefinition(type: Class<UserService>()));
       podFactory.registerDefinition("dataSource", RootPodDefinition(type: Class<DataSource>()));
 
-      final context = ConditionalContext(MockEnvironment(), podFactory, Runtime);
+      final context = ConditionalContext(MockEnvironment(), podFactory);
       final condition = OnPodCondition();
       final source = Class<PodExistsClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnPod>()).first;
@@ -231,7 +231,7 @@ void main() {
 
       podFactory.registerDefinition("userService", RootPodDefinition(type: Class<UserService>()));
 
-      final context = ConditionalContext(MockEnvironment(), podFactory, Runtime);
+      final context = ConditionalContext(MockEnvironment(), podFactory);
       final condition = OnPodCondition();
       final source = Class<PodMissingClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnPod>()).first;
@@ -246,7 +246,7 @@ void main() {
 
       podFactory.registerDefinition("userService", RootPodDefinition(type: Class<UserService>()));
 
-      final context = ConditionalContext(MockEnvironment(), podFactory, Runtime);
+      final context = ConditionalContext(MockEnvironment(), podFactory);
       final condition = OnPodCondition();
       final source = Class<MissingPodClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnMissingPod>()).first;
@@ -260,7 +260,7 @@ void main() {
   group('OnProfileCondition', () {
     test('should pass when required profile is active', () async {
       final env = MockEnvironment(activeProfiles: ['dev', 'test']);
-      final context = ConditionalContext(env, DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(env, DefaultListablePodFactory());
       final condition = OnProfileCondition();
       final source = Class<ProfileDevClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<Profile>()).first;
@@ -272,7 +272,7 @@ void main() {
 
     test('should fail when required profile is not active', () async {
       final env = MockEnvironment(activeProfiles: ['dev']);
-      final context = ConditionalContext(env, DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(env, DefaultListablePodFactory());
       final condition = OnProfileCondition();
       final source = Class<ProfileProdClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<Profile>()).first;
@@ -284,7 +284,7 @@ void main() {
 
     test('should handle negated profiles', () async {
       final env = MockEnvironment(activeProfiles: ['dev']);
-      final context = ConditionalContext(env, DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(env, DefaultListablePodFactory());
       final condition = OnProfileCondition();
       final source = Class<ProfileNotProdClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<Profile>()).first;
@@ -296,7 +296,7 @@ void main() {
 
     test('should handle multiple profiles', () async {
       final env = MockEnvironment(activeProfiles: ['dev', 'database', 'cache']);
-      final context = ConditionalContext(env, DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(env, DefaultListablePodFactory());
       final condition = OnProfileCondition();
       final source = Class<MultipleProfilesClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<Profile>()).first;
@@ -309,7 +309,7 @@ void main() {
 
   // group('OnDartCondition', () {
   //   test('should pass when Dart version matches', () async {
-  //     final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory(), Runtime);
+  //     final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory());
   //     final condition = OnDartCondition();
   //     final source = Class<DartVersionExactClass>();
   //     final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnDart>()).first;
@@ -320,7 +320,7 @@ void main() {
   //   });
 
   //   test('should pass when Dart version is in range', () async {
-  //     final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory(), Runtime);
+  //     final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory());
   //     final condition = OnDartCondition();
   //     final source = Class<DartVersionRangeClass>();
   //     final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnDart>()).first;
@@ -331,7 +331,7 @@ void main() {
   //   });
 
   //   test('should fail when Dart version is out of range', () async {
-  //     final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory(), Runtime);
+  //     final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory());
   //     final condition = OnDartCondition();
   //     final source = Class<DartVersionRangeClass>();
   //     final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnDart>()).first;
@@ -342,7 +342,7 @@ void main() {
   //   });
 
   //   test('should support caret syntax', () async {
-  //     final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory(), Runtime);
+  //     final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory());
   //     final condition = OnDartCondition();
   //     final source = Class<DartVersionCaretClass>();
   //     final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnDart>()).first;
@@ -355,7 +355,7 @@ void main() {
 
   group('OnAssetCondition', () {
     test('should pass when asset exists', () async {
-      final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory());
       final condition = OnAssetCondition();
       final source = Class<AssetExistsClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnAsset>()).first;
@@ -366,7 +366,7 @@ void main() {
     });
 
     test('should fail when asset is missing', () async {
-      final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory(), Runtime);
+      final context = ConditionalContext(MockEnvironment(), DefaultListablePodFactory());
       final condition = OnAssetCondition();
       final source = Class<AssetMissingClass>();
       final annotation = source.getAllDirectAnnotations().where((an) => an.matches<ConditionalOnAsset>()).first;

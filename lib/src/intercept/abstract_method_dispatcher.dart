@@ -18,7 +18,6 @@ import 'package:jetleaf_lang/lang.dart';
 
 import '../annotation_aware_order_comparator.dart';
 import 'interceptable.dart';
-import 'method_argument.dart';
 import 'method_interceptor.dart';
 import 'method_invocation.dart';
 
@@ -89,7 +88,7 @@ import 'method_invocation.dart';
 /// {@endtemplate}
 abstract class AbstractMethodDispatcher implements MethodInterceptorDispatcher {
   @override
-  Future<T> when<T>(AsyncMethodInvocator<T> function, Object target, String methodName, [MethodArgument? arguments, Class? targetClass]) async {
+  Future<T> when<T>(AsyncMethodInvocator<T> function, Object target, String methodName, [ExecutableArgument? arguments, Class? targetClass]) async {
     final customDispatcher = getMethodInterceptorDispatcher();
 
     if (customDispatcher != null) {
@@ -138,7 +137,7 @@ final result = await when(
   () => createUser(user),
   service,
   'createUser',
-  MethodArgument(positionalArgs: [user])
+  ExecutableArgument(positionalArgs: [user])
 );
 ```
 ''');
@@ -464,6 +463,7 @@ final class _ChainedMethodInterceptor implements MethodInterceptor {
 /// for each interceptor in the chain.
 /// 
 /// {@endtemplate}
+@Generic(_DelegatingInvocation)
 final class _DelegatingInvocation<T> implements MethodInvocation<T> {
   /// The underlying method invocation that this class delegates to.
   ///
@@ -522,7 +522,7 @@ final class _DelegatingInvocation<T> implements MethodInvocation<T> {
   Method getMethod() => _delegate.getMethod();
 
   @override
-  MethodArgument? getArgument() => _delegate.getArgument();
+  ExecutableArgument? getArgument() => _delegate.getArgument();
 
   @override
   bool isInvoked() => _invoked;

@@ -17,7 +17,6 @@ import 'dart:async';
 import 'package:jetleaf_lang/lang.dart';
 
 import 'interceptable.dart';
-import 'method_argument.dart';
 import 'method_invocation.dart';
 
 /// {@template method_interceptor_dispatcher}
@@ -60,7 +59,7 @@ import 'method_invocation.dart';
 ///     MethodInvocator<T> function,
 ///     Object target,
 ///     int hierarchy, {
-///     MethodArgument? arguments,
+///     ExecutableArgument? arguments,
 ///     String? methodName,
 ///     bool? failIfNotFound = false,
 ///   }) async {
@@ -103,7 +102,7 @@ abstract interface class MethodInterceptorDispatcher {
   ///
   /// @return The result of the function execution, potentially modified by interceptors.
   /// {@endtemplate}
-  Future<T> when<T>(AsyncMethodInvocator<T> function, Object target, String methodName, [MethodArgument? arguments, Class? targetClass]);
+  Future<T> when<T>(AsyncMethodInvocator<T> function, Object target, String methodName, [ExecutableArgument? arguments, Class? targetClass]);
 }
 
 /// {@template jetleaf_method_interceptor}

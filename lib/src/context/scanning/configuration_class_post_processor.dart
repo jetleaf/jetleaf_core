@@ -23,7 +23,7 @@ import '../../annotations/others.dart';
 import '../../annotations/pod.dart';
 import '../../annotations/stereotype.dart';
 import '../../aware.dart';
-import '../../condition/condition_evaluator.dart';
+import '../condition/condition_evaluator.dart';
 import '../../scope/annotated_scope_metadata_resolver.dart';
 import '../core/pod_spec.dart';
 import '../base/helpers.dart';
@@ -202,7 +202,7 @@ class ConfigurationClassPostProcessor extends AnnotatedPodMethodBuilder implemen
     _podFactory = podFactory;
 
     // Step 1: Find configuration definitions
-    final evaluator = ConditionEvaluator(_environment, podFactory, Runtime);
+    final evaluator = ConditionEvaluator(_environment, podFactory);
     final definitions = await getConfigDefinitions(podFactory, evaluator);
     
     if (definitions.isEmpty) {
@@ -359,10 +359,8 @@ class ConfigurationClassPostProcessor extends AnnotatedPodMethodBuilder implemen
         continue;
       }
 
-      if (mappedPodMethods.containsKey(def.name)) {
-        final source = mappedPodMethods[def.name]!;
-
-        if (await evaluator.shouldInclude(source.method)) {
+      if (mappedPodMethods[createPodKey(def)] case final source?) {
+        if (await evaluator.shouldInclude(source.method) && await evaluator.shouldInclude(decl)) {
           if (logger.getIsTraceEnabled()) {
             logger.trace('✅ Registered pod from method: ${def.name}');
           }
@@ -373,7 +371,7 @@ class ConfigurationClassPostProcessor extends AnnotatedPodMethodBuilder implemen
             logger.trace('🚫 Skipped pod (condition failed): ${def.name}');
           }
         }
-      } else if (await evaluator.shouldInclude(def.type)) {
+      } else if (await evaluator.shouldInclude(decl)) {
         if (logger.getIsTraceEnabled()) {
           logger.trace('✅ Registered pod definition: ${def.name}');
         }
@@ -381,8 +379,8 @@ class ConfigurationClassPostProcessor extends AnnotatedPodMethodBuilder implemen
         await _podFactory.registerDefinition(def.name, def);
 
         final registrarClass = Class<PodRegistrar>(null, PackageNames.CORE);
-        if (registrarClass.isAssignableFrom(def.type)) {
-          final instance = def.type.getNoArgConstructor()?.newInstance();
+        if (registrarClass.isAssignableFrom(decl)) {
+          final instance = decl.getNoArgConstructor()?.newInstance();
           if (instance is PodRegistrar) {
             instance.register(this, _environment);
           }
@@ -527,6 +525,24 @@ abstract class AnnotatedPodMethodBuilder extends ConfigurationClassCandidateScan
           logger.warn('Registration of any void or Future<void> factory method is not possible. All pods must return an object');
         }
       }
+
+      if (podMethod.method.isFutureDynamic()) {
+        if (logger.getIsWarnEnabled()) {
+          logger.warn('Registration of any void or Future<dynamic> factory method is not possible. All pods must return an object');
+        }
+      }
+
+      if (podMethod.method.isDynamic()) {
+        if (logger.getIsWarnEnabled()) {
+          logger.warn('Registration of any void or dynamic factory method is not possible. All pods must return an object');
+        }
+      }
+
+      if (podMethod.method.isVoid()) {
+        if (logger.getIsWarnEnabled()) {
+          logger.warn('Registration of any void or void factory method is not possible. All pods must return an object');
+        }
+      }
  
       final definition = await _createPodDefinitionFromMethod(podMethod, podFactory);
 
@@ -538,10 +554,8 @@ abstract class AnnotatedPodMethodBuilder extends ConfigurationClassCandidateScan
         continue;
       }
     
-      // Check if pod name is already in use
-      String finalPodName = definition.name;
       definitions.add(definition);
-      methods[finalPodName] = podMethod;
+      methods[createPodKey(definition)] = podMethod;
 
       if (logger.getIsTraceEnabled()) {
         logger.trace('🔧 Created pod definition from method: ${definition.name} (${definition.type.getQualifiedName()})');
@@ -550,6 +564,74 @@ abstract class AnnotatedPodMethodBuilder extends ConfigurationClassCandidateScan
 
     return methods;
   }
+
+  /// Creates a **stable, globally unique pod key** for the given [PodDefinition].
+  ///
+  /// This method generates a composite identifier that uniquely represents
+  /// a pod within the JetLeaf container by combining:
+  ///
+  /// 1. The **factory type signature** (if available)
+  /// 2. The **explicit pod name**
+  ///
+  /// The resulting key is used internally as:
+  /// - A lookup key in pod registries and caches
+  /// - A deduplication mechanism during pod discovery
+  /// - A stable identifier across lifecycle phases (scan → resolve → instantiate)
+  ///
+  /// ---
+  /// ## Key Structure
+  ///
+  /// The generated key has the following form:
+  ///
+  /// ```text
+  /// <factory-type-signature>ºª<pod-name>
+  /// ```
+  ///
+  /// ### Components
+  /// - **Factory type signature**  
+  ///   Obtained from `def.factoryMethod.factoryType?.getSignature()`.  
+  ///   This captures the *declaring class and method signature* responsible
+  ///   for producing the pod.
+  ///
+  /// - **Separator (`ºª`)**  
+  ///   A deliberately uncommon delimiter chosen to:
+  ///   - Avoid collisions with valid Dart identifiers
+  ///   - Preserve reversibility if parsing is ever required
+  ///
+  /// - **Pod name**  
+  ///   The logical name assigned to the pod, either explicitly or by convention.
+  ///
+  /// ---
+  /// ## Why This Is Necessary
+  ///
+  /// JetLeaf allows multiple pods to:
+  /// - Share the same name but originate from different factories
+  /// - Be produced by the same factory method under different configurations
+  ///
+  /// A simple name-based key would be ambiguous. This composite key ensures:
+  /// - Deterministic pod resolution
+  /// - Safe coexistence of similarly named pods
+  /// - Reliable caching and lifecycle tracking
+  ///
+  /// ---
+  /// ## Example
+  ///
+  /// ```dart
+  /// final key = createPodKey(def);
+  ///
+  /// print(key);
+  /// // → "com.example.config.DatabaseConfig#createDataSource()ºªdataSource"
+  /// ```
+  ///
+  /// ---
+  /// ## Notes
+  /// - If `factoryType` is `null`, the string `"null"` will appear in the key.
+  ///   This is intentional and still produces a deterministic identifier.
+  /// - This method is **pure** and side-effect free.
+  /// - The exact delimiter is an internal contract and should not be relied
+  ///   upon by user code.
+  ///
+  String createPodKey(PodDefinition def) => "${def.factoryMethod.factoryType?.getSignature()}ºª${def.name}";
 
   /// Creates a [RootPodDefinition] from a single `@Pod`-annotated method.
   ///
@@ -949,13 +1031,7 @@ abstract class ConfigurationClassCandidateScanner extends AbstractTypeFilterSupp
   ///
   /// Continues looping until the queue is empty.
   @protected
-  Future<void> recursivelyScanCandidates(
-    List<ConfigurationClass> candidates,
-    ConditionEvaluator evaluator,
-    ConfigurationClassBuilder builder,
-    ConfigurableListablePodFactory podFactory,
-    ComponentScanAnnotationParser parser
-  ) async {
+  Future<void> recursivelyScanCandidates(List<ConfigurationClass> candidates, ConditionEvaluator evaluator, ConfigurationClassBuilder builder, ConfigurableListablePodFactory podFactory, ComponentScanAnnotationParser parser) async {
     // Queue for configuration classes to process
     final queue = <ConfigurationClass>[...candidates];
 
