@@ -6,7 +6,7 @@ This project follows a simple, human-readable changelog format inspired by
 
 ---
 
-## [1.1.0]
+## [1.1.1]
 
 ### Changed
 - Updated dependencies:
