@@ -17,6 +17,19 @@ This project follows a simple, human-readable changelog format inspired by
   - `jetleaf_utils`
   - `jetleaf_pod`
 
+---
+
+## [1.1.0]
+
+### Changed
+- Updated dependencies:
+  - `jetleaf_lang`
+  - `jetleaf_env`
+  - `jetleaf_convert`
+  - `jetleaf_logging`
+  - `jetleaf_utils`
+  - `jetleaf_pod`
+
 ### Removed
 - `MethodArgument` APIs, now fully replaced by `ExecutableArgument`.
 - `Version` and `VersionRange`, as these are now provided by `jetleaf_lang`.
