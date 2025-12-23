@@ -101,7 +101,7 @@ class AutowiredAnnotationPodProcessor extends PodSmartInstantiationProcessor imp
   }
 
   @override
-  Future<List<ArgumentValue>?> determineCandidateArguments(String podName, Executable executable, List<Parameter> parameters) async {
+  Future<List<ArgumentValue>?> determineCandidateArguments(String podName, Executable executable, Iterable<Parameter> parameters) async {
     List<ArgumentValue> args = [];
 
     for (final param in parameters) {
@@ -130,7 +130,7 @@ class AutowiredAnnotationPodProcessor extends PodSmartInstantiationProcessor imp
           ArgumentValue(
             dep,
             qualifiedName: paramClass.getQualifiedName(),
-            packageName: paramClass.getPackage()?.getName(),
+            packageName: paramClass.getPackage().getName(),
             name: param.getName(),
           ),
         );

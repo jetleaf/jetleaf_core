@@ -14,11 +14,10 @@
 
 import 'dart:io';
 
-import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_lang/jetleaf_lang.dart' show MockRuntimeScanner, InternalMockLibraryGenerator, RuntimeScannerConfiguration;
 
 Future<void> setupRuntime({List<String> packagesToExclude = const [], List<String> filesToLoad = const []}) async {
-  final scan = await MockRuntimeScanner(
+  await MockRuntimeScanner(
     onInfo: (msg, overwrite) => print('[MOCK INFO] $msg'),
     onWarning: (msg, overwrite) => print('[MOCK WARNING] $msg'),
     onError: (msg, overwrite) => print('[MOCK ERROR] $msg'),
@@ -51,5 +50,4 @@ Future<void> setupRuntime({List<String> packagesToExclude = const [], List<Strin
     // enableTreeShaking: true,
     // writeDeclarationsToFiles: true
   ), []);
-  Runtime.register(scan.getContext());
 }

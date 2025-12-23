@@ -668,7 +668,7 @@ class ConditionalOnMissingPod extends WhenConditional {
       if (item is ClassType) {
         result.add(item.toClass());
       } else if (item is Type) {
-        result.add(ClassUtils.getClass(item));
+        result.add(item.getClass());
       } else if (item is String && ClassUtils.isClass(item)) {
         result.add(Class.fromQualifiedName(item));
       }
@@ -703,7 +703,7 @@ class ConditionalOnMissingPod extends WhenConditional {
       if (item is ClassType) {
         result.add(item.toClass());
       } else if (item is Type) {
-        result.add(ClassUtils.getClass(item));
+        result.add(item.getClass());
       } else if (item is String && ClassUtils.isClass(item)) {
         result.add(Class.fromQualifiedName(item));
       }

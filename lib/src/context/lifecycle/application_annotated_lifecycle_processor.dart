@@ -98,13 +98,7 @@ final class ApplicationAnnotatedLifecycleProcessor implements SmartInitializingS
   
   @override
   Future<void> onSingletonReady() async {
-    final onStoppingMethods = <Method>{};
-    final onStoppedMethods = <Method>{};
-
-    MethodUtils.collectMethods<OnApplicationStopped>(onStoppedMethods);
-    MethodUtils.collectMethods<OnApplicationStopping>(onStoppingMethods);
-
-    for (final method in onStoppedMethods) {
+    for (final method in MethodUtils.collectMethods<OnApplicationStopped>()) {
       final cls = method.getDeclaringClass();
       if (_podFactory != null && await _podFactory!.containsType(cls)) {
         final target = await _podFactory!.get(cls);
@@ -119,7 +113,7 @@ final class ApplicationAnnotatedLifecycleProcessor implements SmartInitializingS
       }
     }
 
-    for (final method in onStoppingMethods) {
+    for (final method in MethodUtils.collectMethods<OnApplicationStopping>()) {
       final cls = method.getDeclaringClass();
       if (_podFactory != null && await _podFactory!.containsType(cls)) {
         final target = await _podFactory!.get(cls);

@@ -183,7 +183,7 @@ final class DefaultMethodInterceptor extends AbstractMethodDispatcher implements
         if (val is String && !ClassUtils.isClass(val)) {
           bn.add(val);
         } else if (val is Type) {
-          bt.add(ClassUtils.getClass(val));
+          bt.add(val.getClass());
         }
       }
     }
@@ -193,7 +193,7 @@ final class DefaultMethodInterceptor extends AbstractMethodDispatcher implements
         if (val is String) {
           an.add(val);
         } else if (val is Type) {
-          at.add(ClassUtils.getClass(val));
+          at.add(val.getClass());
         }
       }
     }
