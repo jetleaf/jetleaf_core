@@ -96,7 +96,7 @@ import 'configuration_class_builder.dart';
 ///   final factory = DefaultPodFactory();
 ///   final processor = ConfigurationClassPostProcessor()
 ///     ..setEnvironment(env)
-///     ..setEntryApplication(Class.of(MyApplication));
+///     ..setEntryApplication(Class.forType(MyApplication));
 ///
 ///   await processor.postProcessFactory(factory);
 /// }
@@ -351,7 +351,7 @@ class ConfigurationClassPostProcessor extends AnnotatedPodMethodBuilder implemen
       }
 
       final decl = def.type;
-      if (disabledImportClasses.any((i) => i.isQualifiedName ? decl.getQualifiedName().equals(i.name) : (decl.getPackage()?.getName().equals(i.name) ?? false))) {
+      if (disabledImportClasses.any((i) => i.isQualifiedName ? decl.getQualifiedName().equals(i.name) : (decl.getPackage().getName().equals(i.name)))) {
         if (logger.getIsTraceEnabled()) {
           logger.trace('🧱 Skipping disabled import of $decl');
         }
@@ -512,7 +512,7 @@ abstract class AnnotatedPodMethodBuilder extends ConfigurationClassCandidateScan
 
     for (final podMethod in discoveredPodMethods) {
       final decl = podMethod.configurationClass.type;
-      if (disabledImportClasses.any((i) => i.isQualifiedName ? decl.getQualifiedName().equals(i.name) : (decl.getPackage()?.getName().equals(i.name) ?? false))) {
+      if (disabledImportClasses.any((i) => i.isQualifiedName ? decl.getQualifiedName().equals(i.name) : (decl.getPackage().getName().equals(i.name)))) {
         if (logger.getIsTraceEnabled()) {
           logger.trace('🧱 Skipping disabled import of $decl');
         }
@@ -1209,10 +1209,8 @@ abstract class ConfigurationClassCandidateScanner extends AbstractTypeFilterSupp
       List<String> basePackages = List<String>.from(componentScan.basePackages);
       List<Class> basePackageClasses = List<Class>.from(componentScan.basePackageClasses.map((c) => c.toClass()));
 
-      final basePackage = configClass.type.getPackage()?.getName();
-      if (basePackage != null) {
-        basePackages.add(basePackage);
-      }
+      final basePackage = configClass.type.getPackage().getName();
+      basePackages.add(basePackage);
 
       if (logger.getIsTraceEnabled()) {
         logger.trace('🔎 Performing component scan in ${basePackages.length} package(s) for ${configClass.type.getQualifiedName()}');
@@ -1432,7 +1430,7 @@ abstract class AbstractTypeFilterSupport extends ConfigurationClassDefinitionSup
   /// lists for later use by the scanning subsystem.
   ///
   /// Emits detailed logs describing the number and type of filters discovered.
-  void _extractComponentScanFilters(List<ComponentScan> componentScans, Class type) {
+  void _extractComponentScanFilters(Iterable<ComponentScan> componentScans, Class type) {
     for (final componentScan in componentScans) {
       includeFilters.addAll(_createTypeFilters(componentScan.includeFilters));
       excludeFilters.addAll(_createTypeFilters(componentScan.excludeFilters));
@@ -1521,10 +1519,8 @@ abstract class AbstractTypeFilterSupport extends ConfigurationClassDefinitionSup
         }
       }
 
-      final basePackage = type.getPackage()?.getName();
-      if (basePackage != null) {
-        localImportClasses.add(ImportClass.package(basePackage));
-      }
+      final basePackage = type.getPackage().getName();
+      localImportClasses.add(ImportClass.package(basePackage));
     }
 
     if (importConfigurationClasses.isEmpty && localImportClasses.isEmpty) {
@@ -1546,11 +1542,8 @@ abstract class AbstractTypeFilterSupport extends ConfigurationClassDefinitionSup
     }
 
     for (final importedConfigClass in importConfigurationClasses.where((i) => !i.hasDirectAnnotation<AutoConfiguration>())) {
-      final packageName = importedConfigClass.getPackage()?.getName();
-
-      if (packageName != null) {
-        packages.add(packageName);
-      }
+      final packageName = importedConfigClass.getPackage().getName();
+      packages.add(packageName);
     }
     
     unscannedPackages.addAll(packages);

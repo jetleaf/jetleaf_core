@@ -826,7 +826,7 @@ class OnAssetCondition implements Condition {
 
     final conditional = annotation.getInstance<ConditionalOnAsset>();
     final asset = conditional.asset;
-    final resource = DefaultAssetPathResource(asset);
+    final resource = AssetPathResource(asset);
 
     if (resource.tryGet() != null) {
       if (logger.getIsTraceEnabled()) {

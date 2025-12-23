@@ -173,8 +173,8 @@ final class ComponentScanAnnotationParser {
     basePackages.addAll(scanConfig.basePackages);
 
     for (final basePackageClass in scanConfig.basePackageClasses) {
-      final packageName = basePackageClass.getPackage()?.getName();
-      if (packageName != null && !basePackages.contains(packageName)) {
+      final packageName = basePackageClass.getPackage().getName();
+      if (!basePackages.contains(packageName)) {
         basePackages.add(packageName);
       }
     }

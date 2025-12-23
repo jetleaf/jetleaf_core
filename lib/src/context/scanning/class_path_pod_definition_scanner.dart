@@ -134,8 +134,7 @@ final class ClassPathPodDefinitionScanner {
       _logger.trace('🚀 Starting component scan for package: [$basePackage]');
     }
 
-    final libraries = Runtime.getAllLibraries().where((lib) => lib.getPackage().getName() == basePackage);
-    final classes = libraries.flatMap((lib) => lib.getClasses()).toSet();
+    final classes = Runtime.getAllClassesInAPackage(basePackage);
 
     if (_logger.getIsTraceEnabled()) {
       _logger.trace('🔍 Discovered ${classes.length} class(es) in package [$basePackage]');

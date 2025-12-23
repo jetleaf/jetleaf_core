@@ -38,6 +38,8 @@ class MockMessageLoader extends MessageSourceLoader {
 }
 
 void main() {
+  setUpAll(() async => await runTestScan());
+  
   group('ConfigurableMessageSource', () {
     late ConfigurableMessageSource messageSource;
     final enLocale = Locale('en');
@@ -54,7 +56,7 @@ void main() {
         'welcome': 'Welcome {0}',
       });
 
-      await messageSource.loadMessages(enLocale, DefaultAssetPathResource('test.json'), loader);
+      await messageSource.loadMessages(enLocale, AssetPathResource('test.json'), loader);
 
       expect(messageSource.resolveMessage('greeting', enLocale), equals('Hello'));
       expect(messageSource.getMessage('welcome', args: ['John']), equals('Welcome John'));
@@ -67,7 +69,7 @@ void main() {
       );
 
       expect(
-        () async => await messageSource.loadMessages(enLocale, DefaultAssetPathResource('test.json'), loader),
+        () async => await messageSource.loadMessages(enLocale, AssetPathResource('test.json'), loader),
         throwsA(isA<Exception>()),
       );
     });
@@ -147,8 +149,8 @@ void main() {
         'msg3': 'Message 3',
       });
 
-      await messageSource.loadMessages(enLocale, DefaultAssetPathResource('test1.json'), loader1);
-      await messageSource.loadMessages(enLocale, DefaultAssetPathResource('test2.json'), loader2);
+      await messageSource.loadMessages(enLocale, AssetPathResource('test1.json'), loader1);
+      await messageSource.loadMessages(enLocale, AssetPathResource('test2.json'), loader2);
 
       expect(messageSource.resolveMessage('msg1', enLocale), equals('Message 1'));
       expect(messageSource.resolveMessage('msg2', enLocale), equals('Updated Message 2'));
