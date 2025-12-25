@@ -14,6 +14,7 @@
 
 import 'package:jetleaf_lang/lang.dart';
 import 'package:jetleaf_pod/pod.dart';
+import 'package:meta/meta.dart';
 
 /// {@template pod_factory_post_processor}
 /// Factory hook that allows for custom modification of an application
@@ -120,63 +121,163 @@ abstract interface class ImportSelector {
 }
 
 /// {@template import_class}
-/// 🫘 Represents an import entry with optional qualification metadata.
+/// 🫘 Represents a **logical import entry** with qualification
+/// and enablement metadata.
 ///
-/// [ImportClass] is a value object that encapsulates the name of a class or
-/// symbol being imported, along with a flag that indicates whether the import
-/// uses a fully qualified name.
+/// [ImportClass] is a lightweight value object describing **what**
+/// should be imported during code generation or dependency analysis,
+/// without directly emitting a Dart `import` statement.
 ///
-/// ## Fields
+/// An import may optionally reference a concrete Dart [Class],
+/// while always retaining the owning package name.
 ///
-/// - [name] – The package name or qualified class name to be imported.
-/// - [isQualifiedName] – Whether [name] is a fully qualified identifier
-///   (e.g. `package:my_app/src/service.MyService`) instead of a simple class name.
+/// Additionally, imports can be **enabled** or **disabled**, allowing
+/// generators and registries to track optional or conditional imports
+/// without losing intent or metadata.
 ///
-/// ## Example
+/// ---
+///
+/// ## Import Forms
+///
+/// [ImportClass] supports two closely related forms:
+///
+/// ### 📦 Package Import
+/// Represents an import by package name only.
+///
+/// - [packageName] is set
+/// - [importedClass] is `null`
 ///
 /// ```dart
-/// const simple = ImportClass.package('service');
-/// const qualified = ImportClass.qualified('package:my_app/src/service.MyService');
-///
-/// print(simple.name);           // service
-/// print(simple.isQualifiedName); // false
-/// print(qualified.isQualifiedName); // true
+/// const pkg = ImportClass.package('my_service', false);
 /// ```
+///
+/// ### 🧬 Class Import
+/// Represents an import of a specific Dart [Class].
+///
+/// - [packageName] is derived from the class’s owning package
+/// - [importedClass] is non-null
+///
+/// ```dart
+/// final cls = ImportClass.forClass(MyService, false);
+/// ```
+///
+/// ---
+///
+/// ## Enablement
+///
+/// Imports are represented by two concrete variants:
+///
+/// - [EnabledImportClass] — actively emitted during generation
+/// - [DisabledImportClass] — retained for metadata but intentionally skipped
+///
+/// This enables advanced workflows such as:
+/// - Feature-flagged imports
+/// - Environment-specific generation
+/// - Deferred or conditional dependency wiring
+///
+/// ---
+///
+/// ## Equality Semantics
+///
+/// Two [ImportClass] instances are considered equal if they refer to the
+/// same [packageName] and [importedClass], regardless of whether they are
+/// enabled or disabled. This makes the type safe for use in sets, caches,
+/// and registries.
+///
+/// ---
 ///
 /// ## Use Cases
 ///
-/// - Tracking import metadata in code generation.
-/// - Differentiating between short names and fully qualified names.
-/// - Used by import selectors or registries to manage dependency references.
+/// - Tracking import intent during code generation
+/// - Differentiating package-level vs class-level imports
+/// - Supporting disabled or conditional imports without loss of metadata
+/// - Stable equality and hashing for dependency resolution
 ///
 /// {@endtemplate}
-final class ImportClass with EqualsAndHashCode {
-  /// The name of the class or symbol to import.
-  final String name;
+abstract final class ImportClass with EqualsAndHashCode {
+  /// The name of the package to import.
+  ///
+  /// This value is **always non-null**, even for class-level imports,
+  /// where it is derived from the owning package of [importedClass].
+  final String packageName;
 
-  /// Whether [name] is fully qualified (e.g. includes a package or path).
-  final bool isQualifiedName;
+  /// The class being imported, if this represents a class-level import.
+  ///
+  /// This field is `null` for package-level imports.
+  final Class? importedClass;
 
-  /// Whether this is a `disable` import
-  final bool disable;
-
-  /// Creates a new [ImportClass] with the given [name] and [isQualifiedName] flag.
+  /// Base constructor shared by all import variants.
   ///
   /// {@macro import_class}
-  const ImportClass(this.name, this.isQualifiedName, [this.disable = false]);
+  const ImportClass(this.packageName, this.importedClass);
 
-  /// Creates a new [ImportClass] with the given [name].
-  /// This constructor is used when the import is not qualified.
+  /// Creates a **package-level import**.
+  ///
+  /// This constructor is used when importing by package name only,
+  /// without referencing a specific Dart [Class].
+  ///
+  /// If [isDisabled] is `true`, the returned import will be a
+  /// [DisabledImportClass]; otherwise an [EnabledImportClass].
   ///
   /// {@macro import_class}
-  const ImportClass.package(this.name, [this.disable = false]) : isQualifiedName = false;
+  factory ImportClass.package(String packageName, [bool isDisabled = false]) => isDisabled 
+    ? DisabledImportClass(packageName, null)
+    : EnabledImportClass(packageName, null);
 
-  /// Creates a new [ImportClass] with the given [name].
-  /// This constructor is used when the import is qualified.
+  /// Creates a **class-level import**.
+  ///
+  /// The [packageName] is automatically derived from the owning
+  /// package of [importedClass].
+  ///
+  /// If [isDisabled] is `true`, the returned import will be a
+  /// [DisabledImportClass]; otherwise an [EnabledImportClass].
   ///
   /// {@macro import_class}
-  const ImportClass.qualified(this.name, [this.disable = false]) : isQualifiedName = true;
+  factory ImportClass.forClass(Class importedClass, [bool isDisabled = false]) => isDisabled 
+    ? DisabledImportClass(importedClass.getPackage().getName(), importedClass)
+    : EnabledImportClass(importedClass.getPackage().getName(), importedClass);
 
   @override
-  List<Object?> equalizedProperties() => [name, isQualifiedName];
+  List<Object?> equalizedProperties() => [packageName, importedClass ?? ImportClass];
+}
+
+/// Represents an **active import entry**.
+///
+/// An [EnabledImportClass] indicates that the import is eligible to be
+/// **emitted**, **resolved**, or **applied** during code generation or
+/// dependency analysis.
+///
+/// Enabled imports participate fully in:
+/// - Generated `import` statements
+/// - Dependency graphs
+/// - Resolution and wiring logic
+///
+/// This class carries no additional behavior beyond its semantic role;
+/// enablement is conveyed by the concrete type itself.
+@internal
+final class EnabledImportClass extends ImportClass {
+  /// Creates an enabled import entry.
+  ///
+  /// {@macro import_class}
+  EnabledImportClass(super.packageName, super.importedClass);
+}
+
+/// Represents a **disabled import entry**.
+///
+/// A [DisabledImportClass] preserves import metadata while explicitly
+/// preventing it from being emitted or applied during generation.
+///
+/// Disabled imports are useful for:
+/// - Feature-flagged or conditional imports
+/// - Environment-specific generation
+/// - Retaining intent without affecting output
+///
+/// Like [EnabledImportClass], this type is semantic rather than behavioral;
+/// the disabled state is expressed by the concrete class itself.
+@internal
+final class DisabledImportClass extends ImportClass {
+  /// Creates a disabled import entry.
+  ///
+  /// {@macro import_class}
+  DisabledImportClass(super.packageName, super.importedClass);
 }

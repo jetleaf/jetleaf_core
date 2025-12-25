@@ -144,7 +144,7 @@ export 'src/context/lifecycle/lifecycle_processor.dart';
 
 /// Lifecycle management, utilities, and core application interfaces.
 export 'src/context/base/keep_alive.dart';
-export 'src/context/base/helpers.dart';
+export 'src/context/base/helpers.dart' hide EnabledImportClass, DisabledImportClass;
 export 'src/context/base/application_context.dart';
 export 'src/context/base/application_type.dart';
 export 'src/context/base/application_module.dart';

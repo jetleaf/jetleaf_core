@@ -351,7 +351,7 @@ class ConfigurationClassPostProcessor extends AnnotatedPodMethodBuilder implemen
       }
 
       final decl = def.type;
-      if (disabledImportClasses.any((i) => i.isQualifiedName ? decl.getQualifiedName().equals(i.name) : (decl.getPackage().getName().equals(i.name)))) {
+      if (disabledImportClasses.any((i) => i.importedClass != null ? (decl == i.importedClass || decl.getQualifiedName() == i.importedClass!.getQualifiedName()) : (decl.getPackage().getName().equals(i.packageName)))) {
         if (logger.getIsTraceEnabled()) {
           logger.trace('🧱 Skipping disabled import of $decl');
         }
@@ -512,7 +512,7 @@ abstract class AnnotatedPodMethodBuilder extends ConfigurationClassCandidateScan
 
     for (final podMethod in discoveredPodMethods) {
       final decl = podMethod.configurationClass.type;
-      if (disabledImportClasses.any((i) => i.isQualifiedName ? decl.getQualifiedName().equals(i.name) : (decl.getPackage().getName().equals(i.name)))) {
+      if (disabledImportClasses.any((i) => i.importedClass != null ? (decl == i.importedClass || decl.getQualifiedName() == i.importedClass!.getQualifiedName()) : (decl.getPackage().getName().equals(i.packageName)))) {
         if (logger.getIsTraceEnabled()) {
           logger.trace('🧱 Skipping disabled import of $decl');
         }
@@ -1533,11 +1533,11 @@ abstract class AbstractTypeFilterSupport extends ConfigurationClassDefinitionSup
 
     List<String> packages = <String>[];
 
-    for (final importClass in localImportClasses.where((i) => i.disable.equals(false))) {
-      if (!importClass.isQualifiedName) {
-        packages.add(importClass.name);
+    for (final importClass in localImportClasses.whereType<EnabledImportClass>()) {
+      if (importClass.importedClass case final importedClass?) {
+        importConfigurationClasses.add(importedClass);
       } else {
-        importConfigurationClasses.add(Class.fromQualifiedName(importClass.name));
+        packages.add(importClass.packageName);
       }
     }
 
@@ -1547,7 +1547,7 @@ abstract class AbstractTypeFilterSupport extends ConfigurationClassDefinitionSup
     }
     
     unscannedPackages.addAll(packages);
-    disabledImportClasses.addAll(localImportClasses.where((i) => i.disable.equals(true)));
+    disabledImportClasses.addAll(localImportClasses.whereType<DisabledImportClass>());
     importedConfigurations.addAll(importConfigurationClasses.where((i) => i.hasDirectAnnotation<AutoConfiguration>()));
 
     if (logger.getIsTraceEnabled()) {
