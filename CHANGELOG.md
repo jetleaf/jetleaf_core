@@ -6,6 +6,20 @@ This project follows a simple, human-readable changelog format inspired by
 
 ---
 
+## [1.1.5]
+
+### Changed
+- Updated dependencies:
+  - `jetleaf_lang`
+  - `jetleaf_env`
+  - `jetleaf_convert`
+  - `jetleaf_logging`
+  - `jetleaf_utils`
+  - `jetleaf_pod`
+- `ImportClass` now has separated designs - `EnabledImportClass` and `DisabledImportClass`
+
+---
+
 ## [1.1.4]
 
 ### Changed
