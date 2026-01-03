@@ -37,5 +37,4 @@ export 'src/startup/startup_event.dart';
 export 'src/aware.dart';
 export 'src/exceptions.dart';
 export 'src/resource.dart';
-export 'src/to_json_factory.dart';
 export 'src/annotation_aware_order_comparator.dart';

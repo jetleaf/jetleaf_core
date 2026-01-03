@@ -359,6 +359,8 @@ class ConfigurationClassPostProcessor extends AnnotatedPodMethodBuilder implemen
         continue;
       }
 
+      if (ClassUtils.isProxyClass(decl)) continue; // We do not register proxy classes as definitions
+
       if (mappedPodMethods[createPodKey(def)] case final source?) {
         if (await evaluator.shouldInclude(source.method) && await evaluator.shouldInclude(decl)) {
           if (logger.getIsTraceEnabled()) {

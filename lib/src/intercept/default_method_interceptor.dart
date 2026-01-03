@@ -9,7 +9,7 @@
 //
 // For licensing terms, see the LICENSE file in the root of this project.
 // ---------------------------------------------------------------------------
-// 
+//
 // 🔧 Powered by Hapnium — the Dart backend engine 🍃
 
 import 'dart:async';
@@ -21,7 +21,6 @@ import 'package:jetleaf_pod/pod.dart';
 import '../annotation_aware_order_comparator.dart';
 import '../annotations/intercept.dart';
 import '../aware.dart';
-import '../exceptions.dart';
 import 'abstract_method_dispatcher.dart';
 import 'intercept_registry.dart';
 import 'interceptable.dart';
@@ -215,7 +214,7 @@ final class DefaultMethodInterceptor extends AbstractMethodDispatcher implements
       this.podFactory = podFactory;
     }
   }
-  
+
   @override
   Future<Object?> processAfterInitialization(Object pod, Class podClass, String name) async {
     final proxyClass = podClass.getSubClasses().find((cls) => cls.getName().startsWith(Constant.PROXY_IDENTIFIER));
@@ -234,22 +233,22 @@ final class DefaultMethodInterceptor extends AbstractMethodDispatcher implements
 
     return pod;
   }
-  
+
   @override
   Future<Object?> processBeforeInitialization(Object pod, Class podClass, String name) async => pod;
-  
+
   @override
   Future<bool> shouldProcessBeforeInitialization(Object pod, Class podClass, String name) async => false;
 
   @override
   Future<void> onSingletonReady() async {
-    if(_logger.getIsTraceEnabled()) {
+    if (_logger.getIsTraceEnabled()) {
       _logger.trace("Starting method interceptor post-processing for PodFactory");
     }
 
     await _findAndCollectInterceptors();
     await _findAndCollectConfigurers();
-    
+
     if (_logger.getIsTraceEnabled()) {
       _logger.trace("Method interceptor post-processing completed successfully");
     }
@@ -286,7 +285,7 @@ final class DefaultMethodInterceptor extends AbstractMethodDispatcher implements
     if (_logger.getIsTraceEnabled()) {
       _logger.trace("Loading Interceptors");
     }
-    
+
     final type = Class<MethodInterceptor>(null, PackageNames.CORE);
     final pods = await podFactory.getPodsOf(type, allowEagerInit: true);
 
@@ -347,7 +346,7 @@ final class DefaultMethodInterceptor extends AbstractMethodDispatcher implements
     if (_logger.getIsTraceEnabled()) {
       _logger.trace("Loading Interceptors");
     }
-    
+
     final type = Class<MethodInterceptorConfigurer>(null, PackageNames.CORE);
     final pods = await podFactory.getPodsOf(type, allowEagerInit: true);
 
@@ -355,7 +354,7 @@ final class DefaultMethodInterceptor extends AbstractMethodDispatcher implements
       if (_logger.getIsDebugEnabled()) {
         _logger.debug("Found ${pods.length} MethodInterceptorConfigurer implementations");
       }
-      
+
       final configurers = List<MethodInterceptorConfigurer>.from(pods.values);
       AnnotationAwareOrderComparator.sort(configurers);
 
@@ -400,6 +399,8 @@ final class DefaultMethodInterceptor extends AbstractMethodDispatcher implements
 
     String nameOf(MethodInterceptor i) => podNameOf(i) ?? i.getClass().getQualifiedName();
 
+    Class classOf(MethodInterceptor i) => i.getClass();
+
     bool dependsAfter(MethodInterceptor i, MethodInterceptor j) {
       final r = _interceptorOrderCache[i];
       if (r == null) return false;
@@ -416,6 +417,52 @@ final class DefaultMethodInterceptor extends AbstractMethodDispatcher implements
       return r.beforeNames.contains(jName) || r.beforeTypes.contains(jCls);
     }
 
+    // Helper to find a cycle in the remaining interceptors
+    List<MethodInterceptor>? findCycle(Set<MethodInterceptor> remaining) {
+      final visited = <MethodInterceptor>{};
+      final path = <MethodInterceptor>[];
+      final pathIndices = <MethodInterceptor, int>{};
+
+      bool dfs(MethodInterceptor current) {
+        final currentIndex = path.length;
+        pathIndices[current] = currentIndex;
+        path.add(current);
+        visited.add(current);
+
+        // Check all dependencies
+        for (final neighbor in remaining) {
+          if (dependsAfter(current, neighbor)) {
+            if (!visited.contains(neighbor)) {
+              if (dfs(neighbor)) {
+                return true;
+              }
+            } else if (pathIndices.containsKey(neighbor)) {
+              // Found a cycle - build the cycle path
+              final startIndex = pathIndices[neighbor]!;
+              final cycle = path.sublist(startIndex);
+              cycle.add(neighbor); // Close the cycle
+              return true;
+            }
+          }
+        }
+
+        // Backtrack
+        pathIndices.remove(current);
+        path.removeLast();
+        return false;
+      }
+
+      for (final interceptor in remaining) {
+        if (!visited.contains(interceptor)) {
+          if (dfs(interceptor)) {
+            return path; // Return the cycle path
+          }
+        }
+      }
+
+      return null;
+    }
+
     // Simplified topological sort
     final sorted = <MethodInterceptor>[];
     final remaining = interceptors.toSet();
@@ -426,20 +473,39 @@ final class DefaultMethodInterceptor extends AbstractMethodDispatcher implements
       final ready = remaining.firstWhere(
         (i) => remaining.every((r) => !dependsAfter(i, r)),
         orElse: () {
-          // Build diagnostic info
+          // Check for circular dependency
+          final cycle = findCycle(remaining);
+          if (cycle != null && cycle.length >= 3) {
+            // Ensure the cycle is properly closed
+            if (cycle.first != cycle.last) {
+              cycle.add(cycle.first);
+            }
+
+            // Create InterceptorDependencyCycle
+            final dependencyCycle = InterceptorDependencyCycle(
+              cycle.map(nameOf).toList(),
+              interceptorClasses: {
+                for (final interceptor in cycle)
+                  nameOf(interceptor): classOf(interceptor),
+              },
+            );
+
+            throw CircularDependencyException(
+              'Circular dependency detected in interceptor ordering based on '
+              '@RunBefore/@RunAfter annotations. The following interceptors '
+              'form a dependency cycle that cannot be resolved.',
+              cycle: dependencyCycle
+            );
+          }
+
+          // Build diagnostic info for other unresolvable cases
           final buffer = StringBuffer();
           buffer.writeln('Circular or unresolvable interceptor dependency detected:');
           buffer.writeln('Remaining interceptors (${remaining.length}):');
 
           for (final i in remaining) {
-            final afters = remaining
-                .where((r) => dependsAfter(i, r))
-                .map(nameOf)
-                .join(', ');
-            final befores = remaining
-                .where((r) => dependsBefore(i, r))
-                .map(nameOf)
-                .join(', ');
+            final afters = remaining.where((r) => dependsAfter(i, r)).map(nameOf).join(', ');
+            final befores = remaining.where((r) => dependsBefore(i, r)).map(nameOf).join(', ');
 
             buffer.writeln(' • ${nameOf(i)}');
             if (afters.isNotEmpty) buffer.writeln('     dependsAfter: [$afters]');
@@ -463,12 +529,34 @@ final class DefaultMethodInterceptor extends AbstractMethodDispatcher implements
       remaining.remove(ready);
     }
 
-    // Safety catch if maxPasses exceeded (shouldn’t normally happen)
+    // Safety catch if maxPasses exceeded (shouldn't normally happen)
     if (remaining.isNotEmpty) {
+      // Try to find a cycle one more time before giving up
+      final cycle = findCycle(remaining);
+      if (cycle != null && cycle.length >= 3) {
+        // Ensure the cycle is properly closed
+        if (cycle.first != cycle.last) {
+          cycle.add(cycle.first);
+        }
+
+        final dependencyCycle = InterceptorDependencyCycle(
+          cycle.map(nameOf).toList(),
+          interceptorClasses: {
+            for (final interceptor in cycle)
+              nameOf(interceptor): classOf(interceptor),
+          },
+        );
+
+        throw CircularDependencyException(
+          'Circular dependency detected after maximum sorting attempts. '
+          'The following interceptors form a dependency cycle:',
+          cycle: dependencyCycle
+        );
+      }
+
       final unresolved = remaining.map(nameOf).join(', ');
-      throw CircularDependencyException(
-        'Sorting aborted after $maxPasses passes. '
-        'Unresolved interceptors: [$unresolved]',
+      throw IllegalStateException(
+        'Sorting aborted after $maxPasses passes. Unresolved interceptors: [$unresolved]',
       );
     }
 
@@ -580,4 +668,104 @@ class _InterceptorRelations {
     this.beforeTypes = const [],
     this.afterTypes = const [],
   });
+}
+
+/// {@template interceptor_dependency_cycle}
+/// A [DependencyCycle] implementation that represents a circular dependency
+/// between method interceptors in the interceptor chain.
+///
+/// This class stores the sequence of interceptors that form a circular dependency
+/// based on their `@RunBefore` and `@RunAfter` relationships.
+///
+/// Example:
+/// ```dart
+/// // Given interceptors A, B, C with circular dependencies:
+/// // A → B (A runs before B)
+/// // B → C (B runs before C)
+/// // C → A (C runs before A)
+/// final cycle = InterceptorDependencyCycle(['A', 'B', 'C', 'A']);
+/// print(cycle); // "Interceptor Cycle: A → B → C → A"
+/// ```
+/// {@endtemplate}
+final class InterceptorDependencyCycle implements DependencyCycle {
+  /// The ordered list of interceptor names forming the circular dependency.
+  ///
+  /// The list contains interceptor identifiers in the order they appear
+  /// in the dependency cycle, with the first and last elements being
+  /// the same interceptor to clearly show the cycle closure.
+  final List<String> interceptorPath;
+
+  /// Optional map of interceptor classes for more detailed error messages.
+  final Map<String, Class>? interceptorClasses;
+
+  /// {@macro interceptor_dependency_cycle}
+  InterceptorDependencyCycle(this.interceptorPath, {this.interceptorClasses}) {
+    if (interceptorPath.length < 3) {
+      throw IllegalArgumentException('Interceptor dependency cycle must contain at least 3 elements to show a complete cycle');
+    }
+    if (interceptorPath.first != interceptorPath.last) {
+      throw IllegalArgumentException('Interceptor dependency cycle must start and end with the same interceptor');
+    }
+  }
+
+  /// Creates an [InterceptorDependencyCycle] from interceptor instances.
+  ///
+  /// [interceptors] The interceptor instances forming the cycle
+  /// [nameResolver] Function to get the name of an interceptor
+  factory InterceptorDependencyCycle.fromInterceptors(
+    List<MethodInterceptor> interceptors,
+    String Function(MethodInterceptor) nameResolver,
+  ) {
+    final path = interceptors.map(nameResolver).toList();
+    final classes = <String, Class>{};
+
+    for (final interceptor in interceptors) {
+      final name = nameResolver(interceptor);
+      classes[name] = interceptor.getClass();
+    }
+
+    // Ensure the cycle is closed
+    if (path.first != path.last) {
+      path.add(path.first);
+    }
+
+    return InterceptorDependencyCycle(path, interceptorClasses: classes);
+  }
+
+  @override
+  String toString() {
+    final cyclePath = interceptorPath.join(' → ');
+    final classes = StringBuffer();
+
+    if (interceptorClasses != null) {
+      classes.write('\nInterceptor classes:\n');
+      for (final entry in interceptorClasses!.entries) {
+        final interceptorClass = entry.value;
+        final runBefore = interceptorClass.getDirectAnnotation<RunBefore>();
+        final runAfter = interceptorClass.getDirectAnnotation<RunAfter>();
+
+        classes.write(
+          '  • ${entry.key} (${interceptorClass.getSimpleName()})\n',
+        );
+        if (runBefore != null) {
+          classes.write(
+            '    @RunBefore: ${runBefore.targets.map(_targetToString).join(', ')}\n',
+          );
+        }
+        if (runAfter != null) {
+          classes.write(
+            '    @RunAfter: ${runAfter.targets.map(_targetToString).join(', ')}\n',
+          );
+        }
+      }
+    }
+
+    return 'Interceptor Cycle: $cyclePath$classes';
+  }
+
+  String _targetToString(dynamic target) {
+    if (target is String) return "'$target'";
+    if (target is Type) return target.getClass().getSimpleName();
+    return target.toString();
+  }
 }

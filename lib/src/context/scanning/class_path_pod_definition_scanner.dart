@@ -145,6 +145,8 @@ final class ClassPathPodDefinitionScanner {
       final cls = Class.declared(classDecl, ProtectionDomain.current());
       final qualifiedName = cls.getQualifiedName();
 
+      if (ClassUtils.isProxyClass(cls)) continue; // We do not register proxy classes as definitions
+
       if (Class<ReflectableAnnotation>(null, PackageNames.LANG).isAssignableFrom(cls)) {
         if (_logger.getIsTraceEnabled()) {
           _logger.trace('↩️ Class [$qualifiedName] is a reflectable annotation, skipping.');

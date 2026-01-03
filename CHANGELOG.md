@@ -6,6 +6,22 @@ This project follows a simple, human-readable changelog format inspired by
 
 ---
 
+## [1.1.6]
+
+### Changed
+- Updated dependencies:
+  - `jetleaf_convert`
+  - `jetleaf_pod`
+
+### Removed
+- `CircularDependencyException` API is now fully provided by `jetleaf_pod`.
+- `ToJsonFactory` is fully removed since it is a `jetson` API.
+
+### Fixed
+- Proxied classes were seen as pod definitions because of the scanning logic, this has been fixed since they are not real classes.
+
+---
+
 ## [1.1.5]
 
 ### Changed
